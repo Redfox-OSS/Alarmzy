@@ -30,6 +30,7 @@ import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { _ -> }
