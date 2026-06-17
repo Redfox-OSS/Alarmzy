@@ -26,6 +26,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Timelapse
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,8 +41,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TimePicker
@@ -55,6 +62,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import dev.redfox.alarmzy.domain.model.AlarmGroup
 import dev.redfox.alarmzy.domain.model.RepeatMode
@@ -79,6 +87,8 @@ fun AlarmEditScreen(
             onIntent(AlarmEditIntent.SetTime(timePickerState.hour, timePickerState.minute))
         }
     }
+
+    var showEndTimePicker by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -124,11 +134,75 @@ fun AlarmEditScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            if (uiState.isNew) {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = !uiState.isSeries,
+                        onClick = { onIntent(AlarmEditIntent.ToggleSeriesMode(false)) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                    ) { Text("Single") }
+                    SegmentedButton(
+                        selected = uiState.isSeries,
+                        onClick = { onIntent(AlarmEditIntent.ToggleSeriesMode(true)) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                    ) { Text("Series") }
+                }
+            }
+
+            if (uiState.isSeries) {
+                Text(
+                    "Start time",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 TimePicker(state = timePickerState)
+            }
+
+            if (uiState.isSeries) {
+                SeriesValueTile(
+                    icon = Icons.Default.Schedule,
+                    label = "Ends at",
+                    value = format12h(uiState.seriesEndHour, uiState.seriesEndMinute),
+                    onClick = { showEndTimePicker = true }
+                )
+
+                IntervalPicker(
+                    selectedMinutes = uiState.seriesIntervalMinutes,
+                    onSelect = { onIntent(AlarmEditIntent.SetSeriesInterval(it)) }
+                )
+
+                Surface(
+                    shape = MaterialTheme.shapes.large,
+                    color = if (uiState.canSave)
+                        MaterialTheme.colorScheme.secondaryContainer
+                    else
+                        MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = when {
+                            !uiState.seriesRangeValid -> "End time must be after the start time."
+                            !uiState.seriesWithinCap ->
+                                "That's too many alarms (max ${AlarmEditUiState.MAX_SERIES_ALARMS}). Use a longer interval."
+                            else -> "Creates ${uiState.seriesCount} alarms · " +
+                                "${format12h(uiState.hour, uiState.minute)}–" +
+                                "${format12h(uiState.seriesEndHour, uiState.seriesEndMinute)} " +
+                                "every ${uiState.seriesIntervalMinutes} min"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (uiState.canSave)
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        else
+                            MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    )
+                }
             }
 
             Text("Repeat", style = MaterialTheme.typography.titleSmall)
@@ -215,9 +289,15 @@ fun AlarmEditScreen(
             Button(
                 onClick = { onIntent(AlarmEditIntent.Save) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isSaving
+                enabled = uiState.canSave
             ) {
-                Text(if (uiState.isNew) "Create Alarm" else "Save Changes")
+                Text(
+                    when {
+                        uiState.isSeries -> "Create ${uiState.seriesCount} alarms"
+                        uiState.isNew -> "Create Alarm"
+                        else -> "Save Changes"
+                    }
+                )
             }
 
             if (!uiState.isNew) {
@@ -235,6 +315,42 @@ fun AlarmEditScreen(
                 }
             }
         }
+    }
+
+    if (showEndTimePicker) {
+        TimePickerDialog(
+            title = "End time",
+            initialHour = uiState.seriesEndHour,
+            initialMinute = uiState.seriesEndMinute,
+            onConfirm = { h, m ->
+                onIntent(AlarmEditIntent.SetSeriesEnd(h, m))
+                showEndTimePicker = false
+            },
+            onDismiss = { showEndTimePicker = false }
+        )
+    }
+
+    if (uiState.showDuplicateDialog) {
+        AlertDialog(
+            onDismissRequest = { onIntent(AlarmEditIntent.DismissDuplicateDialog) },
+            title = { Text("Duplicate alarms") },
+            text = {
+                Text(
+                    "Alarms already exist at ${uiState.duplicateTimes.joinToString(", ")}. " +
+                        "Create the series anyway?"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { onIntent(AlarmEditIntent.ConfirmSave) }) {
+                    Text("Create")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onIntent(AlarmEditIntent.DismissDuplicateDialog) }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -371,6 +487,183 @@ private fun GroupMenuItem(
                     modifier = Modifier.size(20.dp)
                 )
             }
+        }
+    )
+}
+
+private fun format12h(hour: Int, minute: Int): String {
+    val period = if (hour < 12) "AM" else "PM"
+    val h12 = when {
+        hour == 0 -> 12
+        hour > 12 -> hour - 12
+        else -> hour
+    }
+    return "%d:%02d %s".format(h12, minute, period)
+}
+
+@Composable
+private fun TileIconCircle(icon: ImageVector) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(22.dp)
+        )
+    }
+}
+
+@Composable
+private fun SeriesValueTile(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TileIconCircle(icon)
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    value,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Icon(
+                Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun IntervalPicker(
+    selectedMinutes: Int,
+    onSelect: (Int) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val options = listOf(5, 10, 15, 20, 30, 60)
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Surface(
+            onClick = { expanded = true },
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TileIconCircle(Icons.Default.Timelapse)
+                Spacer(Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Interval",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "$selectedMinutes min",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Icon(
+                    Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            shape = MaterialTheme.shapes.large,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ) {
+            options.forEach { minutes ->
+                val selected = minutes == selectedMinutes
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            "$minutes min",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface
+                        )
+                    },
+                    onClick = {
+                        onSelect(minutes)
+                        expanded = false
+                    },
+                    trailingIcon = {
+                        if (selected) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimePickerDialog(
+    title: String,
+    initialHour: Int,
+    initialMinute: Int,
+    onConfirm: (Int, Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val state = rememberTimePickerState(
+        initialHour = initialHour,
+        initialMinute = initialMinute,
+        is24Hour = false
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                TimePicker(state = state)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text("OK") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }

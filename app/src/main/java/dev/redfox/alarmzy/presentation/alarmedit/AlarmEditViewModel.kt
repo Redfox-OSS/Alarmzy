@@ -35,6 +35,8 @@ class AlarmEditViewModel @Inject constructor(
     private val _sideEffect = Channel<AlarmEditSideEffect>()
     val sideEffect = _sideEffect.receiveAsFlow()
 
+    private var pendingAlarms: List<Alarm> = emptyList()
+
     init {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
@@ -112,32 +114,101 @@ class AlarmEditViewModel @Inject constructor(
             is AlarmEditIntent.SetGroup -> _uiState.value = _uiState.value.copy(
                 selectedGroupId = intent.groupId
             )
+            is AlarmEditIntent.ToggleSeriesMode -> {
+                if (intent.enabled) {
+                    val s = _uiState.value
+                    val endTotal = (s.hour * 60 + s.minute + 60).coerceAtMost(23 * 60 + 59)
+                    _uiState.value = s.copy(
+                        isSeries = true,
+                        seriesEndHour = endTotal / 60,
+                        seriesEndMinute = endTotal % 60
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(isSeries = false)
+                }
+            }
+            is AlarmEditIntent.SetSeriesEnd -> _uiState.value = _uiState.value.copy(
+                seriesEndHour = intent.hour, seriesEndMinute = intent.minute
+            )
+            is AlarmEditIntent.SetSeriesInterval -> _uiState.value = _uiState.value.copy(
+                seriesIntervalMinutes = intent.minutes
+            )
             is AlarmEditIntent.Save -> save()
+            is AlarmEditIntent.ConfirmSave -> commit(pendingAlarms)
+            is AlarmEditIntent.DismissDuplicateDialog -> {
+                pendingAlarms = emptyList()
+                _uiState.value = _uiState.value.copy(
+                    showDuplicateDialog = false,
+                    duplicateTimes = emptyList()
+                )
+            }
             is AlarmEditIntent.Delete -> delete()
         }
     }
 
     private fun save() {
         val state = _uiState.value
-        _uiState.value = state.copy(isSaving = true)
+        if (!state.canSave) return
+
+        if (state.isSeries) {
+            viewModelScope.launch {
+                val alarms = state.seriesTimes.map { minutesOfDay ->
+                    buildAlarm(state, minutesOfDay / 60, minutesOfDay % 60)
+                }
+                val existingTimes = alarmRepository.getAllAlarms().first()
+                    .map { it.hour * 60 + it.minute }
+                    .toSet()
+                val duplicates = state.seriesTimes.filter { it in existingTimes }
+                if (duplicates.isNotEmpty()) {
+                    pendingAlarms = alarms
+                    _uiState.value = state.copy(
+                        showDuplicateDialog = true,
+                        duplicateTimes = duplicates.map(::format12h)
+                    )
+                } else {
+                    commit(alarms)
+                }
+            }
+        } else {
+            commit(listOf(buildAlarm(state, state.hour, state.minute)))
+        }
+    }
+
+    private fun commit(alarms: List<Alarm>) {
+        if (alarms.isEmpty()) return
+        _uiState.value = _uiState.value.copy(isSaving = true, showDuplicateDialog = false)
         viewModelScope.launch {
-            val alarm = Alarm(
-                id = if (state.isNew) 0 else alarmId ?: 0,
-                hour = state.hour,
-                minute = state.minute,
-                label = state.label,
-                isEnabled = true,
-                repeatMode = state.repeatMode,
-                ringtoneUri = state.ringtoneUri,
-                ringtoneName = state.ringtoneName,
-                vibrationEnabled = state.vibrationEnabled,
-                snoozeDurationMinutes = state.snoozeDurationMinutes,
-                gradualVolumeIncrease = state.gradualVolumeIncrease,
-                groupId = state.selectedGroupId
-            )
-            alarmRepository.saveAlarm(alarm)
+            alarmRepository.saveAlarms(alarms)
+            pendingAlarms = emptyList()
             _sideEffect.send(AlarmEditSideEffect.Saved)
         }
+    }
+
+    private fun buildAlarm(state: AlarmEditUiState, hour: Int, minute: Int): Alarm = Alarm(
+        id = if (state.isNew || state.isSeries) 0 else alarmId ?: 0,
+        hour = hour,
+        minute = minute,
+        label = state.label,
+        isEnabled = true,
+        repeatMode = state.repeatMode,
+        ringtoneUri = state.ringtoneUri,
+        ringtoneName = state.ringtoneName,
+        vibrationEnabled = state.vibrationEnabled,
+        snoozeDurationMinutes = state.snoozeDurationMinutes,
+        gradualVolumeIncrease = state.gradualVolumeIncrease,
+        groupId = state.selectedGroupId
+    )
+
+    private fun format12h(minutesOfDay: Int): String {
+        val h = minutesOfDay / 60
+        val m = minutesOfDay % 60
+        val period = if (h < 12) "AM" else "PM"
+        val h12 = when {
+            h == 0 -> 12
+            h > 12 -> h - 12
+            else -> h
+        }
+        return "%d:%02d %s".format(h12, m, period)
     }
 
     private fun delete() {

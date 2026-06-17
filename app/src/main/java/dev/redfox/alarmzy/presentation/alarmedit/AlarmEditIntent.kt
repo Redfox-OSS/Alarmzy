@@ -11,7 +11,12 @@ sealed interface AlarmEditIntent {
     data class SetSnoozeDuration(val minutes: Int) : AlarmEditIntent
     data class SetGradualVolume(val enabled: Boolean) : AlarmEditIntent
     data class SetGroup(val groupId: Long?) : AlarmEditIntent
+    data class ToggleSeriesMode(val enabled: Boolean) : AlarmEditIntent
+    data class SetSeriesEnd(val hour: Int, val minute: Int) : AlarmEditIntent
+    data class SetSeriesInterval(val minutes: Int) : AlarmEditIntent
     data object Save : AlarmEditIntent
+    data object ConfirmSave : AlarmEditIntent
+    data object DismissDuplicateDialog : AlarmEditIntent
     data object Delete : AlarmEditIntent
 }
 

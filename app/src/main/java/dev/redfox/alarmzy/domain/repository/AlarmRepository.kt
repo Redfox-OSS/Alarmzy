@@ -8,6 +8,7 @@ interface AlarmRepository {
     fun getNextEnabledAlarm(): Flow<Alarm?>
     suspend fun getAlarmById(id: Long): Alarm?
     suspend fun saveAlarm(alarm: Alarm): Long
+    suspend fun saveAlarms(alarms: List<Alarm>)
     suspend fun deleteAlarm(alarm: Alarm)
     suspend fun toggleAlarm(id: Long, enabled: Boolean)
     suspend fun setAlarmGroup(alarmId: Long, groupId: Long?)

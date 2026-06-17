@@ -50,6 +50,10 @@ class AlarmRepositoryImpl @Inject constructor(
         return id
     }
 
+    override suspend fun saveAlarms(alarms: List<Alarm>) {
+        alarms.forEach { saveAlarm(it) }
+    }
+
     override suspend fun deleteAlarm(alarm: Alarm) {
         alarmScheduler.cancel(alarm.id)
         alarmDao.deleteAlarm(alarm.toEntity())
