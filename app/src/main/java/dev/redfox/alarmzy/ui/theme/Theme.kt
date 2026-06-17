@@ -10,6 +10,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import dev.redfox.alarmzy.domain.model.AccentColor
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -36,12 +37,15 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun AlarmzyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    accentColor: AccentColor = AccentColor.DYNAMIC,
     content: @Composable () -> Unit
 ) {
+    val fixedScheme = accentColorScheme(accentColor, darkTheme)
     val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+        // A chosen fixed accent always wins.
+        fixedScheme != null -> fixedScheme
+        // Dynamic (Material You) — available on Android 12+ (minSdk 31, always true here).
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }

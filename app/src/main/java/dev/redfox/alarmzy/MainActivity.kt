@@ -57,7 +57,10 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.DARK -> true
             }
 
-            AlarmzyTheme(darkTheme = darkTheme) {
+            AlarmzyTheme(
+                darkTheme = darkTheme,
+                accentColor = settingsState.accentColor
+            ) {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route

@@ -44,6 +44,8 @@ class AlarmEditViewModel @Inject constructor(
             val defaultSnooze = prefs[SettingsViewModel.KEY_DEFAULT_SNOOZE] ?: 5
             val defaultVibration = prefs[SettingsViewModel.KEY_DEFAULT_VIBRATION] ?: true
             val defaultGradualVolume = prefs[SettingsViewModel.KEY_DEFAULT_GRADUAL_VOLUME] ?: false
+            val defaultRingtoneUri = prefs[SettingsViewModel.KEY_DEFAULT_RINGTONE_URI]
+            val defaultRingtoneName = prefs[SettingsViewModel.KEY_DEFAULT_RINGTONE_NAME] ?: "Default"
 
             val state = if (alarmId != null) {
                 val alarm = alarmRepository.getAlarmById(alarmId)
@@ -67,7 +69,9 @@ class AlarmEditViewModel @Inject constructor(
                         availableGroups = groups,
                         vibrationEnabled = defaultVibration,
                         snoozeDurationMinutes = defaultSnooze,
-                        gradualVolumeIncrease = defaultGradualVolume
+                        gradualVolumeIncrease = defaultGradualVolume,
+                        ringtoneUri = defaultRingtoneUri,
+                        ringtoneName = defaultRingtoneName
                     )
                 }
             } else {

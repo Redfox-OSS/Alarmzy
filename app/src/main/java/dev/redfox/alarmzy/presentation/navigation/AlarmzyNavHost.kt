@@ -11,7 +11,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import dev.redfox.alarmzy.presentation.alarmedit.AlarmEditIntent
 import dev.redfox.alarmzy.presentation.alarmedit.AlarmEditScreen
 import dev.redfox.alarmzy.presentation.alarmedit.AlarmEditSideEffect
 import dev.redfox.alarmzy.presentation.alarmedit.AlarmEditViewModel
@@ -25,6 +24,7 @@ import dev.redfox.alarmzy.presentation.groups.GroupsViewModel
 import dev.redfox.alarmzy.presentation.ringtone.RingtonePickerScreen
 import dev.redfox.alarmzy.presentation.ringtone.RingtonePickerSideEffect
 import dev.redfox.alarmzy.presentation.ringtone.RingtonePickerViewModel
+import dev.redfox.alarmzy.presentation.settings.SettingsIntent
 import dev.redfox.alarmzy.presentation.settings.SettingsScreen
 import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
 
@@ -65,11 +65,33 @@ fun AlarmzyNavHost(
         composable(BottomNavScreen.Settings.route) {
             val viewModel: SettingsViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+            val ringtoneUri = navController.currentBackStackEntry
+                ?.savedStateHandle
+                ?.get<String>("ringtone_uri")
+            val ringtoneName = navController.currentBackStackEntry
+                ?.savedStateHandle
+                ?.get<String>("ringtone_name")
+
+            LaunchedEffect(ringtoneUri, ringtoneName) {
+                if (ringtoneUri != null && ringtoneName != null) {
+                    viewModel.onIntent(
+                        SettingsIntent.SetDefaultRingtone(
+                            uri = ringtoneUri.ifBlank { null },
+                            name = ringtoneName
+                        )
+                    )
+                    navController.currentBackStackEntry?.savedStateHandle?.remove<String>("ringtone_uri")
+                    navController.currentBackStackEntry?.savedStateHandle?.remove<String>("ringtone_name")
+                }
+            }
+
             SettingsScreen(
                 uiState = uiState,
                 onIntent = viewModel::onIntent,
                 overlayPermissionGranted = overlayPermissionGranted,
-                onRequestOverlayPermission = onRequestOverlayPermission
+                onRequestOverlayPermission = onRequestOverlayPermission,
+                onPickRingtone = { navController.navigate(Routes.RINGTONE_PICKER) }
             )
         }
 
@@ -129,26 +151,6 @@ private fun AlarmEditDestination(navController: NavHostController) {
     val viewModel: AlarmEditViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val ringtoneUri = navController.currentBackStackEntry
-        ?.savedStateHandle
-        ?.get<String>("ringtone_uri")
-    val ringtoneName = navController.currentBackStackEntry
-        ?.savedStateHandle
-        ?.get<String>("ringtone_name")
-
-    LaunchedEffect(ringtoneUri, ringtoneName) {
-        if (ringtoneUri != null && ringtoneName != null) {
-            viewModel.onIntent(
-                AlarmEditIntent.SetRingtone(
-                    uri = ringtoneUri.ifBlank { null },
-                    name = ringtoneName
-                )
-            )
-            navController.currentBackStackEntry?.savedStateHandle?.remove<String>("ringtone_uri")
-            navController.currentBackStackEntry?.savedStateHandle?.remove<String>("ringtone_name")
-        }
-    }
-
     LaunchedEffect(Unit) {
         viewModel.sideEffect.collect { effect ->
             when (effect) {
@@ -161,8 +163,7 @@ private fun AlarmEditDestination(navController: NavHostController) {
     AlarmEditScreen(
         uiState = uiState,
         onIntent = viewModel::onIntent,
-        onNavigateBack = { navController.popBackStack() },
-        onPickRingtone = { navController.navigate(Routes.RINGTONE_PICKER) }
+        onNavigateBack = { navController.popBackStack() }
     )
 }
 

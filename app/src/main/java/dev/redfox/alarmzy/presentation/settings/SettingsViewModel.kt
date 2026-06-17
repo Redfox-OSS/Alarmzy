@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.redfox.alarmzy.domain.model.AccentColor
 import dev.redfox.alarmzy.domain.model.ThemeMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,9 +30,14 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             dataStore.data.map { prefs ->
                 SettingsUiState(
-                    themeMode = ThemeMode.valueOf(
-                        prefs[KEY_THEME_MODE] ?: ThemeMode.SYSTEM.name
-                    ),
+                    themeMode = runCatching {
+                        ThemeMode.valueOf(prefs[KEY_THEME_MODE] ?: ThemeMode.SYSTEM.name)
+                    }.getOrDefault(ThemeMode.SYSTEM),
+                    accentColor = runCatching {
+                        AccentColor.valueOf(prefs[KEY_ACCENT_COLOR] ?: AccentColor.DYNAMIC.name)
+                    }.getOrDefault(AccentColor.DYNAMIC),
+                    defaultRingtoneUri = prefs[KEY_DEFAULT_RINGTONE_URI],
+                    defaultRingtoneName = prefs[KEY_DEFAULT_RINGTONE_NAME] ?: "Default",
                     defaultSnoozeDuration = prefs[KEY_DEFAULT_SNOOZE] ?: 5,
                     defaultVibration = prefs[KEY_DEFAULT_VIBRATION] ?: true,
                     defaultGradualVolume = prefs[KEY_DEFAULT_GRADUAL_VOLUME] ?: false
@@ -46,6 +52,17 @@ class SettingsViewModel @Inject constructor(
         when (intent) {
             is SettingsIntent.SetThemeMode -> save { prefs ->
                 prefs[KEY_THEME_MODE] = intent.mode.name
+            }
+            is SettingsIntent.SetAccentColor -> save { prefs ->
+                prefs[KEY_ACCENT_COLOR] = intent.accent.name
+            }
+            is SettingsIntent.SetDefaultRingtone -> save { prefs ->
+                if (intent.uri != null) {
+                    prefs[KEY_DEFAULT_RINGTONE_URI] = intent.uri
+                } else {
+                    prefs.remove(KEY_DEFAULT_RINGTONE_URI)
+                }
+                prefs[KEY_DEFAULT_RINGTONE_NAME] = intent.name
             }
             is SettingsIntent.SetDefaultSnoozeDuration -> save { prefs ->
                 prefs[KEY_DEFAULT_SNOOZE] = intent.minutes
@@ -67,6 +84,9 @@ class SettingsViewModel @Inject constructor(
 
     companion object {
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        val KEY_ACCENT_COLOR = stringPreferencesKey("accent_color")
+        val KEY_DEFAULT_RINGTONE_URI = stringPreferencesKey("default_ringtone_uri")
+        val KEY_DEFAULT_RINGTONE_NAME = stringPreferencesKey("default_ringtone_name")
         val KEY_DEFAULT_SNOOZE = intPreferencesKey("default_snooze")
         val KEY_DEFAULT_VIBRATION = booleanPreferencesKey("default_vibration")
         val KEY_DEFAULT_GRADUAL_VOLUME = booleanPreferencesKey("default_gradual_volume")
