@@ -36,7 +36,6 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
@@ -193,31 +192,6 @@ fun AlarmEditScreen(
                 modifier = Modifier.clickable(onClick = onPickRingtone)
             )
 
-            ListItem(
-                headlineContent = { Text("Vibration") },
-                trailingContent = {
-                    Switch(
-                        checked = uiState.vibrationEnabled,
-                        onCheckedChange = { onIntent(AlarmEditIntent.SetVibration(it)) }
-                    )
-                }
-            )
-
-            ListItem(
-                headlineContent = { Text("Gradual volume increase") },
-                trailingContent = {
-                    Switch(
-                        checked = uiState.gradualVolumeIncrease,
-                        onCheckedChange = { onIntent(AlarmEditIntent.SetGradualVolume(it)) }
-                    )
-                }
-            )
-
-            SnoozeDurationPicker(
-                selectedMinutes = uiState.snoozeDurationMinutes,
-                onSelect = { onIntent(AlarmEditIntent.SetSnoozeDuration(it)) }
-            )
-
             if (uiState.availableGroups.isNotEmpty()) {
                 GroupPicker(
                     selectedGroupId = uiState.selectedGroupId,
@@ -249,46 +223,6 @@ fun AlarmEditScreen(
                     Spacer(Modifier.width(8.dp))
                     Text("Delete Alarm")
                 }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SnoozeDurationPicker(
-    selectedMinutes: Int,
-    onSelect: (Int) -> Unit
-) {
-    val options = listOf(5, 10, 15, 20, 30)
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it }
-    ) {
-        OutlinedTextField(
-            value = "$selectedMinutes minutes",
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Snooze duration") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            options.forEach { minutes ->
-                DropdownMenuItem(
-                    text = { Text("$minutes minutes") },
-                    onClick = {
-                        onSelect(minutes)
-                        expanded = false
-                    }
-                )
             }
         }
     }

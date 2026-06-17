@@ -1,10 +1,12 @@
 package dev.redfox.alarmzy.presentation.alarms
 
-import dev.redfox.alarmzy.domain.model.Alarm
-
 sealed interface AlarmsIntent {
     data class ToggleAlarm(val alarmId: Long, val enabled: Boolean) : AlarmsIntent
-    data class DeleteAlarm(val alarm: Alarm) : AlarmsIntent
+    data class EnterSelection(val alarmId: Long) : AlarmsIntent
+    data class ToggleSelection(val alarmId: Long) : AlarmsIntent
+    data object SelectAll : AlarmsIntent
+    data object ClearSelection : AlarmsIntent
+    data object DeleteSelected : AlarmsIntent
 }
 
 sealed interface AlarmsSideEffect {

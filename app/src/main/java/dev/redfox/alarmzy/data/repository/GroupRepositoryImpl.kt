@@ -27,6 +27,7 @@ class GroupRepositoryImpl @Inject constructor(
                     id = gwa.group.id,
                     name = gwa.group.name,
                     isEnabled = gwa.group.isEnabled,
+                    color = gwa.group.color,
                     alarms = gwa.alarms.map { entity ->
                         val days = AlarmRepositoryImpl.parseDays(entity.repeatDays)
                         Alarm(
@@ -43,6 +44,7 @@ class GroupRepositoryImpl @Inject constructor(
                             gradualVolumeIncrease = entity.gradualVolumeIncrease,
                             groupId = entity.groupId,
                             groupName = gwa.group.name,
+                            groupColor = gwa.group.color,
                             nextTriggerTimeMillis = entity.nextTriggerTimeMillis
                         )
                     }
@@ -62,7 +64,8 @@ class GroupRepositoryImpl @Inject constructor(
         val entity = GroupEntity(
             id = group.id,
             name = group.name,
-            isEnabled = group.isEnabled
+            isEnabled = group.isEnabled,
+            color = group.color
         )
         return if (group.id == 0L) {
             groupDao.insertGroup(entity)
@@ -77,7 +80,8 @@ class GroupRepositoryImpl @Inject constructor(
             GroupEntity(
                 id = group.id,
                 name = group.name,
-                isEnabled = group.isEnabled
+                isEnabled = group.isEnabled,
+                color = group.color
             )
         )
     }
@@ -106,6 +110,7 @@ class GroupRepositoryImpl @Inject constructor(
     private fun GroupEntity.toDomain() = AlarmGroup(
         id = id,
         name = name,
-        isEnabled = isEnabled
+        isEnabled = isEnabled,
+        color = color
     )
 }

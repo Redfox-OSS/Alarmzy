@@ -9,5 +9,6 @@ data class GroupEntity(
     val id: Long = 0,
     val name: String,
     val isEnabled: Boolean = true,
+    val color: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

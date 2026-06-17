@@ -1,5 +1,7 @@
 package dev.redfox.alarmzy.presentation.alarmedit
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.redfox.alarmzy.domain.model.Alarm
 import dev.redfox.alarmzy.domain.repository.AlarmRepository
 import dev.redfox.alarmzy.domain.repository.GroupRepository
+import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +23,8 @@ import javax.inject.Inject
 class AlarmEditViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val alarmRepository: AlarmRepository,
-    private val groupRepository: GroupRepository
+    private val groupRepository: GroupRepository,
+    private val dataStore: DataStore<Preferences>
 ) : ViewModel() {
 
     private val alarmId: Long? = savedStateHandle.get<Long>("alarmId")
@@ -36,6 +40,11 @@ class AlarmEditViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             val groups = groupRepository.getAllGroups().first()
+            val prefs = dataStore.data.first()
+            val defaultSnooze = prefs[SettingsViewModel.KEY_DEFAULT_SNOOZE] ?: 5
+            val defaultVibration = prefs[SettingsViewModel.KEY_DEFAULT_VIBRATION] ?: true
+            val defaultGradualVolume = prefs[SettingsViewModel.KEY_DEFAULT_GRADUAL_VOLUME] ?: false
+
             val state = if (alarmId != null) {
                 val alarm = alarmRepository.getAlarmById(alarmId)
                 if (alarm != null) {
@@ -54,10 +63,20 @@ class AlarmEditViewModel @Inject constructor(
                         availableGroups = groups
                     )
                 } else {
-                    AlarmEditUiState(availableGroups = groups)
+                    AlarmEditUiState(
+                        availableGroups = groups,
+                        vibrationEnabled = defaultVibration,
+                        snoozeDurationMinutes = defaultSnooze,
+                        gradualVolumeIncrease = defaultGradualVolume
+                    )
                 }
             } else {
-                AlarmEditUiState(availableGroups = groups)
+                AlarmEditUiState(
+                    availableGroups = groups,
+                    vibrationEnabled = defaultVibration,
+                    snoozeDurationMinutes = defaultSnooze,
+                    gradualVolumeIncrease = defaultGradualVolume
+                )
             }
             _uiState.value = state
         }

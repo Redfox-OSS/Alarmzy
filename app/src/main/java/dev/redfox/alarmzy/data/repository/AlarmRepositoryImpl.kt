@@ -79,7 +79,7 @@ class AlarmRepositoryImpl @Inject constructor(
         alarmDao.getAllEnabledAlarms().map { it.toDomain() }
 
     private suspend fun AlarmEntity.toDomain(): Alarm {
-        val groupName = groupId?.let { groupDao.getGroupById(it)?.name }
+        val group = groupId?.let { groupDao.getGroupById(it) }
         val days = parseDays(repeatDays)
         return Alarm(
             id = id,
@@ -94,7 +94,8 @@ class AlarmRepositoryImpl @Inject constructor(
             snoozeDurationMinutes = snoozeDurationMinutes,
             gradualVolumeIncrease = gradualVolumeIncrease,
             groupId = groupId,
-            groupName = groupName,
+            groupName = group?.name,
+            groupColor = group?.color,
             nextTriggerTimeMillis = nextTriggerTimeMillis
         )
     }

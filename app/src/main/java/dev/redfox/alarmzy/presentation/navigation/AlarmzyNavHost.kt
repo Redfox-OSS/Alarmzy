@@ -31,6 +31,8 @@ import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
 @Composable
 fun AlarmzyNavHost(
     navController: NavHostController,
+    overlayPermissionGranted: Boolean = false,
+    onRequestOverlayPermission: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     NavHost(
@@ -65,7 +67,9 @@ fun AlarmzyNavHost(
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             SettingsScreen(
                 uiState = uiState,
-                onIntent = viewModel::onIntent
+                onIntent = viewModel::onIntent,
+                overlayPermissionGranted = overlayPermissionGranted,
+                onRequestOverlayPermission = onRequestOverlayPermission
             )
         }
 

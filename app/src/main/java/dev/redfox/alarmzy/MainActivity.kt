@@ -1,9 +1,12 @@
 package dev.redfox.alarmzy
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -13,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,6 +35,8 @@ import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    var overlayPermissionGranted by mutableStateOf(false)
+        private set
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -39,6 +46,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         requestNotificationPermissionIfNeeded()
+        overlayPermissionGranted = Settings.canDrawOverlays(this)
         setContent {
             val settingsViewModel: SettingsViewModel = hiltViewModel()
             val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
@@ -77,11 +85,26 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     AlarmzyNavHost(
                         navController = navController,
+                        overlayPermissionGranted = overlayPermissionGranted,
+                        onRequestOverlayPermission = { requestOverlayPermission() },
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        overlayPermissionGranted = Settings.canDrawOverlays(this)
+    }
+
+    fun requestOverlayPermission() {
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:$packageName")
+        )
+        startActivity(intent)
     }
 
     private fun requestNotificationPermissionIfNeeded() {

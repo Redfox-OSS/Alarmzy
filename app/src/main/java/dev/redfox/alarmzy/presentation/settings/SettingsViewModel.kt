@@ -1,17 +1,14 @@
 package dev.redfox.alarmzy.presentation.settings
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.redfox.alarmzy.domain.model.ThemeMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,11 +17,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
-
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    private val dataStore: DataStore<Preferences>
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -32,7 +27,7 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            context.dataStore.data.map { prefs ->
+            dataStore.data.map { prefs ->
                 SettingsUiState(
                     themeMode = ThemeMode.valueOf(
                         prefs[KEY_THEME_MODE] ?: ThemeMode.SYSTEM.name
@@ -66,7 +61,7 @@ class SettingsViewModel @Inject constructor(
 
     private fun save(block: suspend (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
         viewModelScope.launch {
-            context.dataStore.edit { block(it) }
+            dataStore.edit { block(it) }
         }
     }
 

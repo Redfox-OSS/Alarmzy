@@ -6,6 +6,7 @@ data class GroupEditUiState(
     val isNew: Boolean = true,
     val name: String = "",
     val isEnabled: Boolean = true,
+    val color: String? = null,
     val allAlarms: List<Alarm> = emptyList(),
     val selectedAlarmIds: Set<Long> = emptySet(),
     val isSaving: Boolean = false,

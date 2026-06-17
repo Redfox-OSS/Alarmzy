@@ -1,11 +1,11 @@
 package dev.redfox.alarmzy.presentation.groups
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,35 +20,44 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.redfox.alarmzy.domain.model.Alarm
 import dev.redfox.alarmzy.domain.model.AlarmGroup
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupsScreen(
     uiState: GroupsUiState,
@@ -57,10 +66,49 @@ fun GroupsScreen(
     onEditGroup: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Scaffold(
+        topBar = {
+            if (uiState.selectionMode) {
+                TopAppBar(
+                    title = { Text("${uiState.selectedCount} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = { onIntent(GroupsIntent.ClearSelection) }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Exit selection"
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { onIntent(GroupsIntent.SelectAll) }) {
+                            Icon(Icons.Default.DoneAll, contentDescription = "Select all")
+                        }
+                        IconButton(
+                            onClick = { showDeleteDialog = true },
+                            enabled = uiState.selectedCount > 0
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete selected",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    )
+                )
+            } else {
+                TopAppBar(title = { Text("Groups") })
+            }
+        },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddGroup) {
-                Icon(Icons.Default.Add, contentDescription = "Create group")
+            if (!uiState.selectionMode) {
+                FloatingActionButton(onClick = onAddGroup) {
+                    Icon(Icons.Default.Add, contentDescription = "Create group")
+                }
             }
         },
         modifier = modifier
@@ -92,18 +140,24 @@ fun GroupsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(uiState.groups, key = { it.id }) { group ->
-                        val isExpanded = group.id in uiState.expandedGroupIds
-                        SwipeableGroupCard(
+                        val isExpanded = !uiState.selectionMode && group.id in uiState.expandedGroupIds
+                        GroupCard(
                             group = group,
                             isExpanded = isExpanded,
+                            selectionMode = uiState.selectionMode,
+                            isSelected = group.id in uiState.selectedIds,
+                            onCardClick = {
+                                if (uiState.selectionMode) {
+                                    onIntent(GroupsIntent.ToggleSelection(group.id))
+                                } else {
+                                    onIntent(GroupsIntent.ToggleExpand(group.id))
+                                }
+                            },
+                            onLongClick = { onIntent(GroupsIntent.EnterSelection(group.id)) },
                             onToggleGroup = { enabled ->
                                 onIntent(GroupsIntent.ToggleGroup(group.id, enabled))
                             },
-                            onToggleExpand = {
-                                onIntent(GroupsIntent.ToggleExpand(group.id))
-                            },
                             onEditGroup = { onEditGroup(group.id) },
-                            onDeleteGroup = { onIntent(GroupsIntent.DeleteGroup(group)) },
                             onToggleAlarm = { alarmId, enabled ->
                                 onIntent(GroupsIntent.ToggleAlarmInGroup(alarmId, enabled))
                             }
@@ -112,6 +166,35 @@ fun GroupsScreen(
                 }
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        val count = uiState.selectedCount
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(if (count == 1) "Delete group?" else "Delete $count groups?") },
+            text = {
+                Text(
+                    if (count == 1) "The group will be deleted. Its alarms will be kept and ungrouped."
+                    else "These $count groups will be deleted. Their alarms will be kept and ungrouped."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onIntent(GroupsIntent.DeleteSelected)
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -145,86 +228,39 @@ private fun EmptyGroupsContent(modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-private fun SwipeableGroupCard(
-    group: AlarmGroup,
-    isExpanded: Boolean,
-    onToggleGroup: (Boolean) -> Unit,
-    onToggleExpand: () -> Unit,
-    onEditGroup: () -> Unit,
-    onDeleteGroup: () -> Unit,
-    onToggleAlarm: (Long, Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val dismissState = rememberSwipeToDismissBoxState()
-
-    LaunchedEffect(dismissState.currentValue) {
-        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-            onDeleteGroup()
-        }
-    }
-
-    SwipeToDismissBox(
-        state = dismissState,
-        backgroundContent = {
-            val color by animateColorAsState(
-                targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart)
-                    MaterialTheme.colorScheme.errorContainer
-                else MaterialTheme.colorScheme.surface,
-                label = "swipe_bg"
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(color, MaterialTheme.shapes.medium)
-                    .padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.onErrorContainer
-                )
-            }
-        },
-        enableDismissFromStartToEnd = false,
-        modifier = modifier
-    ) {
-        GroupCard(
-            group = group,
-            isExpanded = isExpanded,
-            onToggleGroup = onToggleGroup,
-            onToggleExpand = onToggleExpand,
-            onEditGroup = onEditGroup,
-            onToggleAlarm = onToggleAlarm
-        )
-    }
-}
-
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun GroupCard(
     group: AlarmGroup,
     isExpanded: Boolean,
+    selectionMode: Boolean,
+    isSelected: Boolean,
+    onCardClick: () -> Unit,
+    onLongClick: () -> Unit,
     onToggleGroup: (Boolean) -> Unit,
-    onToggleExpand: () -> Unit,
     onEditGroup: () -> Unit,
     onToggleAlarm: (Long, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = onCardClick,
+                onLongClick = onLongClick
+            ),
         colors = CardDefaults.cardColors(
-            containerColor = if (group.isEnabled)
-                MaterialTheme.colorScheme.surface
-            else
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = when {
+                isSelected -> MaterialTheme.colorScheme.secondaryContainer
+                group.isEnabled -> MaterialTheme.colorScheme.surfaceContainerHigh
+                else -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.6f)
+            }
         )
     ) {
         Column {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onToggleExpand)
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -233,13 +269,24 @@ private fun GroupCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
+                    if (selectionMode) {
+                        Checkbox(
+                            checked = isSelected,
+                            onCheckedChange = { onCardClick() }
+                        )
+                        Spacer(Modifier.width(12.dp))
+                    }
+                    val groupColor = group.color?.let {
+                        try { Color(android.graphics.Color.parseColor(it)) }
+                        catch (_: Exception) { null }
+                    }
                     Icon(
                         Icons.Default.Folder,
                         contentDescription = null,
                         tint = if (group.isEnabled)
-                            MaterialTheme.colorScheme.primary
+                            groupColor ?: MaterialTheme.colorScheme.primary
                         else
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            (groupColor ?: MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.5f)
                     )
                     Spacer(Modifier.width(12.dp))
                     Column {
@@ -260,17 +307,19 @@ private fun GroupCard(
                     }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(
-                        checked = group.isEnabled,
-                        onCheckedChange = onToggleGroup
-                    )
-                    IconButton(onClick = onToggleExpand) {
-                        Icon(
-                            if (isExpanded) Icons.Default.KeyboardArrowUp
-                            else Icons.Default.KeyboardArrowDown,
-                            contentDescription = if (isExpanded) "Collapse" else "Expand"
+                if (!selectionMode) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(
+                            checked = group.isEnabled,
+                            onCheckedChange = onToggleGroup
                         )
+                        IconButton(onClick = onCardClick) {
+                            Icon(
+                                if (isExpanded) Icons.Default.KeyboardArrowUp
+                                else Icons.Default.KeyboardArrowDown,
+                                contentDescription = if (isExpanded) "Collapse" else "Expand"
+                            )
+                        }
                     }
                 }
             }
@@ -291,11 +340,16 @@ private fun GroupCard(
                             modifier = Modifier.padding(16.dp)
                         )
                     } else {
-                        group.alarms.forEach { alarm ->
-                            AlarmMiniCard(
-                                alarm = alarm,
-                                onToggle = { onToggleAlarm(alarm.id, it) }
-                            )
+                        Column(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            group.alarms.forEach { alarm ->
+                                AlarmMiniCard(
+                                    alarm = alarm,
+                                    onToggle = { onToggleAlarm(alarm.id, it) }
+                                )
+                            }
                         }
                     }
 
@@ -324,41 +378,41 @@ private fun AlarmMiniCard(
     onToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(
-                text = alarm.timeFormatted,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Light,
-                color = if (alarm.isEnabled)
-                    MaterialTheme.colorScheme.onSurface
-                else
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            )
-            if (alarm.label.isNotBlank()) {
-                Text(
-                    text = alarm.label,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-            }
-        }
-        Switch(
-            checked = alarm.isEnabled,
-            onCheckedChange = onToggle
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         )
-    }
-}
-
-@Composable
-fun GroupsScreenPlaceholder(modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Groups — coming soon")
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = alarm.timeFormatted,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Light,
+                    color = if (alarm.isEnabled)
+                        MaterialTheme.colorScheme.onSurface
+                    else
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+                if (alarm.label.isNotBlank()) {
+                    Text(
+                        text = alarm.label,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            }
+            Switch(
+                checked = alarm.isEnabled,
+                onCheckedChange = onToggle
+            )
+        }
     }
 }

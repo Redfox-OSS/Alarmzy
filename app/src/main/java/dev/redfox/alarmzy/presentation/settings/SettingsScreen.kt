@@ -1,5 +1,6 @@
 package dev.redfox.alarmzy.presentation.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,17 +9,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,18 +35,60 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.redfox.alarmzy.domain.model.ThemeMode
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     uiState: SettingsUiState,
     onIntent: (SettingsIntent) -> Unit,
+    overlayPermissionGranted: Boolean = false,
+    onRequestOverlayPermission: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text("Settings") })
+        },
         modifier = modifier
+    ) { innerPadding ->
+    Column(
+        modifier = Modifier
             .fillMaxSize()
+            .padding(innerPadding)
             .verticalScroll(rememberScrollState())
     ) {
         Spacer(Modifier.height(8.dp))
+
+        Text(
+            "Permissions",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
+        ListItem(
+            headlineContent = { Text("Display over other apps") },
+            supportingContent = {
+                Text(
+                    if (overlayPermissionGranted) "Granted — fullscreen alarm will show"
+                    else "Required for fullscreen alarm screen. Tap to grant."
+                )
+            },
+            leadingContent = {
+                Icon(
+                    if (overlayPermissionGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = if (overlayPermissionGranted) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.error
+                )
+            },
+            modifier = if (!overlayPermissionGranted) {
+                Modifier.clickable(onClick = onRequestOverlayPermission)
+            } else {
+                Modifier
+            }
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
         Text(
             "Appearance",
@@ -102,6 +151,7 @@ fun SettingsScreen(
             headlineContent = { Text("Alarmzy") },
             supportingContent = { Text("Version 1.0") }
         )
+    }
     }
 }
 

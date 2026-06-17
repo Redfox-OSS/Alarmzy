@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.IBinder
+import android.provider.Settings
 import dagger.hilt.android.AndroidEntryPoint
 import dev.redfox.alarmzy.R
 import dev.redfox.alarmzy.data.local.dao.AlarmDao
@@ -116,7 +117,13 @@ class AlarmService : Service() {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
         )
 
-        startActivity(ringingIntent)
+        // Launch fullscreen alarm activity.
+        // SYSTEM_ALERT_WINDOW permission allows us to reliably start the activity
+        // from a background service even when the screen is on.
+        // Without it, only the notification's fullScreenIntent fires (and only on lock screen).
+        if (Settings.canDrawOverlays(this)) {
+            startActivity(ringingIntent)
+        }
 
         alarmPlayer?.stop()
         alarmPlayer = AlarmPlayer(this).apply {

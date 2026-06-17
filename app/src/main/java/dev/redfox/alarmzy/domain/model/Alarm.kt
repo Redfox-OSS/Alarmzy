@@ -14,6 +14,7 @@ data class Alarm(
     val gradualVolumeIncrease: Boolean = false,
     val groupId: Long? = null,
     val groupName: String? = null,
+    val groupColor: String? = null,
     val nextTriggerTimeMillis: Long = 0
 ) {
     val timeFormatted: String
