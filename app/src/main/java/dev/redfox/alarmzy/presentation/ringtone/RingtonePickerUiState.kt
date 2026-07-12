@@ -9,5 +9,6 @@ data class RingtonePickerUiState(
 
 data class RingtoneItem(
     val uri: String,
-    val name: String
+    val name: String,
+    val isCustom: Boolean = false
 )

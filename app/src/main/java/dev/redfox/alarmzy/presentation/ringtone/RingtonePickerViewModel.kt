@@ -1,7 +1,11 @@
 package dev.redfox.alarmzy.presentation.ringtone
 
 import android.content.Context
+import android.media.AudioAttributes
+import android.media.MediaPlayer
 import android.media.RingtoneManager
+import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -23,7 +27,7 @@ class RingtonePickerViewModel @Inject constructor(
     private val _sideEffect = Channel<RingtonePickerSideEffect>()
     val sideEffect = _sideEffect.receiveAsFlow()
 
-    private var currentRingtone: android.media.Ringtone? = null
+    private var previewPlayer: MediaPlayer? = null
 
     init {
         loadRingtones()
@@ -47,34 +51,31 @@ class RingtonePickerViewModel @Inject constructor(
     fun onIntent(intent: RingtonePickerIntent) {
         when (intent) {
             is RingtonePickerIntent.SelectRingtone -> {
+                _uiState.value = _uiState.value.copy(selectedUri = intent.uri)
+            }
+            is RingtonePickerIntent.AddCustomRingtone -> {
+                val name = queryDisplayName(intent.uri)
+                val item = RingtoneItem(uri = intent.uri, name = name, isCustom = true)
+                val existing = _uiState.value.ringtones
+                val newList = if (existing.any { it.uri == intent.uri }) existing
+                else listOf(item) + existing
                 _uiState.value = _uiState.value.copy(
+                    ringtones = newList,
                     selectedUri = intent.uri
                 )
             }
             is RingtonePickerIntent.PreviewRingtone -> {
-                stopCurrentPreview()
-                val uri = android.net.Uri.parse(intent.uri)
-                currentRingtone = RingtoneManager.getRingtone(context, uri)?.also {
-                    it.play()
-                }
-                _uiState.value = _uiState.value.copy(
-                    isPlaying = true,
-                    playingUri = intent.uri
-                )
+                startPreview(intent.uri)
             }
             is RingtonePickerIntent.StopPreview -> {
-                stopCurrentPreview()
-                _uiState.value = _uiState.value.copy(
-                    isPlaying = false,
-                    playingUri = null
-                )
+                stopPreview()
+                _uiState.value = _uiState.value.copy(isPlaying = false, playingUri = null)
             }
             is RingtonePickerIntent.Confirm -> {
-                stopCurrentPreview()
+                stopPreview()
                 val state = _uiState.value
                 val selectedItem = state.ringtones.find { it.uri == state.selectedUri }
-                val channel = _sideEffect
-                channel.trySend(
+                _sideEffect.trySend(
                     RingtonePickerSideEffect.Confirmed(
                         uri = state.selectedUri,
                         name = selectedItem?.name ?: "Default"
@@ -84,13 +85,51 @@ class RingtonePickerViewModel @Inject constructor(
         }
     }
 
-    private fun stopCurrentPreview() {
-        currentRingtone?.stop()
-        currentRingtone = null
+    private fun startPreview(uriString: String) {
+        stopPreview()
+        val started = runCatching {
+            previewPlayer = MediaPlayer().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
+                )
+                setDataSource(context, Uri.parse(uriString))
+                isLooping = true
+                setOnPreparedListener { it.start() }
+                prepareAsync()
+            }
+        }.isSuccess
+        _uiState.value = _uiState.value.copy(
+            isPlaying = started,
+            playingUri = if (started) uriString else null
+        )
+    }
+
+    private fun stopPreview() {
+        previewPlayer?.apply {
+            runCatching { if (isPlaying) stop() }
+            release()
+        }
+        previewPlayer = null
+    }
+
+    /** Resolves a human-readable name for a picked audio file. */
+    private fun queryDisplayName(uriString: String): String {
+        val uri = Uri.parse(uriString)
+        val name = runCatching {
+            context.contentResolver.query(
+                uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
+        }.getOrNull()
+        return name?.substringBeforeLast('.')?.takeIf { it.isNotBlank() } ?: "Custom sound"
     }
 
     override fun onCleared() {
         super.onCleared()
-        stopCurrentPreview()
+        stopPreview()
     }
 }
