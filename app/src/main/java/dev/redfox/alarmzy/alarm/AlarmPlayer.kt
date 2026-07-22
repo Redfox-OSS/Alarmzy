@@ -25,24 +25,16 @@ class AlarmPlayer(private val context: Context) {
         gradualVolume: Boolean,
         scope: CoroutineScope
     ) {
-        val uri = if (ringtoneUri != null) {
-            Uri.parse(ringtoneUri)
-        } else {
-            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        }
+        val defaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
-        mediaPlayer = MediaPlayer().apply {
-            setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-            )
-            setDataSource(context, uri)
-            isLooping = true
-            prepare()
+        // Try the configured (possibly custom, permission-backed) sound first, then
+        // fall back to the device default so an alarm is never silent.
+        val player = ringtoneUri?.let { preparePlayer(Uri.parse(it)) }
+            ?: defaultUri?.let { preparePlayer(it) }
 
+        mediaPlayer = player
+        player?.apply {
             if (gradualVolume) {
                 setVolume(0.1f, 0.1f)
                 volumeJob = scope.launch {
@@ -62,6 +54,30 @@ class AlarmPlayer(private val context: Context) {
             val pattern = longArrayOf(0, 500, 200, 500)
             val effect = VibrationEffect.createWaveform(pattern, 0)
             vibratorManager?.vibrate(CombinedVibration.createParallel(effect))
+        }
+    }
+
+    /**
+     * Builds and prepares a looping [MediaPlayer] for [uri], or returns null if the source
+     * can't be loaded (e.g. a custom file whose read permission was lost). The player is
+     * released on failure so the caller can fall back to another source.
+     */
+    private fun preparePlayer(uri: Uri): MediaPlayer? {
+        val mp = MediaPlayer()
+        return runCatching {
+            mp.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            mp.setDataSource(context, uri)
+            mp.isLooping = true
+            mp.prepare()
+            mp
+        }.getOrElse {
+            runCatching { mp.release() }
+            null
         }
     }
 

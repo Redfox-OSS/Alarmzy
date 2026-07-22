@@ -5,6 +5,7 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
+import android.net.Uri
 
 enum class BottomNavScreen(
     val route: String,
@@ -21,11 +22,14 @@ object Routes {
     const val ALARM_EDIT_WITH_ID = "alarm_edit/{alarmId}"
     const val GROUP_EDIT = "group_edit"
     const val GROUP_EDIT_WITH_ID = "group_edit/{groupId}"
-    const val RINGTONE_PICKER = "ringtone_picker"
+    const val RINGTONE_PICKER = "ringtone_picker?uri={uri}&name={name}"
 
     fun alarmEdit(alarmId: Long? = null): String =
         if (alarmId != null) "alarm_edit/$alarmId" else ALARM_EDIT
 
     fun groupEdit(groupId: Long? = null): String =
         if (groupId != null) "group_edit/$groupId" else GROUP_EDIT
+
+    fun ringtonePicker(uri: String?, name: String?): String =
+        "ringtone_picker?uri=${Uri.encode(uri.orEmpty())}&name=${Uri.encode(name.orEmpty())}"
 }

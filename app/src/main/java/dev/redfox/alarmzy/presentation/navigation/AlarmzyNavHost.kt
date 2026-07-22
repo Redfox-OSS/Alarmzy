@@ -91,7 +91,11 @@ fun AlarmzyNavHost(
                 onIntent = viewModel::onIntent,
                 overlayPermissionGranted = overlayPermissionGranted,
                 onRequestOverlayPermission = onRequestOverlayPermission,
-                onPickRingtone = { navController.navigate(Routes.RINGTONE_PICKER) }
+                onPickRingtone = {
+                    navController.navigate(
+                        Routes.ringtonePicker(uiState.defaultRingtoneUri, uiState.defaultRingtoneName)
+                    )
+                }
             )
         }
 
@@ -117,7 +121,13 @@ fun AlarmzyNavHost(
             GroupEditDestination(navController)
         }
 
-        composable(Routes.RINGTONE_PICKER) {
+        composable(
+            route = Routes.RINGTONE_PICKER,
+            arguments = listOf(
+                navArgument("uri") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("name") { type = NavType.StringType; nullable = true; defaultValue = null }
+            )
+        ) {
             val viewModel: RingtonePickerViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 

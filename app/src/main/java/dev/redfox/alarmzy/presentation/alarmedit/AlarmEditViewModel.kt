@@ -81,7 +81,9 @@ class AlarmEditViewModel @Inject constructor(
                     availableGroups = groups,
                     vibrationEnabled = defaultVibration,
                     snoozeDurationMinutes = defaultSnooze,
-                    gradualVolumeIncrease = defaultGradualVolume
+                    gradualVolumeIncrease = defaultGradualVolume,
+                    ringtoneUri = defaultRingtoneUri,
+                    ringtoneName = defaultRingtoneName
                 )
             }
             _uiState.value = state

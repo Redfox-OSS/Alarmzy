@@ -6,6 +6,7 @@ import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
 import android.provider.OpenableColumns
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -18,8 +19,16 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RingtonePickerViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    // The ringtone currently configured by the caller, so it can be pre-selected and
+    // (if it's a custom file not in the system list) shown again on re-entry.
+    private val initialUri: String? =
+        savedStateHandle.get<String>("uri")?.takeIf { it.isNotBlank() }
+    private val initialName: String? =
+        savedStateHandle.get<String>("name")?.takeIf { it.isNotBlank() }
 
     private val _uiState = MutableStateFlow(RingtonePickerUiState())
     val uiState: StateFlow<RingtonePickerUiState> = _uiState.asStateFlow()
@@ -45,7 +54,19 @@ class RingtonePickerViewModel @Inject constructor(
             ringtones.add(RingtoneItem(uri = uri, name = title))
         }
 
-        _uiState.value = _uiState.value.copy(ringtones = ringtones)
+        // Re-add the currently selected custom sound if it isn't a system alarm tone,
+        // so the user sees and can keep their previous choice.
+        val list = if (initialUri != null && ringtones.none { it.uri == initialUri }) {
+            val name = initialName ?: queryDisplayName(initialUri)
+            listOf(RingtoneItem(uri = initialUri, name = name, isCustom = true)) + ringtones
+        } else {
+            ringtones
+        }
+
+        _uiState.value = _uiState.value.copy(
+            ringtones = list,
+            selectedUri = initialUri
+        )
     }
 
     fun onIntent(intent: RingtonePickerIntent) {
