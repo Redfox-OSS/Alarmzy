@@ -53,4 +53,7 @@ interface AlarmDao {
 
     @Query("SELECT * FROM alarms WHERE groupId = :groupId")
     suspend fun getAlarmsByGroupIdSync(groupId: Long): List<AlarmEntity>
+
+    @Query("SELECT COUNT(*) FROM alarms WHERE groupId = :groupId")
+    suspend fun countAlarmsInGroup(groupId: Long): Int
 }

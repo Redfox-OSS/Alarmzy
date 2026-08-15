@@ -18,5 +18,13 @@ data class Alarm(
     val nextTriggerTimeMillis: Long = 0
 ) {
     val timeFormatted: String
-        get() = "%02d:%02d".format(hour, minute)
+        get() {
+            val period = if (hour < 12) "AM" else "PM"
+            val h12 = when {
+                hour == 0 -> 12
+                hour > 12 -> hour - 12
+                else -> hour
+            }
+            return "%d:%02d %s".format(h12, minute, period)
+        }
 }

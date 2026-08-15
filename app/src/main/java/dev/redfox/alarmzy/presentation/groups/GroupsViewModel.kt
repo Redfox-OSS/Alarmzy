@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.redfox.alarmzy.domain.repository.AlarmRepository
+import dev.redfox.alarmzy.domain.repository.BillingRepository
 import dev.redfox.alarmzy.domain.repository.GroupRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class GroupsViewModel @Inject constructor(
     private val groupRepository: GroupRepository,
-    private val alarmRepository: AlarmRepository
+    private val alarmRepository: AlarmRepository,
+    private val billingRepository: BillingRepository
 ) : ViewModel() {
 
     private data class Selection(
@@ -35,15 +37,17 @@ class GroupsViewModel @Inject constructor(
             combine(
                 groupRepository.getAllGroupsWithAlarms(),
                 _expandedGroupIds,
-                _selection
-            ) { groups, expanded, selection ->
+                _selection,
+                billingRepository.isProUnlocked()
+            ) { groups, expanded, selection, isPro ->
                 val validIds = groups.map { it.id }.toSet()
                 GroupsUiState(
                     groups = groups,
                     expandedGroupIds = expanded intersect validIds,
                     isLoading = false,
                     selectionMode = selection.active,
-                    selectedIds = selection.ids intersect validIds
+                    selectedIds = selection.ids intersect validIds,
+                    isPro = isPro
                 )
             }.collect { state ->
                 _uiState.value = state

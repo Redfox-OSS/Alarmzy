@@ -18,6 +18,7 @@ data class AlarmEditUiState(
     val availableGroups: List<AlarmGroup> = emptyList(),
     val isSaving: Boolean = false,
     val isLoading: Boolean = false,
+    val isPro: Boolean = false,
     // Series mode
     val isSeries: Boolean = false,
     val seriesEndHour: Int = 9,

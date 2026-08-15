@@ -12,5 +12,9 @@ enum class AccentColor(val displayName: String, val swatch: Long) {
     TEAL("Teal", 0xFF009688),
     GREEN("Green", 0xFF43A047),
     ORANGE("Orange", 0xFFFF7043),
-    ROSE("Rose", 0xFFEC407A)
+    ROSE("Rose", 0xFFEC407A),
+    RED("Red", 0xFFE53935),
+    INDIGO("Indigo", 0xFF5C6BC0),
+    AMBER("Amber", 0xFFFFB300),
+    CYAN("Cyan", 0xFF00ACC1)
 }

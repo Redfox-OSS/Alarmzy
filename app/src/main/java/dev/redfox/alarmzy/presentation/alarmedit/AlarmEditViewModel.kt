@@ -7,7 +7,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.redfox.alarmzy.domain.model.Alarm
+import dev.redfox.alarmzy.domain.model.FreemiumLimits
 import dev.redfox.alarmzy.domain.repository.AlarmRepository
+import dev.redfox.alarmzy.domain.repository.BillingRepository
 import dev.redfox.alarmzy.domain.repository.GroupRepository
 import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
 import kotlinx.coroutines.channels.Channel
@@ -24,6 +26,7 @@ class AlarmEditViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val alarmRepository: AlarmRepository,
     private val groupRepository: GroupRepository,
+    private val billingRepository: BillingRepository,
     private val dataStore: DataStore<Preferences>
 ) : ViewModel() {
 
@@ -36,8 +39,15 @@ class AlarmEditViewModel @Inject constructor(
     val sideEffect = _sideEffect.receiveAsFlow()
 
     private var pendingAlarms: List<Alarm> = emptyList()
+    private var originalGroupId: Long? = null
 
     init {
+        viewModelScope.launch {
+            billingRepository.isProUnlocked().collect { isPro ->
+                _uiState.value = _uiState.value.copy(isPro = isPro)
+            }
+        }
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
@@ -52,6 +62,7 @@ class AlarmEditViewModel @Inject constructor(
             val state = if (alarmId != null) {
                 val alarm = alarmRepository.getAlarmById(alarmId)
                 if (alarm != null) {
+                    originalGroupId = alarm.groupId
                     AlarmEditUiState(
                         isNew = false,
                         hour = alarm.hour,
@@ -86,7 +97,7 @@ class AlarmEditViewModel @Inject constructor(
                     ringtoneName = defaultRingtoneName
                 )
             }
-            _uiState.value = state
+            _uiState.value = state.copy(isPro = _uiState.value.isPro)
         }
     }
 
@@ -119,12 +130,16 @@ class AlarmEditViewModel @Inject constructor(
             is AlarmEditIntent.ToggleSeriesMode -> {
                 if (intent.enabled) {
                     val s = _uiState.value
-                    val endTotal = (s.hour * 60 + s.minute + 60).coerceAtMost(23 * 60 + 59)
-                    _uiState.value = s.copy(
-                        isSeries = true,
-                        seriesEndHour = endTotal / 60,
-                        seriesEndMinute = endTotal % 60
-                    )
+                    if (!s.isPro) {
+                        viewModelScope.launch { _sideEffect.send(AlarmEditSideEffect.ShowPaywall) }
+                    } else {
+                        val endTotal = (s.hour * 60 + s.minute + 60).coerceAtMost(23 * 60 + 59)
+                        _uiState.value = s.copy(
+                            isSeries = true,
+                            seriesEndHour = endTotal / 60,
+                            seriesEndMinute = endTotal % 60
+                        )
+                    }
                 } else {
                     _uiState.value = _uiState.value.copy(isSeries = false)
                 }
@@ -178,8 +193,19 @@ class AlarmEditViewModel @Inject constructor(
 
     private fun commit(alarms: List<Alarm>) {
         if (alarms.isEmpty()) return
-        _uiState.value = _uiState.value.copy(isSaving = true, showDuplicateDialog = false)
         viewModelScope.launch {
+            val state = _uiState.value
+            val groupId = state.selectedGroupId
+            if (groupId != null && !billingRepository.isProUnlocked().first()) {
+                val existing = alarmRepository.countAlarmsInGroup(groupId)
+                val selfAlreadyCounted = !state.isNew && !state.isSeries && originalGroupId == groupId
+                val projected = existing - (if (selfAlreadyCounted) 1 else 0) + alarms.size
+                if (projected > FreemiumLimits.FREE_ALARMS_PER_GROUP_LIMIT) {
+                    _sideEffect.send(AlarmEditSideEffect.ShowPaywall)
+                    return@launch
+                }
+            }
+            _uiState.value = state.copy(isSaving = true, showDuplicateDialog = false)
             alarmRepository.saveAlarms(alarms)
             pendingAlarms = emptyList()
             _sideEffect.send(AlarmEditSideEffect.Saved)

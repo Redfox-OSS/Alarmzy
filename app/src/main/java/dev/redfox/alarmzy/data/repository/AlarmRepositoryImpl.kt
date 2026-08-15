@@ -82,6 +82,9 @@ class AlarmRepositoryImpl @Inject constructor(
     override suspend fun getAllEnabledAlarms(): List<Alarm> =
         alarmDao.getAllEnabledAlarms().map { it.toDomain() }
 
+    override suspend fun countAlarmsInGroup(groupId: Long): Int =
+        alarmDao.countAlarmsInGroup(groupId)
+
     private suspend fun AlarmEntity.toDomain(): Alarm {
         val group = groupId?.let { groupDao.getGroupById(it) }
         val days = parseDays(repeatDays)

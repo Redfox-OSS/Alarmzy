@@ -10,17 +10,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.redfox.alarmzy.domain.model.AccentColor
+import dev.redfox.alarmzy.domain.model.DarkVariant
 import dev.redfox.alarmzy.domain.model.ThemeMode
+import dev.redfox.alarmzy.domain.repository.BillingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    private val billingRepository: BillingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -28,11 +31,17 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            dataStore.data.map { prefs ->
+            combine(
+                dataStore.data,
+                billingRepository.isProUnlocked()
+            ) { prefs, isPro ->
                 SettingsUiState(
                     themeMode = runCatching {
                         ThemeMode.valueOf(prefs[KEY_THEME_MODE] ?: ThemeMode.SYSTEM.name)
                     }.getOrDefault(ThemeMode.SYSTEM),
+                    darkVariant = runCatching {
+                        DarkVariant.valueOf(prefs[KEY_DARK_VARIANT] ?: DarkVariant.DARK.name)
+                    }.getOrDefault(DarkVariant.DARK),
                     accentColor = runCatching {
                         AccentColor.valueOf(prefs[KEY_ACCENT_COLOR] ?: AccentColor.DYNAMIC.name)
                     }.getOrDefault(AccentColor.DYNAMIC),
@@ -40,7 +49,8 @@ class SettingsViewModel @Inject constructor(
                     defaultRingtoneName = prefs[KEY_DEFAULT_RINGTONE_NAME] ?: "Default",
                     defaultSnoozeDuration = prefs[KEY_DEFAULT_SNOOZE] ?: 5,
                     defaultVibration = prefs[KEY_DEFAULT_VIBRATION] ?: true,
-                    defaultGradualVolume = prefs[KEY_DEFAULT_GRADUAL_VOLUME] ?: false
+                    defaultGradualVolume = prefs[KEY_DEFAULT_GRADUAL_VOLUME] ?: false,
+                    isPro = isPro
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -52,6 +62,9 @@ class SettingsViewModel @Inject constructor(
         when (intent) {
             is SettingsIntent.SetThemeMode -> save { prefs ->
                 prefs[KEY_THEME_MODE] = intent.mode.name
+            }
+            is SettingsIntent.SetDarkVariant -> save { prefs ->
+                prefs[KEY_DARK_VARIANT] = intent.variant.name
             }
             is SettingsIntent.SetAccentColor -> save { prefs ->
                 prefs[KEY_ACCENT_COLOR] = intent.accent.name
@@ -84,6 +97,7 @@ class SettingsViewModel @Inject constructor(
 
     companion object {
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        val KEY_DARK_VARIANT = stringPreferencesKey("dark_variant")
         val KEY_ACCENT_COLOR = stringPreferencesKey("accent_color")
         val KEY_DEFAULT_RINGTONE_URI = stringPreferencesKey("default_ringtone_uri")
         val KEY_DEFAULT_RINGTONE_NAME = stringPreferencesKey("default_ringtone_name")

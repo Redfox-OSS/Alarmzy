@@ -1,5 +1,8 @@
 package dev.redfox.alarmzy.presentation.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,13 +31,17 @@ import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -54,7 +61,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import dev.redfox.alarmzy.domain.model.AccentColor
+import dev.redfox.alarmzy.domain.model.DarkVariant
 import dev.redfox.alarmzy.domain.model.ThemeMode
+import dev.redfox.alarmzy.presentation.paywall.PaywallBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +75,8 @@ fun SettingsScreen(
     onPickRingtone: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var showPaywall by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Settings") })
@@ -79,6 +90,31 @@ fun SettingsScreen(
             .verticalScroll(rememberScrollState())
     ) {
         Spacer(Modifier.height(8.dp))
+
+        SettingsSectionHeader("Alarmzy Pro")
+        SettingsSection {
+            if (uiState.isPro) {
+                SettingsTile(
+                    icon = Icons.Default.WorkspacePremium,
+                    title = "Pro unlocked",
+                    subtitle = "Thanks for supporting Alarmzy"
+                )
+            } else {
+                SettingsTile(
+                    icon = Icons.Default.WorkspacePremium,
+                    title = "Unlock Alarmzy Pro",
+                    subtitle = "Unlimited groups, unlimited alarms per group, alarm series",
+                    onClick = { showPaywall = true },
+                    trailing = {
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                )
+            }
+        }
 
         // Permissions section only appears while the overlay permission is missing.
         // Once granted, there's nothing actionable left here, so it's hidden.
@@ -104,9 +140,11 @@ fun SettingsScreen(
 
         SettingsSectionHeader("Appearance")
         SettingsSection {
-            ThemeModePicker(
+            ThemeModeCard(
                 selectedMode = uiState.themeMode,
-                onSelect = { onIntent(SettingsIntent.SetThemeMode(it)) }
+                selectedVariant = uiState.darkVariant,
+                onSelectMode = { onIntent(SettingsIntent.SetThemeMode(it)) },
+                onSelectVariant = { onIntent(SettingsIntent.SetDarkVariant(it)) }
             )
             AccentColorTile(
                 selected = uiState.accentColor,
@@ -168,6 +206,10 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(24.dp))
     }
+    }
+
+    if (showPaywall) {
+        PaywallBottomSheet(onDismiss = { showPaywall = false })
     }
 }
 
@@ -256,57 +298,53 @@ private fun AccentColorTile(
     selected: AccentColor,
     onSelect: (AccentColor) -> Unit
 ) {
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth()
+    var expanded by remember { mutableStateOf(false) }
+
+    ExpandableSettingsCard(
+        icon = Icons.Default.Palette,
+        title = "Accent color",
+        valueSummary = selected.displayName,
+        expanded = expanded,
+        onToggleExpand = { expanded = !expanded }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                "Accent color",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(Modifier.height(14.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                AccentColor.entries.forEach { accent ->
-                    val isSelected = accent == selected
-                    val swatch = Color(accent.swatch)
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (accent == AccentColor.DYNAMIC)
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                else swatch,
-                                CircleShape
-                            )
-                            .then(
-                                if (isSelected)
-                                    Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                                else Modifier
-                            )
-                            .clickable { onSelect(accent) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        when {
-                            accent == AccentColor.DYNAMIC -> Icon(
-                                Icons.Default.AutoAwesome,
-                                contentDescription = accent.displayName,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            isSelected -> Icon(
-                                Icons.Default.Check,
-                                contentDescription = "Selected",
-                                tint = Color.White,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            AccentColor.entries.forEach { accent ->
+                val isSelected = accent == selected
+                val swatch = Color(accent.swatch)
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (accent == AccentColor.DYNAMIC)
+                                MaterialTheme.colorScheme.surfaceVariant
+                            else swatch,
+                            CircleShape
+                        )
+                        .then(
+                            if (isSelected)
+                                Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                            else Modifier
+                        )
+                        .clickable { onSelect(accent) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        accent == AccentColor.DYNAMIC -> Icon(
+                            Icons.Default.AutoAwesome,
+                            contentDescription = accent.displayName,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        isSelected -> Icon(
+                            Icons.Default.Check,
+                            contentDescription = "Selected",
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
                 }
             }
@@ -314,26 +352,157 @@ private fun AccentColorTile(
     }
 }
 
-@Composable
-private fun ThemeModePicker(
-    selectedMode: ThemeMode,
-    onSelect: (ThemeMode) -> Unit
-) {
-    fun label(mode: ThemeMode) = when (mode) {
-        ThemeMode.SYSTEM -> "Follow system"
-        ThemeMode.LIGHT -> "Light"
-        ThemeMode.DARK -> "Dark"
-    }
+private fun themeModeLabel(mode: ThemeMode) = when (mode) {
+    ThemeMode.SYSTEM -> "Follow system"
+    ThemeMode.LIGHT -> "Light"
+    ThemeMode.DARK -> "Dark"
+}
 
-    SettingsDropdownTile(
-        label = "Theme",
-        value = label(selectedMode),
+@Composable
+private fun ThemeModeCard(
+    selectedMode: ThemeMode,
+    selectedVariant: DarkVariant,
+    onSelectMode: (ThemeMode) -> Unit,
+    onSelectVariant: (DarkVariant) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    val summary = themeModeLabel(selectedMode) +
+        if (selectedMode == ThemeMode.DARK) " · ${selectedVariant.displayName}" else ""
+
+    ExpandableSettingsCard(
         icon = Icons.Default.Brightness6,
-        options = ThemeMode.entries,
-        optionLabel = ::label,
-        isSelected = { it == selectedMode },
-        onSelect = onSelect
-    )
+        title = "Theme",
+        valueSummary = summary,
+        expanded = expanded,
+        onToggleExpand = { expanded = !expanded }
+    ) {
+        Column {
+            ThemeMode.entries.forEach { mode ->
+                SelectableOptionRow(
+                    label = themeModeLabel(mode),
+                    selected = mode == selectedMode,
+                    onClick = { onSelectMode(mode) }
+                )
+            }
+            AnimatedVisibility(
+                visible = selectedMode == ThemeMode.DARK,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column(modifier = Modifier.padding(start = 16.dp)) {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    DarkVariant.entries.forEach { variant ->
+                        SelectableOptionRow(
+                            label = variant.displayName,
+                            selected = variant == selectedVariant,
+                            onClick = { onSelectVariant(variant) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Inline expand/collapse card — header row with a trailing chevron, animated body below. */
+@Composable
+private fun ExpandableSettingsCard(
+    icon: ImageVector,
+    title: String,
+    valueSummary: String,
+    expanded: Boolean,
+    onToggleExpand: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggleExpand)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        valueSummary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    content()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectableOptionRow(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        if (selected) {
+            Icon(
+                Icons.Default.Check,
+                contentDescription = "Selected",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
 }
 
 @Composable

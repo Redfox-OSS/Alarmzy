@@ -13,4 +13,5 @@ interface AlarmRepository {
     suspend fun toggleAlarm(id: Long, enabled: Boolean)
     suspend fun setAlarmGroup(alarmId: Long, groupId: Long?)
     suspend fun getAllEnabledAlarms(): List<Alarm>
+    suspend fun countAlarmsInGroup(groupId: Long): Int
 }

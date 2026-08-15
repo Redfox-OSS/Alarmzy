@@ -11,6 +11,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import dev.redfox.alarmzy.domain.model.AccentColor
+import dev.redfox.alarmzy.domain.model.DarkVariant
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -38,10 +39,11 @@ private val LightColorScheme = lightColorScheme(
 fun AlarmzyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     accentColor: AccentColor = AccentColor.DYNAMIC,
+    darkVariant: DarkVariant = DarkVariant.DARK,
     content: @Composable () -> Unit
 ) {
     val fixedScheme = accentColorScheme(accentColor, darkTheme)
-    val colorScheme = when {
+    val baseColorScheme = when {
         // A chosen fixed accent always wins.
         fixedScheme != null -> fixedScheme
         // Dynamic (Material You) — available on Android 12+ (minSdk 31, always true here).
@@ -53,6 +55,7 @@ fun AlarmzyTheme(
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
+    val colorScheme = if (darkTheme) applyDarkVariant(baseColorScheme, darkVariant) else baseColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Timelapse
 import androidx.compose.material3.AlertDialog
@@ -55,6 +56,7 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -76,11 +78,16 @@ fun AlarmEditScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val timePickerState = rememberTimePickerState(
-        initialHour = uiState.hour,
-        initialMinute = uiState.minute,
-        is24Hour = false
-    )
+    // Keyed on isLoading so the picker re-initializes once the real alarm data
+    // (loaded asynchronously) replaces the UiState defaults, instead of locking
+    // onto whatever hour/minute were present at first composition.
+    val timePickerState = key(uiState.isLoading) {
+        rememberTimePickerState(
+            initialHour = uiState.hour,
+            initialMinute = uiState.minute,
+            is24Hour = false
+        )
+    }
 
     LaunchedEffect(timePickerState.hour, timePickerState.minute) {
         if (timePickerState.hour != uiState.hour || timePickerState.minute != uiState.minute) {
@@ -145,7 +152,19 @@ fun AlarmEditScreen(
                         selected = uiState.isSeries,
                         onClick = { onIntent(AlarmEditIntent.ToggleSeriesMode(true)) },
                         shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                    ) { Text("Series") }
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Series")
+                            if (!uiState.isPro) {
+                                Spacer(Modifier.width(4.dp))
+                                Icon(
+                                    Icons.Default.Lock,
+                                    contentDescription = "Pro feature",
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
