@@ -28,7 +28,6 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Brightness6
-import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Info
@@ -62,7 +61,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import dev.redfox.alarmzy.BuildConfig
 import dev.redfox.alarmzy.domain.model.AccentColor
 import dev.redfox.alarmzy.domain.model.DarkVariant
 import dev.redfox.alarmzy.domain.model.ThemeMode
@@ -114,19 +112,6 @@ fun SettingsScreen(
                             Icons.AutoMirrored.Filled.KeyboardArrowRight,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                )
-            }
-            if (BuildConfig.DEBUG) {
-                SettingsTile(
-                    icon = Icons.Default.BugReport,
-                    title = "Force Pro (debug)",
-                    subtitle = "Testing only — bypasses Play Billing",
-                    trailing = {
-                        Switch(
-                            checked = uiState.isPro,
-                            onCheckedChange = { onIntent(SettingsIntent.SetDebugProOverride(it)) }
                         )
                     }
                 )

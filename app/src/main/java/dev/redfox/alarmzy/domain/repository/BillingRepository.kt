@@ -8,7 +8,4 @@ interface BillingRepository {
     fun proProductPrice(): Flow<String?>
     suspend fun launchPurchaseFlow(activity: Activity)
     suspend fun restorePurchases()
-
-    /** Testing-only escape hatch to force entitlement without going through Play Billing. */
-    suspend fun setDebugProOverride(enabled: Boolean)
 }

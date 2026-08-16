@@ -28,6 +28,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -66,7 +67,7 @@ class BillingRepositoryImpl @Inject constructor(
     }
 
     override fun isProUnlocked(): Flow<Boolean> =
-        dataStore.data.map { it[KEY_IS_PRO] ?: false }
+        if (FORCE_PRO_ENABLED) flowOf(true) else dataStore.data.map { it[KEY_IS_PRO] ?: false }
 
     override fun proProductPrice(): Flow<String?> =
         _proProductDetails.asStateFlow().map { details ->
@@ -86,10 +87,6 @@ class BillingRepositoryImpl @Inject constructor(
 
     override suspend fun restorePurchases() {
         syncPurchases()
-    }
-
-    override suspend fun setDebugProOverride(enabled: Boolean) {
-        dataStore.edit { prefs -> prefs[KEY_IS_PRO] = enabled }
     }
 
     override fun onPurchasesUpdated(result: BillingResult, purchases: List<Purchase>?) {
@@ -141,5 +138,11 @@ class BillingRepositoryImpl @Inject constructor(
     companion object {
         const val PRO_PRODUCT_ID = "pro_unlock"
         val KEY_IS_PRO = booleanPreferencesKey("is_pro_unlocked")
+
+        /**
+         * Manual switch for sharing test builds with Pro pre-enabled, bypassing Play
+         * Billing entirely. MUST be set back to false before any real release build.
+         */
+        private const val FORCE_PRO_ENABLED = true
     }
 }

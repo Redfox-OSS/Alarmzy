@@ -12,5 +12,4 @@ sealed interface SettingsIntent {
     data class SetDefaultSnoozeDuration(val minutes: Int) : SettingsIntent
     data class SetDefaultVibration(val enabled: Boolean) : SettingsIntent
     data class SetDefaultGradualVolume(val enabled: Boolean) : SettingsIntent
-    data class SetDebugProOverride(val enabled: Boolean) : SettingsIntent
 }
