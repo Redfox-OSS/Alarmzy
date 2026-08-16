@@ -68,7 +68,6 @@ class AlarmRingingActivity : ComponentActivity() {
                     prefs?.get(AlarmScreenCustomizeViewModel.KEY_CLOCK_POSITION) ?: AlarmClockPosition.MIDDLE.name
                 )
             }.getOrDefault(AlarmClockPosition.MIDDLE)
-            val clockTextSizeSp = prefs?.get(AlarmScreenCustomizeViewModel.KEY_CLOCK_TEXT_SIZE) ?: 72
 
             val darkTheme = when (themeMode) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
@@ -87,7 +86,6 @@ class AlarmRingingActivity : ComponentActivity() {
                     backgroundImagePath = backgroundImagePath,
                     buttonLayout = buttonLayout,
                     clockPosition = clockPosition,
-                    clockTextSizeSp = clockTextSizeSp,
                     onSnooze = { snooze() },
                     onDismiss = { dismiss() }
                 )

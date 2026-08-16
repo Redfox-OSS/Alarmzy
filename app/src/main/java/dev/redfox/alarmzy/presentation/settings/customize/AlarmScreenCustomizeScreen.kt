@@ -27,21 +27,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.redfox.alarmzy.domain.model.AlarmButtonLayout
 import dev.redfox.alarmzy.domain.model.AlarmClockPosition
@@ -62,10 +59,6 @@ fun AlarmScreenCustomizeScreen(
         if (uri != null) {
             onIntent(AlarmScreenCustomizeIntent.PickedBackgroundImage(uri))
         }
-    }
-
-    var sliderValue by remember(uiState.clockTextSizeSp) {
-        mutableFloatStateOf(uiState.clockTextSizeSp.toFloat())
     }
 
     Scaffold(
@@ -92,8 +85,7 @@ fun AlarmScreenCustomizeScreen(
             AlarmScreenPreview(
                 backgroundImagePath = uiState.backgroundImagePath,
                 buttonLayout = uiState.buttonLayout,
-                clockPosition = uiState.clockPosition,
-                clockTextSizeSp = sliderValue.roundToInt()
+                clockPosition = uiState.clockPosition
             )
 
             Row(
@@ -151,21 +143,6 @@ fun AlarmScreenCustomizeScreen(
                     }
                 }
             }
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    "Clock text size — ${sliderValue.roundToInt()}sp",
-                    style = MaterialTheme.typography.labelLarge
-                )
-                Slider(
-                    value = sliderValue,
-                    onValueChange = { sliderValue = it },
-                    onValueChangeFinished = {
-                        onIntent(AlarmScreenCustomizeIntent.SetClockTextSize(sliderValue.roundToInt()))
-                    },
-                    valueRange = 40f..140f
-                )
-            }
         }
     }
 }
@@ -175,26 +152,37 @@ private fun AlarmScreenPreview(
     backgroundImagePath: String?,
     buttonLayout: AlarmButtonLayout,
     clockPosition: AlarmClockPosition,
-    clockTextSizeSp: Int,
     modifier: Modifier = Modifier
 ) {
     val configuration = LocalConfiguration.current
-    val previewHeight = 360.dp
-    val scale = previewHeight.value / configuration.screenHeightDp.toFloat()
+    val realWidthDp = configuration.screenWidthDp.dp
+    val realHeightDp = configuration.screenHeightDp.dp
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    // Preview keeps the device's real width/height ratio, so it reads as a phone
+    // mockup rather than a square crop. The whole ringing layout is rendered at its
+    // true real-device size and then uniformly scaled down as one image — so every
+    // element (buttons, padding, icons, clock) shrinks together in proportion,
+    // instead of only the clock text shrinking while buttons stay full-size and wrap.
+    val previewWidth = 260.dp
+    val previewHeight = previewWidth * (realHeightDp.value / realWidthDp.value)
+    val scale = previewWidth.value / realWidthDp.value
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Text(
             "Preview",
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.align(Alignment.Start)
         )
         Spacer(Modifier.height(8.dp))
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .width(previewWidth)
                 .height(previewHeight)
-                .clip(RoundedCornerShape(24.dp)),
-            contentAlignment = Alignment.TopCenter
+                .clip(RoundedCornerShape(24.dp))
         ) {
             AlarmRingingContent(
                 time = "7:00 AM",
@@ -202,18 +190,32 @@ private fun AlarmScreenPreview(
                 backgroundImagePath = backgroundImagePath,
                 buttonLayout = buttonLayout,
                 clockPosition = clockPosition,
-                clockTextSizeSp = clockTextSizeSp,
                 onSnooze = {},
                 onDismiss = {},
-                modifier = Modifier
-                    .width(configuration.screenWidthDp.dp)
-                    .height(configuration.screenHeightDp.dp)
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                        transformOrigin = TransformOrigin(0.5f, 0f)
-                    }
+                modifier = Modifier.scaledMockup(realWidthDp, realHeightDp, scale)
             )
         }
     }
 }
+
+/**
+ * Measures the content at its true [realWidth] x [realHeight] size, then draws that
+ * whole layer scaled down by [scale] and reports the scaled size to the parent — so
+ * every element inside (text, icons, padding, buttons) shrinks uniformly together,
+ * instead of only individually-scaled values shrinking while the rest stay full-size.
+ */
+private fun Modifier.scaledMockup(realWidth: Dp, realHeight: Dp, scale: Float): Modifier =
+    this.layout { measurable, _ ->
+        val widthPx = realWidth.roundToPx()
+        val heightPx = realHeight.roundToPx()
+        val placeable = measurable.measure(Constraints.fixed(widthPx, heightPx))
+        val scaledWidth = (widthPx * scale).roundToInt()
+        val scaledHeight = (heightPx * scale).roundToInt()
+        layout(scaledWidth, scaledHeight) {
+            placeable.placeWithLayer(0, 0) {
+                scaleX = scale
+                scaleY = scale
+                transformOrigin = TransformOrigin(0f, 0f)
+            }
+        }
+    }

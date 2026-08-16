@@ -5,7 +5,6 @@ import android.net.Uri
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -40,8 +39,7 @@ class AlarmScreenCustomizeViewModel @Inject constructor(
                     }.getOrDefault(AlarmButtonLayout.BOTH),
                     clockPosition = runCatching {
                         AlarmClockPosition.valueOf(prefs[KEY_CLOCK_POSITION] ?: AlarmClockPosition.MIDDLE.name)
-                    }.getOrDefault(AlarmClockPosition.MIDDLE),
-                    clockTextSizeSp = prefs[KEY_CLOCK_TEXT_SIZE] ?: 72
+                    }.getOrDefault(AlarmClockPosition.MIDDLE)
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -63,9 +61,6 @@ class AlarmScreenCustomizeViewModel @Inject constructor(
             }
             is AlarmScreenCustomizeIntent.SetClockPosition -> save { prefs ->
                 prefs[KEY_CLOCK_POSITION] = intent.position.name
-            }
-            is AlarmScreenCustomizeIntent.SetClockTextSize -> save { prefs ->
-                prefs[KEY_CLOCK_TEXT_SIZE] = intent.sizeSp
             }
         }
     }
@@ -98,6 +93,5 @@ class AlarmScreenCustomizeViewModel @Inject constructor(
         val KEY_BG_IMAGE_PATH = stringPreferencesKey("alarm_bg_image_path")
         val KEY_BUTTON_LAYOUT = stringPreferencesKey("alarm_button_layout")
         val KEY_CLOCK_POSITION = stringPreferencesKey("alarm_clock_position")
-        val KEY_CLOCK_TEXT_SIZE = intPreferencesKey("alarm_clock_text_size_sp")
     }
 }

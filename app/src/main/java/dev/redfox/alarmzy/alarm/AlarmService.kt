@@ -70,7 +70,7 @@ class AlarmService : Service() {
         val ringingIntent = Intent(this, AlarmRingingActivity::class.java).apply {
             putExtra(AlarmReceiver.EXTRA_ALARM_ID, alarmId)
             putExtra(EXTRA_ALARM_LABEL, alarm.label)
-            putExtra(EXTRA_ALARM_TIME, "%02d:%02d".format(alarm.hour, alarm.minute))
+            putExtra(EXTRA_ALARM_TIME, formatTime12h(alarm.hour, alarm.minute))
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
         val fullScreenPendingIntent = PendingIntent.getActivity(
@@ -99,7 +99,7 @@ class AlarmService : Service() {
         val notification = Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Alarm")
-            .setContentText(alarm.label.ifBlank { "%02d:%02d".format(alarm.hour, alarm.minute) })
+            .setContentText(alarm.label.ifBlank { formatTime12h(alarm.hour, alarm.minute) })
             .setCategory(Notification.CATEGORY_ALARM)
             .setOngoing(true)
             .setFullScreenIntent(fullScreenPendingIntent, true)
@@ -185,6 +185,16 @@ class AlarmService : Service() {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
+    }
+
+    private fun formatTime12h(hour: Int, minute: Int): String {
+        val period = if (hour < 12) "AM" else "PM"
+        val h12 = when {
+            hour == 0 -> 12
+            hour > 12 -> hour - 12
+            else -> hour
+        }
+        return "%d:%02d %s".format(h12, minute, period)
     }
 
     private fun createNotificationChannel() {
