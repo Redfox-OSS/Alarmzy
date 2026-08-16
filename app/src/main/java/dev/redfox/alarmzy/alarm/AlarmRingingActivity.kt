@@ -2,40 +2,32 @@ package dev.redfox.alarmzy.alarm
 
 import android.app.KeyguardManager
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.AlarmOff
-import androidx.compose.material.icons.filled.Snooze
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import dagger.hilt.android.AndroidEntryPoint
+import dev.redfox.alarmzy.domain.model.AccentColor
+import dev.redfox.alarmzy.domain.model.AlarmButtonLayout
+import dev.redfox.alarmzy.domain.model.AlarmClockPosition
+import dev.redfox.alarmzy.domain.model.DarkVariant
+import dev.redfox.alarmzy.domain.model.ThemeMode
+import dev.redfox.alarmzy.presentation.alarmringing.AlarmRingingContent
+import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
+import dev.redfox.alarmzy.presentation.settings.customize.AlarmScreenCustomizeViewModel
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class AlarmRingingActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var dataStore: DataStore<Preferences>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,78 +45,52 @@ class AlarmRingingActivity : ComponentActivity() {
         val alarmTime = intent.getStringExtra(AlarmService.EXTRA_ALARM_TIME) ?: ""
 
         setContent {
-            AlarmzyTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Alarm,
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+            val prefs by dataStore.data.collectAsState(initial = null)
 
-                        Spacer(Modifier.height(32.dp))
+            val themeMode = runCatching {
+                ThemeMode.valueOf(prefs?.get(SettingsViewModel.KEY_THEME_MODE) ?: ThemeMode.SYSTEM.name)
+            }.getOrDefault(ThemeMode.SYSTEM)
+            val accentColor = runCatching {
+                AccentColor.valueOf(prefs?.get(SettingsViewModel.KEY_ACCENT_COLOR) ?: AccentColor.DYNAMIC.name)
+            }.getOrDefault(AccentColor.DYNAMIC)
+            val darkVariant = runCatching {
+                DarkVariant.valueOf(prefs?.get(SettingsViewModel.KEY_DARK_VARIANT) ?: DarkVariant.DARK.name)
+            }.getOrDefault(DarkVariant.DARK)
 
-                        Text(
-                            text = alarmTime,
-                            fontSize = 72.sp,
-                            fontWeight = FontWeight.Light,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
+            val backgroundImagePath = prefs?.get(AlarmScreenCustomizeViewModel.KEY_BG_IMAGE_PATH)
+            val buttonLayout = runCatching {
+                AlarmButtonLayout.valueOf(
+                    prefs?.get(AlarmScreenCustomizeViewModel.KEY_BUTTON_LAYOUT) ?: AlarmButtonLayout.BOTH.name
+                )
+            }.getOrDefault(AlarmButtonLayout.BOTH)
+            val clockPosition = runCatching {
+                AlarmClockPosition.valueOf(
+                    prefs?.get(AlarmScreenCustomizeViewModel.KEY_CLOCK_POSITION) ?: AlarmClockPosition.MIDDLE.name
+                )
+            }.getOrDefault(AlarmClockPosition.MIDDLE)
+            val clockTextSizeSp = prefs?.get(AlarmScreenCustomizeViewModel.KEY_CLOCK_TEXT_SIZE) ?: 72
 
-                        if (alarmLabel.isNotBlank()) {
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                text = alarmLabel,
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                            )
-                        }
+            val darkTheme = when (themeMode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
 
-                        Spacer(Modifier.height(64.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            OutlinedButton(
-                                onClick = { snooze() },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(56.dp)
-                            ) {
-                                Icon(Icons.Default.Snooze, contentDescription = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text("Snooze")
-                            }
-
-                            Spacer(Modifier.width(16.dp))
-
-                            Button(
-                                onClick = { dismiss() },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(56.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.error
-                                )
-                            ) {
-                                Icon(Icons.Default.AlarmOff, contentDescription = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text("Dismiss")
-                            }
-                        }
-                    }
-                }
+            AlarmzyTheme(
+                darkTheme = darkTheme,
+                accentColor = accentColor,
+                darkVariant = darkVariant
+            ) {
+                AlarmRingingContent(
+                    time = alarmTime,
+                    label = alarmLabel,
+                    backgroundImagePath = backgroundImagePath,
+                    buttonLayout = buttonLayout,
+                    clockPosition = clockPosition,
+                    clockTextSizeSp = clockTextSizeSp,
+                    onSnooze = { snooze() },
+                    onDismiss = { dismiss() }
+                )
             }
         }
     }

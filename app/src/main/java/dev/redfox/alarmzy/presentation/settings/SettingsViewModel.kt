@@ -86,6 +86,9 @@ class SettingsViewModel @Inject constructor(
             is SettingsIntent.SetDefaultGradualVolume -> save { prefs ->
                 prefs[KEY_DEFAULT_GRADUAL_VOLUME] = intent.enabled
             }
+            is SettingsIntent.SetDebugProOverride -> viewModelScope.launch {
+                billingRepository.setDebugProOverride(intent.enabled)
+            }
         }
     }
 

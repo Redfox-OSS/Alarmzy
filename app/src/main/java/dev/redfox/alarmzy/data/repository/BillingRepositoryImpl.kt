@@ -88,6 +88,10 @@ class BillingRepositoryImpl @Inject constructor(
         syncPurchases()
     }
 
+    override suspend fun setDebugProOverride(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[KEY_IS_PRO] = enabled }
+    }
+
     override fun onPurchasesUpdated(result: BillingResult, purchases: List<Purchase>?) {
         if (result.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
             scope.launch { handlePurchases(purchases) }

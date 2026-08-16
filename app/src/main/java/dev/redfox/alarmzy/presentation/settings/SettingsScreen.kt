@@ -28,7 +28,9 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Brightness6
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -60,6 +62,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import dev.redfox.alarmzy.BuildConfig
 import dev.redfox.alarmzy.domain.model.AccentColor
 import dev.redfox.alarmzy.domain.model.DarkVariant
 import dev.redfox.alarmzy.domain.model.ThemeMode
@@ -73,6 +76,7 @@ fun SettingsScreen(
     overlayPermissionGranted: Boolean = false,
     onRequestOverlayPermission: () -> Unit = {},
     onPickRingtone: () -> Unit = {},
+    onCustomizeAlarmScreen: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showPaywall by remember { mutableStateOf(false) }
@@ -114,6 +118,19 @@ fun SettingsScreen(
                     }
                 )
             }
+            if (BuildConfig.DEBUG) {
+                SettingsTile(
+                    icon = Icons.Default.BugReport,
+                    title = "Force Pro (debug)",
+                    subtitle = "Testing only — bypasses Play Billing",
+                    trailing = {
+                        Switch(
+                            checked = uiState.isPro,
+                            onCheckedChange = { onIntent(SettingsIntent.SetDebugProOverride(it)) }
+                        )
+                    }
+                )
+            }
         }
 
         // Permissions section only appears while the overlay permission is missing.
@@ -149,6 +166,23 @@ fun SettingsScreen(
             AccentColorTile(
                 selected = uiState.accentColor,
                 onSelect = { onIntent(SettingsIntent.SetAccentColor(it)) }
+            )
+        }
+
+        SettingsSectionHeader("Alarm ringing screen")
+        SettingsSection {
+            SettingsTile(
+                icon = Icons.Default.Fullscreen,
+                title = "Customize alarm screen",
+                subtitle = "Background, buttons, clock position and size",
+                onClick = onCustomizeAlarmScreen,
+                trailing = {
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             )
         }
 

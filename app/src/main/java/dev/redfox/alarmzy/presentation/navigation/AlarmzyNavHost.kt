@@ -31,6 +31,8 @@ import dev.redfox.alarmzy.presentation.ringtone.RingtonePickerViewModel
 import dev.redfox.alarmzy.presentation.settings.SettingsIntent
 import dev.redfox.alarmzy.presentation.settings.SettingsScreen
 import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
+import dev.redfox.alarmzy.presentation.settings.customize.AlarmScreenCustomizeScreen
+import dev.redfox.alarmzy.presentation.settings.customize.AlarmScreenCustomizeViewModel
 
 @Composable
 fun AlarmzyNavHost(
@@ -108,7 +110,8 @@ fun AlarmzyNavHost(
                     navController.navigate(
                         Routes.ringtonePicker(uiState.defaultRingtoneUri, uiState.defaultRingtoneName)
                     )
-                }
+                },
+                onCustomizeAlarmScreen = { navController.navigate(Routes.CUSTOMIZE_ALARM_SCREEN) }
             )
         }
 
@@ -161,6 +164,17 @@ fun AlarmzyNavHost(
             }
 
             RingtonePickerScreen(
+                uiState = uiState,
+                onIntent = viewModel::onIntent,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.CUSTOMIZE_ALARM_SCREEN) {
+            val viewModel: AlarmScreenCustomizeViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+            AlarmScreenCustomizeScreen(
                 uiState = uiState,
                 onIntent = viewModel::onIntent,
                 onNavigateBack = { navController.popBackStack() }

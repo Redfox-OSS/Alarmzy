@@ -42,6 +42,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -81,6 +82,9 @@ dependencies {
 
     // Billing
     implementation(libs.billing.ktx)
+
+    // Coil
+    implementation(libs.coil.compose)
 
     // Testing
     testImplementation(libs.junit)

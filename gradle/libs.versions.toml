@@ -15,6 +15,7 @@ navigationCompose = "2.9.0"
 datastore = "1.1.7"
 ksp = "2.2.10-2.0.2"
 billing = "9.1.0"
+coil = "3.3.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -51,6 +52,9 @@ androidx-datastore-preferences = { group = "androidx.datastore", name = "datasto
 
 # Billing
 billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billing" }
+
+# Coil
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
