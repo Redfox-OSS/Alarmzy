@@ -52,8 +52,10 @@ class GroupEditViewModel @Inject constructor(
                     name = group?.name ?: "",
                     isEnabled = group?.isEnabled ?: true,
                     color = group?.color,
+                    icon = group?.icon,
                     allAlarms = allAlarms,
-                    selectedAlarmIds = memberAlarmIds
+                    selectedAlarmIds = memberAlarmIds,
+                    groupId = groupId
                 )
             } else {
                 _uiState.value = GroupEditUiState(
@@ -67,6 +69,7 @@ class GroupEditViewModel @Inject constructor(
         when (intent) {
             is GroupEditIntent.SetName -> _uiState.value = _uiState.value.copy(name = intent.name)
             is GroupEditIntent.SetColor -> _uiState.value = _uiState.value.copy(color = intent.color)
+            is GroupEditIntent.SetIcon -> _uiState.value = _uiState.value.copy(icon = intent.icon)
             is GroupEditIntent.ToggleAlarmSelection -> {
                 val current = _uiState.value.selectedAlarmIds
                 _uiState.value = _uiState.value.copy(
@@ -105,7 +108,8 @@ class GroupEditViewModel @Inject constructor(
                 id = if (state.isNew) 0 else groupId ?: 0,
                 name = state.name,
                 isEnabled = state.isEnabled,
-                color = state.color
+                color = state.color,
+                icon = state.icon
             )
             val savedGroupId = groupRepository.saveGroup(group)
 

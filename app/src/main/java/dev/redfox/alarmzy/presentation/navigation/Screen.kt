@@ -1,20 +1,23 @@
 package dev.redfox.alarmzy.presentation.navigation
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.ui.graphics.vector.ImageVector
 import android.net.Uri
+import androidx.annotation.DrawableRes
+import dev.redfox.alarmzy.R
 
 enum class BottomNavScreen(
     val route: String,
     val label: String,
-    val icon: ImageVector
+    @DrawableRes val icon: Int
 ) {
-    Alarms("alarms", "Alarms", Icons.Default.Alarm),
-    Groups("groups", "Groups", Icons.Default.Folder),
-    Settings("settings", "Settings", Icons.Default.Settings)
+    Alarms("alarms", "Alarms", R.drawable.ic_nav_alarm),
+    Timer("timer", "Timer", R.drawable.ic_nav_timer),
+    Stopwatch("stopwatch", "Stopwatch", R.drawable.ic_nav_stopwatch),
+    Groups("groups", "Groups", R.drawable.ic_nav_groups),
+    Settings("settings", "Settings", R.drawable.ic_nav_settings);
+
+    companion object {
+        fun isTabRoute(route: String?): Boolean = entries.any { it.route == route }
+    }
 }
 
 object Routes {

@@ -10,5 +10,7 @@ data class GroupEntity(
     val name: String,
     val isEnabled: Boolean = true,
     val color: String? = null,
+    /** [dev.redfox.alarmzy.domain.model.GroupIcon.key]; null = generic folder icon. */
+    val icon: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

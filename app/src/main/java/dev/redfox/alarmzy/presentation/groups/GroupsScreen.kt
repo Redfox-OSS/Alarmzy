@@ -1,49 +1,40 @@
 package dev.redfox.alarmzy.presentation.groups
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DoneAll
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,13 +42,42 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
+import dev.redfox.alarmzy.R
 import dev.redfox.alarmzy.domain.model.Alarm
 import dev.redfox.alarmzy.domain.model.AlarmGroup
+import dev.redfox.alarmzy.presentation.common.clockTime
+import dev.redfox.alarmzy.presentation.navigation.floatingNavClearance
+import dev.redfox.alarmzy.ui.components.AlarmzySwitch
+import dev.redfox.alarmzy.ui.components.AzAlertDialog
+import dev.redfox.alarmzy.ui.components.AzCheckbox
+import dev.redfox.alarmzy.ui.components.AzDropdownMenu
+import dev.redfox.alarmzy.ui.components.AzFab
+import dev.redfox.alarmzy.ui.components.AzMenuItem
+import dev.redfox.alarmzy.ui.components.AzShapes
+import dev.redfox.alarmzy.ui.components.EmptyState
+import dev.redfox.alarmzy.ui.components.HeaderIconButton
+import dev.redfox.alarmzy.ui.components.IconTile
+import dev.redfox.alarmzy.ui.components.LargeHeader
+import dev.redfox.alarmzy.ui.components.LargeHeaderHeight
+import dev.redfox.alarmzy.ui.components.PillButton
+import dev.redfox.alarmzy.ui.components.ScreenGutter
+import dev.redfox.alarmzy.ui.components.SwitchSize
+import dev.redfox.alarmzy.ui.components.drawableRes
+import dev.redfox.alarmzy.ui.components.glassSource
+import dev.redfox.alarmzy.ui.components.glow
+import dev.redfox.alarmzy.ui.components.parseGroupColor
+import dev.redfox.alarmzy.ui.components.pressable
+import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupsScreen(
     uiState: GroupsUiState,
@@ -67,168 +87,112 @@ fun GroupsScreen(
     modifier: Modifier = Modifier
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val navClearance = floatingNavClearance()
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + LargeHeaderHeight
 
-    Scaffold(
-        topBar = {
-            if (uiState.selectionMode) {
-                TopAppBar(
-                    title = { Text("${uiState.selectedCount} selected") },
-                    navigationIcon = {
-                        IconButton(onClick = { onIntent(GroupsIntent.ClearSelection) }) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Exit selection"
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { onIntent(GroupsIntent.SelectAll) }) {
-                            Icon(Icons.Default.DoneAll, contentDescription = "Select all")
-                        }
-                        IconButton(
-                            onClick = { showDeleteDialog = true },
-                            enabled = uiState.selectedCount > 0
-                        ) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Delete selected",
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                    )
-                )
-            } else {
-                TopAppBar(title = { Text("Groups") })
-            }
-        },
-        floatingActionButton = {
-            if (!uiState.selectionMode) {
-                FloatingActionButton(onClick = onAddGroup) {
-                    Icon(Icons.Default.Add, contentDescription = "Create group")
-                }
-            }
-        },
-        modifier = modifier
-    ) { innerPadding ->
+    Box(modifier.fillMaxSize().background(AlarmzyTheme.colors.background)) {
         when {
-            uiState.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+            uiState.isLoading -> Unit
+            uiState.groups.isEmpty() -> EmptyState(
+                icon = R.drawable.ic_nav_groups,
+                title = "No groups yet",
+                subtitle = "Group alarms to switch them all on or off at once",
+                modifier = Modifier.glassSource().padding(top = topInset, bottom = navClearance)
+            )
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxSize().glassSource(),
+                contentPadding = PaddingValues(
+                    start = ScreenGutter,
+                    end = ScreenGutter,
+                    top = topInset + 8.dp,
+                    bottom = navClearance + 88.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(uiState.groups, key = { it.id }) { group ->
+                    GroupCard(
+                        group = group,
+                        isExpanded = !uiState.selectionMode && group.id in uiState.expandedGroupIds,
+                        selectionMode = uiState.selectionMode,
+                        isSelected = group.id in uiState.selectedIds,
+                        onCardClick = {
+                            if (uiState.selectionMode) onIntent(GroupsIntent.ToggleSelection(group.id))
+                            else onIntent(GroupsIntent.ToggleExpand(group.id))
+                        },
+                        onLongClick = { onIntent(GroupsIntent.EnterSelection(group.id)) },
+                        onToggleGroup = { enabled -> onIntent(GroupsIntent.ToggleGroup(group.id, enabled)) },
+                        onEditGroup = { onEditGroup(group.id) },
+                        onToggleAlarm = { alarmId, enabled ->
+                            onIntent(GroupsIntent.ToggleAlarmInGroup(alarmId, enabled))
+                        },
+                        modifier = Modifier.animateItem()
+                    )
                 }
             }
-            uiState.groups.isEmpty() -> {
-                EmptyGroupsContent(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
+        }
+
+        if (uiState.selectionMode) {
+            LargeHeader(
+                title = if (uiState.selectedCount == 0) "Select groups" else "${uiState.selectedCount} selected",
+                modifier = Modifier.align(Alignment.TopCenter)
+            ) {
+                HeaderIconButton(Icons.Rounded.DoneAll, "Select all", onClick = { onIntent(GroupsIntent.SelectAll) })
+                HeaderIconButton(
+                    Icons.Rounded.DeleteOutline,
+                    "Delete selected",
+                    onClick = { showDeleteDialog = true },
+                    enabled = uiState.selectedCount > 0,
+                    tint = AlarmzyTheme.colors.accentLight
                 )
+                HeaderIconButton(Icons.Rounded.Close, "Exit selection", onClick = { onIntent(GroupsIntent.ClearSelection) })
             }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(uiState.groups, key = { it.id }) { group ->
-                        val isExpanded = !uiState.selectionMode && group.id in uiState.expandedGroupIds
-                        GroupCard(
-                            group = group,
-                            isExpanded = isExpanded,
-                            selectionMode = uiState.selectionMode,
-                            isSelected = group.id in uiState.selectedIds,
-                            onCardClick = {
-                                if (uiState.selectionMode) {
-                                    onIntent(GroupsIntent.ToggleSelection(group.id))
-                                } else {
-                                    onIntent(GroupsIntent.ToggleExpand(group.id))
-                                }
-                            },
-                            onLongClick = { onIntent(GroupsIntent.EnterSelection(group.id)) },
-                            onToggleGroup = { enabled ->
-                                onIntent(GroupsIntent.ToggleGroup(group.id, enabled))
-                            },
-                            onEditGroup = { onEditGroup(group.id) },
-                            onToggleAlarm = { alarmId, enabled ->
-                                onIntent(GroupsIntent.ToggleAlarmInGroup(alarmId, enabled))
+        } else {
+            LargeHeader(title = "Alarm Groups", modifier = Modifier.align(Alignment.TopCenter)) {
+                var menuOpen by remember { mutableStateOf(false) }
+                Box {
+                    HeaderIconButton(R.drawable.ic_more_vert, "More options", onClick = { menuOpen = true })
+                    AzDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        AzMenuItem(
+                            text = "Select groups",
+                            onClick = {
+                                menuOpen = false
+                                onIntent(GroupsIntent.StartSelection)
                             }
                         )
                     }
                 }
             }
         }
+
+        AnimatedVisibility(
+            visible = !uiState.selectionMode,
+            enter = scaleIn() + fadeIn(),
+            exit = scaleOut() + fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = ScreenGutter, bottom = navClearance + 16.dp)
+        ) {
+            AzFab(icon = R.drawable.ic_add, contentDescription = "Create group", onClick = onAddGroup)
+        }
     }
 
     if (showDeleteDialog) {
         val count = uiState.selectedCount
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text(if (count == 1) "Delete group?" else "Delete $count groups?") },
-            text = {
-                Text(
-                    if (count == 1) "The group will be deleted. Its alarms will be kept and ungrouped."
-                    else "These $count groups will be deleted. Their alarms will be kept and ungrouped."
-                )
+        AzAlertDialog(
+            title = if (count == 1) "Delete group?" else "Delete $count groups?",
+            text = if (count == 1) "The group will be deleted. Its alarms will be kept and ungrouped."
+            else "These $count groups will be deleted. Their alarms will be kept and ungrouped.",
+            confirmLabel = "Delete",
+            destructive = true,
+            onConfirm = {
+                showDeleteDialog = false
+                onIntent(GroupsIntent.DeleteSelected)
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteDialog = false
-                        onIntent(GroupsIntent.DeleteSelected)
-                    }
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showDeleteDialog = false }
         )
     }
 }
 
-@Composable
-private fun EmptyGroupsContent(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            Icons.Default.Folder,
-            contentDescription = null,
-            modifier = Modifier
-                .height(80.dp)
-                .width(80.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-        )
-        Spacer(Modifier.height(16.dp))
-        Text(
-            "No groups yet",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "Create groups to manage multiple alarms at once",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-        )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun GroupCard(
     group: AlarmGroup,
@@ -242,130 +206,106 @@ private fun GroupCard(
     onToggleAlarm: (Long, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    val colors = AlarmzyTheme.colors
+    val type = AlarmzyTheme.typography
+    val enabled = group.isEnabled
+    val groupColor = parseGroupColor(group.color)
+    val chevronRotation by animateFloatAsState(if (isExpanded) 180f else 0f, label = "chevron")
+    val border by animateColorAsState(
+        if (isSelected) colors.accentBorder else colors.border.copy(alpha = 0f),
+        label = "groupBorder"
+    )
+
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .combinedClickable(
-                onClick = onCardClick,
-                onLongClick = onLongClick
-            ),
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                isSelected -> MaterialTheme.colorScheme.secondaryContainer
-                group.isEnabled -> MaterialTheme.colorScheme.surfaceContainerHigh
-                else -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.6f)
-            }
-        )
+            .then(if (enabled) Modifier.glow(colors.background.copy(alpha = 0.6f), AzShapes.Card, radius = 6.dp, offsetY = 4.dp) else Modifier)
+            .alpha(if (enabled || isSelected) 1f else 0.8f)
+            .clip(AzShapes.Card)
+            .background(if (enabled) colors.card else colors.cardInner)
+            .border(1.dp, border, AzShapes.Card)
+            .padding(16.dp)
     ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    if (selectionMode) {
-                        Checkbox(
-                            checked = isSelected,
-                            onCheckedChange = { onCardClick() }
-                        )
-                        Spacer(Modifier.width(12.dp))
-                    }
-                    val groupColor = group.color?.let {
-                        try { Color(android.graphics.Color.parseColor(it)) }
-                        catch (_: Exception) { null }
-                    }
-                    Icon(
-                        Icons.Default.Folder,
-                        contentDescription = null,
-                        tint = if (group.isEnabled)
-                            groupColor ?: MaterialTheme.colorScheme.primary
-                        else
-                            (groupColor ?: MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.5f)
-                    )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .pressable(pressedScale = 0.985f, onLongClick = onLongClick, onClick = onCardClick),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AnimatedVisibility(visible = selectionMode) {
+                Row {
+                    AzCheckbox(checked = isSelected, onCheckedChange = { onCardClick() })
                     Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = group.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = if (group.isEnabled)
-                                MaterialTheme.colorScheme.onSurface
-                            else
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                        Text(
-                            text = "${group.alarmCount} alarm${if (group.alarmCount != 1) "s" else ""}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-
-                if (!selectionMode) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(
-                            checked = group.isEnabled,
-                            onCheckedChange = onToggleGroup
-                        )
-                        IconButton(onClick = onCardClick) {
-                            Icon(
-                                if (isExpanded) Icons.Default.KeyboardArrowUp
-                                else Icons.Default.KeyboardArrowDown,
-                                contentDescription = if (isExpanded) "Collapse" else "Expand"
-                            )
-                        }
-                    }
                 }
             }
+            IconTile(
+                icon = group.icon.drawableRes,
+                size = 44.dp,
+                background = if (enabled) colors.tile else colors.card,
+                tint = (groupColor ?: colors.accentLight).copy(alpha = if (enabled) 1f else 0.6f)
+            )
+            Spacer(Modifier.width(8.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    group.name,
+                    style = type.title,
+                    color = colors.textPrimary.copy(alpha = if (enabled) 1f else 0.9f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    if (group.alarmCount == 1) "1 alarm" else "${group.alarmCount} alarms",
+                    style = type.label,
+                    color = colors.textSecondary.copy(alpha = if (enabled) 1f else 0.7f)
+                )
+            }
+            if (!selectionMode) {
+                Spacer(Modifier.width(8.dp))
+                AlarmzySwitch(checked = enabled, onCheckedChange = onToggleGroup, size = SwitchSize.Large)
+                Spacer(Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .pressable(pressedScale = 0.9f, onClick = onCardClick),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painterResource(R.drawable.ic_chevron_down),
+                        contentDescription = if (isExpanded) "Collapse ${group.name}" else "Expand ${group.name}",
+                        tint = colors.textSecondary,
+                        modifier = Modifier.rotate(chevronRotation)
+                    )
+                }
+            }
+        }
 
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                Column {
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-
-                    if (group.alarms.isEmpty()) {
-                        Text(
-                            "No alarms in this group",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(16.dp)
-                        )
-                    } else {
-                        Column(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            group.alarms.forEach { alarm ->
-                                AlarmMiniCard(
-                                    alarm = alarm,
-                                    onToggle = { onToggleAlarm(alarm.id, it) }
-                                )
-                            }
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Column {
+                Spacer(Modifier.height(16.dp))
+                Box(Modifier.fillMaxWidth().height(1.dp).background(colors.border))
+                Spacer(Modifier.height(5.dp))
+                if (group.alarms.isEmpty()) {
+                    Text(
+                        "No alarms in this group yet",
+                        style = type.body,
+                        color = colors.textSecondary,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp)
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        group.alarms.forEach { alarm ->
+                            GroupAlarmRow(alarm = alarm, onToggle = { onToggleAlarm(alarm.id, it) })
                         }
                     }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onEditGroup)
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            "Edit Group",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                }
+                Spacer(Modifier.height(20.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    PillButton(text = "Edit Group", icon = R.drawable.ic_tune, onClick = onEditGroup)
                 }
             }
         }
@@ -373,46 +313,44 @@ private fun GroupCard(
 }
 
 @Composable
-private fun AlarmMiniCard(
-    alarm: Alarm,
-    onToggle: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
-        )
+private fun GroupAlarmRow(alarm: Alarm, onToggle: (Boolean) -> Unit) {
+    val colors = AlarmzyTheme.colors
+    val type = AlarmzyTheme.typography
+    val time = alarm.clockTime
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(AzShapes.Card)
+            .background(colors.cardInner.copy(alpha = 0.8f))
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = alarm.timeFormatted,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Light,
-                    color = if (alarm.isEnabled)
-                        MaterialTheme.colorScheme.onSurface
-                    else
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
-                if (alarm.label.isNotBlank()) {
-                    Text(
-                        text = alarm.label,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
-            }
-            Switch(
-                checked = alarm.isEnabled,
-                onCheckedChange = onToggle
+        Row(Modifier.weight(1f)) {
+            Text(
+                time.digits,
+                style = type.timeMedium,
+                color = if (alarm.isEnabled) colors.textPrimary else colors.textSecondary,
+                modifier = Modifier.alignByBaseline()
             )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                time.meridiem,
+                style = type.caption.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.1.em),
+                color = if (alarm.isEnabled) colors.accentLight else colors.textSecondary,
+                modifier = Modifier.alignByBaseline()
+            )
+            if (alarm.label.isNotBlank()) {
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    alarm.label,
+                    style = type.body.copy(fontSize = 13.sp),
+                    color = colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.alignByBaseline()
+                )
+            }
         }
+        AlarmzySwitch(checked = alarm.isEnabled, onCheckedChange = onToggle, size = SwitchSize.Small)
     }
 }

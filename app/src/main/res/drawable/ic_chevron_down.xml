@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from the Alarmzy Figma design (Material Symbols Rounded). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="10dp"
+    android:height="6.1667dp"
+    android:viewportWidth="10"
+    android:viewportHeight="6.1667">
+    <path
+        android:pathData="M5 6.16667L0 1.16667L1.16667 0L5 3.83333L8.83333 0L10 1.16667L5 6.16667V6.16667"
+        android:fillColor="#FFFFFFFF" />
+</vector>

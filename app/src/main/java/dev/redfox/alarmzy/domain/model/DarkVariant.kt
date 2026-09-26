@@ -1,12 +1,15 @@
 package dev.redfox.alarmzy.domain.model
 
 /**
- * Intensity of the dark theme's neutral surfaces. Only relevant when the
- * resolved theme is dark — [DARK] matches Material 3's default dark ramp,
- * [DARKER] is a dark-grey ramp, [DARKEST] is true AMOLED black.
+ * Intensity of the (always dark) theme's neutral surfaces. [DARK] is the design's base
+ * #131316 ramp, [DARKER] the deeper #0E0E11 ramp, [DARKEST] true AMOLED black.
  */
 enum class DarkVariant(val displayName: String) {
     DARK("Dark"),
     DARKER("Darker"),
-    DARKEST("Darkest")
+    DARKEST("AMOLED");
+
+    companion object {
+        fun fromName(name: String?): DarkVariant = entries.firstOrNull { it.name == name } ?: DARK
+    }
 }

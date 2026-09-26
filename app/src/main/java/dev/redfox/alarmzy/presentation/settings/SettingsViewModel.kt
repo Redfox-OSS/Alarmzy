@@ -11,7 +11,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.redfox.alarmzy.domain.model.AccentColor
 import dev.redfox.alarmzy.domain.model.DarkVariant
-import dev.redfox.alarmzy.domain.model.ThemeMode
 import dev.redfox.alarmzy.domain.repository.BillingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,15 +35,8 @@ class SettingsViewModel @Inject constructor(
                 billingRepository.isProUnlocked()
             ) { prefs, isPro ->
                 SettingsUiState(
-                    themeMode = runCatching {
-                        ThemeMode.valueOf(prefs[KEY_THEME_MODE] ?: ThemeMode.SYSTEM.name)
-                    }.getOrDefault(ThemeMode.SYSTEM),
-                    darkVariant = runCatching {
-                        DarkVariant.valueOf(prefs[KEY_DARK_VARIANT] ?: DarkVariant.DARK.name)
-                    }.getOrDefault(DarkVariant.DARK),
-                    accentColor = runCatching {
-                        AccentColor.valueOf(prefs[KEY_ACCENT_COLOR] ?: AccentColor.DYNAMIC.name)
-                    }.getOrDefault(AccentColor.DYNAMIC),
+                    darkVariant = DarkVariant.fromName(prefs[KEY_DARK_VARIANT]),
+                    accentColor = AccentColor.fromName(prefs[KEY_ACCENT_COLOR]),
                     defaultRingtoneUri = prefs[KEY_DEFAULT_RINGTONE_URI],
                     defaultRingtoneName = prefs[KEY_DEFAULT_RINGTONE_NAME] ?: "Default",
                     defaultSnoozeDuration = prefs[KEY_DEFAULT_SNOOZE] ?: 5,
@@ -60,9 +52,6 @@ class SettingsViewModel @Inject constructor(
 
     fun onIntent(intent: SettingsIntent) {
         when (intent) {
-            is SettingsIntent.SetThemeMode -> save { prefs ->
-                prefs[KEY_THEME_MODE] = intent.mode.name
-            }
             is SettingsIntent.SetDarkVariant -> save { prefs ->
                 prefs[KEY_DARK_VARIANT] = intent.variant.name
             }
@@ -96,7 +85,6 @@ class SettingsViewModel @Inject constructor(
     }
 
     companion object {
-        val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_DARK_VARIANT = stringPreferencesKey("dark_variant")
         val KEY_ACCENT_COLOR = stringPreferencesKey("accent_color")
         val KEY_DEFAULT_RINGTONE_URI = stringPreferencesKey("default_ringtone_uri")

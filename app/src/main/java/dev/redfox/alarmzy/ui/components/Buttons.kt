@@ -1,0 +1,162 @@
+package dev.redfox.alarmzy.ui.components
+
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+
+/** Full-width signature pill CTA ("Create 7 alarms", "Create Group"). */
+@Composable
+fun PrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    @DrawableRes icon: Int? = null,
+    enabled: Boolean = true,
+) {
+    val colors = AlarmzyTheme.colors
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .alpha(if (enabled) 1f else 0.4f)
+            .then(
+                if (enabled) Modifier.glow(colors.accent.copy(alpha = 0.3f), CircleShape, radius = 18.dp, offsetY = 8.dp)
+                else Modifier
+            )
+            .pressable(enabled = enabled, onClick = onClick)
+            .clip(CircleShape)
+            .background(colors.accent)
+            .padding(vertical = 16.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (icon != null) {
+            Icon(painterResource(icon), contentDescription = null, tint = colors.onAccent)
+            Box(Modifier.size(8.dp))
+        }
+        Text(text, style = AlarmzyTheme.typography.button, color = colors.onAccent)
+    }
+}
+
+/** Small neutral pill button ("Edit Group", "Add custom sound"). */
+@Composable
+fun PillButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    @DrawableRes icon: Int? = null,
+    contentColor: Color = AlarmzyTheme.colors.textPrimary,
+    containerColor: Color = AlarmzyTheme.colors.tile,
+) {
+    Row(
+        modifier = modifier
+            .pressable(onClick = onClick)
+            .clip(CircleShape)
+            .background(containerColor)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (icon != null) {
+            Icon(painterResource(icon), contentDescription = null, tint = contentColor, modifier = Modifier.size(12.dp))
+            Box(Modifier.size(6.dp))
+        }
+        Text(text, style = AlarmzyTheme.typography.label, color = contentColor)
+    }
+}
+
+/** OxygenOS-style squircle FAB with the accent gradient and glow. */
+@Composable
+fun AzFab(
+    @DrawableRes icon: Int,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AlarmzyTheme.colors
+    val shape = RoundedCornerShape(18.dp)
+    Box(
+        modifier = modifier
+            .glow(colors.accent.copy(alpha = 0.45f), shape, radius = 14.dp, offsetY = 8.dp)
+            .pressable(pressedScale = 0.92f, onClick = onClick)
+            .size(56.dp)
+            .clip(shape)
+            .background(
+                Brush.linearGradient(listOf(colors.accent, lerp(colors.accent, colors.accentLight, 0.25f)))
+            )
+            .border(1.dp, Color.White.copy(alpha = 0.18f), shape),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painterResource(icon),
+            contentDescription = contentDescription,
+            tint = if (colors.accent.luminance() > 0.6f) colors.onAccent else Color.White
+        )
+    }
+}
+
+/** 44dp round tap target for header actions (back, overflow). */
+@Composable
+fun HeaderIconButton(
+    @DrawableRes icon: Int,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    tint: Color = AlarmzyTheme.colors.textPrimary,
+) {
+    Box(
+        modifier = modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .pressable(pressedScale = 0.9f, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(painterResource(icon), contentDescription = contentDescription, tint = tint)
+    }
+}
+
+/**
+ * [HeaderIconButton] for actions whose glyph isn't in the Figma icon set yet
+ * (delete, select-all, close) — uses the Material Symbols-like Rounded vectors.
+ */
+@Composable
+fun HeaderIconButton(
+    imageVector: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    tint: Color = AlarmzyTheme.colors.textPrimary,
+    enabled: Boolean = true,
+) {
+    Box(
+        modifier = modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .alpha(if (enabled) 1f else 0.4f)
+            .pressable(enabled = enabled, pressedScale = 0.9f, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(imageVector, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(22.dp))
+    }
+}

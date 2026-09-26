@@ -8,16 +8,23 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -25,11 +32,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
-import dev.redfox.alarmzy.domain.model.ThemeMode
+import dev.chrisbanes.haze.rememberHazeState
 import dev.redfox.alarmzy.presentation.navigation.AlarmzyNavHost
 import dev.redfox.alarmzy.presentation.navigation.BottomNavBar
 import dev.redfox.alarmzy.presentation.navigation.BottomNavScreen
 import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
+import dev.redfox.alarmzy.ui.components.LocalHazeState
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
 
 @AndroidEntryPoint
@@ -44,34 +52,46 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // The app is always dark: force light system-bar icons regardless of the device theme.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+        )
         requestNotificationPermissionIfNeeded()
         overlayPermissionGranted = Settings.canDrawOverlays(this)
         setContent {
             val settingsViewModel: SettingsViewModel = hiltViewModel()
             val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
-            val darkTheme = when (settingsState.themeMode) {
-                ThemeMode.SYSTEM -> isSystemInDarkTheme()
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
-            }
-
             AlarmzyTheme(
-                darkTheme = darkTheme,
                 accentColor = settingsState.accentColor,
                 darkVariant = settingsState.darkVariant
             ) {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
+                val showBottomBar = BottomNavScreen.isTabRoute(currentRoute)
+                val hazeState = rememberHazeState()
 
-                val showBottomBar = BottomNavScreen.entries.any { it.route == currentRoute }
+                CompositionLocalProvider(LocalHazeState provides hazeState) {
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(AlarmzyTheme.colors.background)
+                    ) {
+                        AlarmzyNavHost(
+                            navController = navController,
+                            overlayPermissionGranted = overlayPermissionGranted,
+                            onRequestOverlayPermission = { requestOverlayPermission() },
+                            modifier = Modifier.fillMaxSize()
+                        )
 
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    bottomBar = {
-                        if (showBottomBar) {
+                        AnimatedVisibility(
+                            visible = showBottomBar,
+                            enter = slideInVertically { it } + fadeIn(),
+                            exit = slideOutVertically { it } + fadeOut(),
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                        ) {
                             BottomNavBar(
                                 currentRoute = currentRoute,
                                 onNavigate = { screen ->
@@ -86,13 +106,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
-                ) { innerPadding ->
-                    AlarmzyNavHost(
-                        navController = navController,
-                        overlayPermissionGranted = overlayPermissionGranted,
-                        onRequestOverlayPermission = { requestOverlayPermission() },
-                        modifier = Modifier.padding(innerPadding)
-                    )
                 }
             }
         }

@@ -1,230 +1,212 @@
 package dev.redfox.alarmzy.presentation.settings
 
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Brightness6
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Snooze
-import androidx.compose.material.icons.filled.Vibration
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.WorkspacePremium
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import dev.redfox.alarmzy.R
 import dev.redfox.alarmzy.domain.model.AccentColor
 import dev.redfox.alarmzy.domain.model.DarkVariant
-import dev.redfox.alarmzy.domain.model.ThemeMode
+import dev.redfox.alarmzy.presentation.navigation.floatingNavClearance
 import dev.redfox.alarmzy.presentation.paywall.PaywallBottomSheet
+import dev.redfox.alarmzy.ui.components.AlarmzySwitch
+import dev.redfox.alarmzy.ui.components.AzDivider
+import dev.redfox.alarmzy.ui.components.AzListRow
+import dev.redfox.alarmzy.ui.components.AzShapes
+import dev.redfox.alarmzy.ui.components.ChoicePill
+import dev.redfox.alarmzy.ui.components.IconTile
+import dev.redfox.alarmzy.ui.components.LargeHeader
+import dev.redfox.alarmzy.ui.components.LargeHeaderHeight
+import dev.redfox.alarmzy.ui.components.ScreenGutter
+import dev.redfox.alarmzy.ui.components.SwitchSize
+import dev.redfox.alarmzy.ui.components.glassSource
+import dev.redfox.alarmzy.ui.components.glow
+import dev.redfox.alarmzy.ui.components.pressable
+import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val SnoozeOptions = listOf(5, 10, 15, 20, 30)
+
 @Composable
 fun SettingsScreen(
     uiState: SettingsUiState,
     onIntent: (SettingsIntent) -> Unit,
-    overlayPermissionGranted: Boolean = false,
+    overlayPermissionGranted: Boolean = true,
     onRequestOverlayPermission: () -> Unit = {},
-    onPickRingtone: () -> Unit = {},
+    onPickRingtone: () -> Unit,
     onCustomizeAlarmScreen: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val colors = AlarmzyTheme.colors
     var showPaywall by remember { mutableStateOf(false) }
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + LargeHeaderHeight
 
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Settings") })
-        },
-        modifier = modifier
-    ) { innerPadding ->
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Spacer(Modifier.height(8.dp))
+    Box(modifier.fillMaxSize().background(colors.background)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .glassSource()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = ScreenGutter)
+                .padding(top = topInset + 8.dp, bottom = floatingNavClearance() + 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            SettingsSection("Alarmzy Pro") {
+                ProCard(isPro = uiState.isPro, onUpgrade = { showPaywall = true })
+            }
 
-        SettingsSectionHeader("Alarmzy Pro")
-        SettingsSection {
-            if (uiState.isPro) {
-                SettingsTile(
-                    icon = Icons.Default.WorkspacePremium,
-                    title = "Pro unlocked",
-                    subtitle = "Thanks for supporting Alarmzy"
-                )
-            } else {
-                SettingsTile(
-                    icon = Icons.Default.WorkspacePremium,
-                    title = "Unlock Alarmzy Pro",
-                    subtitle = "Unlimited groups, unlimited alarms per group, alarm series",
-                    onClick = { showPaywall = true },
-                    trailing = {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            // Only shown while the overlay permission is missing — nothing actionable once granted.
+            if (!overlayPermissionGranted) {
+                SettingsSection("Permissions") {
+                    SettingsCard {
+                        Row(
+                            Modifier.fillMaxWidth().pressable(pressedScale = 0.985f, onClick = onRequestOverlayPermission),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                Modifier.size(40.dp).clip(AzShapes.Tile).background(colors.warning.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Rounded.WarningAmber, contentDescription = null, tint = colors.warning, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(Modifier.width(16.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("Display over other apps", style = AlarmzyTheme.typography.labelStrong, color = colors.textPrimary)
+                                Text(
+                                    "Required for the fullscreen alarm screen. Tap to grant.",
+                                    style = AlarmzyTheme.typography.body,
+                                    color = colors.textSecondary
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            ChevronRight()
+                        }
                     }
-                )
+                }
+            }
+
+            SettingsSection("Appearance") {
+                SettingsCard {
+                    ThemeVariantRow(
+                        selected = uiState.darkVariant,
+                        onSelect = { onIntent(SettingsIntent.SetDarkVariant(it)) }
+                    )
+                    AzDivider()
+                    AccentColorPicker(
+                        selected = uiState.accentColor,
+                        onSelect = { onIntent(SettingsIntent.SetAccentColor(it)) }
+                    )
+                }
+            }
+
+            SettingsSection("Default alarm settings") {
+                SettingsCard {
+                    AzListRow(
+                        title = "Customize alarm screen",
+                        subtitle = "Background, buttons, clock position and size",
+                        icon = R.drawable.ic_tune,
+                        onClick = onCustomizeAlarmScreen,
+                        trailing = { ChevronRight() }
+                    )
+                    AzDivider()
+                    AzListRow(
+                        title = "Ringtone",
+                        subtitle = uiState.defaultRingtoneName,
+                        icon = R.drawable.ic_bell,
+                        onClick = onPickRingtone,
+                        trailing = { ChevronRight() }
+                    )
+                    AzDivider()
+                    SnoozeRow(
+                        selectedMinutes = uiState.defaultSnoozeDuration,
+                        onSelect = { onIntent(SettingsIntent.SetDefaultSnoozeDuration(it)) }
+                    )
+                    AzDivider()
+                    AzListRow(
+                        title = "Vibration",
+                        subtitle = "Enable vibration for new alarms",
+                        icon = R.drawable.ic_vibration,
+                        onClick = { onIntent(SettingsIntent.SetDefaultVibration(!uiState.defaultVibration)) },
+                        trailing = {
+                            AlarmzySwitch(
+                                checked = uiState.defaultVibration,
+                                onCheckedChange = { onIntent(SettingsIntent.SetDefaultVibration(it)) },
+                                size = SwitchSize.Medium
+                            )
+                        }
+                    )
+                    AzDivider()
+                    AzListRow(
+                        title = "Gradual volume increase",
+                        subtitle = "Gradually increase volume for new alarms",
+                        icon = R.drawable.ic_volume,
+                        onClick = { onIntent(SettingsIntent.SetDefaultGradualVolume(!uiState.defaultGradualVolume)) },
+                        trailing = {
+                            AlarmzySwitch(
+                                checked = uiState.defaultGradualVolume,
+                                onCheckedChange = { onIntent(SettingsIntent.SetDefaultGradualVolume(it)) },
+                                size = SwitchSize.Medium
+                            )
+                        }
+                    )
+                }
+            }
+
+            SettingsSection("About") {
+                SettingsCard {
+                    AzListRow(title = "Alarmzy", subtitle = "Version ${appVersionName()}", icon = R.drawable.ic_info)
+                }
             }
         }
 
-        // Permissions section only appears while the overlay permission is missing.
-        // Once granted, there's nothing actionable left here, so it's hidden.
-        if (!overlayPermissionGranted) {
-            SettingsSectionHeader("Permissions")
-            SettingsSection {
-                SettingsTile(
-                    icon = Icons.Default.Warning,
-                    title = "Display over other apps",
-                    subtitle = "Required for the fullscreen alarm screen. Tap to grant.",
-                    iconTint = MaterialTheme.colorScheme.error,
-                    onClick = onRequestOverlayPermission,
-                    trailing = {
-                        Icon(
-                            Icons.AutoMirrored.Filled.OpenInNew,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                )
-            }
-        }
-
-        SettingsSectionHeader("Appearance")
-        SettingsSection {
-            ThemeModeCard(
-                selectedMode = uiState.themeMode,
-                selectedVariant = uiState.darkVariant,
-                onSelectMode = { onIntent(SettingsIntent.SetThemeMode(it)) },
-                onSelectVariant = { onIntent(SettingsIntent.SetDarkVariant(it)) }
-            )
-            AccentColorTile(
-                selected = uiState.accentColor,
-                onSelect = { onIntent(SettingsIntent.SetAccentColor(it)) }
-            )
-        }
-
-        SettingsSectionHeader("Alarm ringing screen")
-        SettingsSection {
-            SettingsTile(
-                icon = Icons.Default.Fullscreen,
-                title = "Customize alarm screen",
-                subtitle = "Background, buttons, clock position and size",
-                onClick = onCustomizeAlarmScreen,
-                trailing = {
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            )
-        }
-
-        SettingsSectionHeader("Default alarm settings")
-        SettingsSection {
-            SettingsTile(
-                icon = Icons.Default.MusicNote,
-                title = "Ringtone",
-                subtitle = uiState.defaultRingtoneName,
-                onClick = onPickRingtone,
-                trailing = {
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            )
-            SnoozeDurationPickerSetting(
-                selectedMinutes = uiState.defaultSnoozeDuration,
-                onSelect = { onIntent(SettingsIntent.SetDefaultSnoozeDuration(it)) }
-            )
-            SettingsTile(
-                icon = Icons.Default.Vibration,
-                title = "Vibration",
-                subtitle = "Enable vibration for new alarms",
-                trailing = {
-                    Switch(
-                        checked = uiState.defaultVibration,
-                        onCheckedChange = { onIntent(SettingsIntent.SetDefaultVibration(it)) }
-                    )
-                }
-            )
-            SettingsTile(
-                icon = Icons.AutoMirrored.Filled.VolumeUp,
-                title = "Gradual volume increase",
-                subtitle = "Gradually increase volume for new alarms",
-                trailing = {
-                    Switch(
-                        checked = uiState.defaultGradualVolume,
-                        onCheckedChange = { onIntent(SettingsIntent.SetDefaultGradualVolume(it)) }
-                    )
-                }
-            )
-        }
-
-        SettingsSectionHeader("About")
-        SettingsSection {
-            SettingsTile(
-                icon = Icons.Default.Info,
-                title = "Alarmzy",
-                subtitle = "Version 1.0"
-            )
-        }
-
-        Spacer(Modifier.height(24.dp))
-    }
+        LargeHeader(title = "Settings", modifier = Modifier.align(Alignment.TopCenter))
     }
 
     if (showPaywall) {
@@ -233,403 +215,224 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsSectionHeader(title: String) {
-    Text(
-        title,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
-    )
+private fun appVersionName(): String {
+    val context = LocalContext.current
+    return remember {
+        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
+            .getOrNull() ?: "1.0"
+    }
 }
 
 @Composable
-private fun SettingsSection(content: @Composable () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+private fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            title.uppercase(),
+            style = AlarmzyTheme.typography.caption,
+            color = AlarmzyTheme.colors.textSecondary,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
         content()
     }
 }
 
 @Composable
-private fun SettingsTile(
-    icon: ImageVector,
-    title: String,
-    subtitle: String? = null,
-    iconTint: Color = MaterialTheme.colorScheme.primary,
-    onClick: (() -> Unit)? = null,
-    trailing: (@Composable () -> Unit)? = null
-) {
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
+    val colors = AlarmzyTheme.colors
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(iconTint.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-            Spacer(Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                if (subtitle != null) {
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            if (trailing != null) {
-                Spacer(Modifier.width(12.dp))
-                trailing()
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun AccentColorTile(
-    selected: AccentColor,
-    onSelect: (AccentColor) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExpandableSettingsCard(
-        icon = Icons.Default.Palette,
-        title = "Accent color",
-        valueSummary = selected.displayName,
-        expanded = expanded,
-        onToggleExpand = { expanded = !expanded }
-    ) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            AccentColor.entries.forEach { accent ->
-                val isSelected = accent == selected
-                val swatch = Color(accent.swatch)
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (accent == AccentColor.DYNAMIC)
-                                MaterialTheme.colorScheme.surfaceVariant
-                            else swatch,
-                            CircleShape
-                        )
-                        .then(
-                            if (isSelected)
-                                Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                            else Modifier
-                        )
-                        .clickable { onSelect(accent) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    when {
-                        accent == AccentColor.DYNAMIC -> Icon(
-                            Icons.Default.AutoAwesome,
-                            contentDescription = accent.displayName,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        isSelected -> Icon(
-                            Icons.Default.Check,
-                            contentDescription = "Selected",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-private fun themeModeLabel(mode: ThemeMode) = when (mode) {
-    ThemeMode.SYSTEM -> "Follow system"
-    ThemeMode.LIGHT -> "Light"
-    ThemeMode.DARK -> "Dark"
-}
-
-@Composable
-private fun ThemeModeCard(
-    selectedMode: ThemeMode,
-    selectedVariant: DarkVariant,
-    onSelectMode: (ThemeMode) -> Unit,
-    onSelectVariant: (DarkVariant) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    val summary = themeModeLabel(selectedMode) +
-        if (selectedMode == ThemeMode.DARK) " · ${selectedVariant.displayName}" else ""
-
-    ExpandableSettingsCard(
-        icon = Icons.Default.Brightness6,
-        title = "Theme",
-        valueSummary = summary,
-        expanded = expanded,
-        onToggleExpand = { expanded = !expanded }
-    ) {
-        Column {
-            ThemeMode.entries.forEach { mode ->
-                SelectableOptionRow(
-                    label = themeModeLabel(mode),
-                    selected = mode == selectedMode,
-                    onClick = { onSelectMode(mode) }
-                )
-            }
-            AnimatedVisibility(
-                visible = selectedMode == ThemeMode.DARK,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                Column(modifier = Modifier.padding(start = 16.dp)) {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    DarkVariant.entries.forEach { variant ->
-                        SelectableOptionRow(
-                            label = variant.displayName,
-                            selected = variant == selectedVariant,
-                            onClick = { onSelectVariant(variant) }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/** Inline expand/collapse card — header row with a trailing chevron, animated body below. */
-@Composable
-private fun ExpandableSettingsCard(
-    icon: ImageVector,
-    title: String,
-    valueSummary: String,
-    expanded: Boolean,
-    onToggleExpand: () -> Unit,
-    content: @Composable () -> Unit
-) {
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onToggleExpand)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                Spacer(Modifier.width(14.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        valueSummary,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Icon(
-                    if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                    content()
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SelectableOptionRow(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
-        )
-        if (selected) {
-            Icon(
-                Icons.Default.Check,
-                contentDescription = "Selected",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun SnoozeDurationPickerSetting(
-    selectedMinutes: Int,
-    onSelect: (Int) -> Unit
-) {
-    SettingsDropdownTile(
-        label = "Default snooze duration",
-        value = "$selectedMinutes minutes",
-        icon = Icons.Default.Snooze,
-        options = listOf(5, 10, 15, 20, 30),
-        optionLabel = { "$it minutes" },
-        isSelected = { it == selectedMinutes },
-        onSelect = onSelect
+            .glow(Color.Black.copy(alpha = 0.25f), AzShapes.CardLarge, radius = 6.dp, offsetY = 4.dp)
+            .clip(AzShapes.CardLarge)
+            .background(colors.card)
+            .border(1.dp, colors.border, AzShapes.CardLarge)
+            .padding(17.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        content = content
     )
 }
 
 @Composable
-private fun <T> SettingsDropdownTile(
-    label: String,
-    value: String,
-    icon: ImageVector,
-    options: List<T>,
-    optionLabel: (T) -> String,
-    isSelected: (T) -> Boolean,
-    onSelect: (T) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
+private fun ChevronRight() {
+    Icon(
+        painterResource(R.drawable.ic_chevron_right),
+        contentDescription = null,
+        tint = AlarmzyTheme.colors.textSecondary
+    )
+}
 
-    Box(modifier = Modifier.fillMaxWidth()) {
-        Surface(
-            onClick = { expanded = true },
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier.fillMaxWidth()
-        ) {
+@Composable
+private fun ExpandChevron(expanded: Boolean) {
+    val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "expandChevron")
+    Icon(
+        painterResource(R.drawable.ic_chevron_down),
+        contentDescription = null,
+        tint = AlarmzyTheme.colors.textSecondary,
+        modifier = Modifier.rotate(rotation)
+    )
+}
+
+@Composable
+private fun ProCard(isPro: Boolean, onUpgrade: () -> Unit) {
+    val colors = AlarmzyTheme.colors
+    val type = AlarmzyTheme.typography
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (!isPro) Modifier.pressable(onClick = onUpgrade) else Modifier)
+            .clip(AzShapes.CardLarge)
+            .background(colors.card)
+            .border(1.dp, if (isPro) colors.border else colors.accentBorder, AzShapes.CardLarge)
+            .padding(17.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconTile(
+            icon = R.drawable.ic_pro_verified,
+            size = 44.dp,
+            background = colors.accentLight.copy(alpha = 0.2f),
+            tint = colors.accentLight
+        )
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                if (isPro) "Pro unlocked" else "Unlock Alarmzy Pro",
+                style = type.body.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.28.sp),
+                color = colors.textPrimary
+            )
+            Text(
+                if (isPro) "Thanks for supporting Alarmzy" else "Unlimited groups, unlimited alarms per group, alarm series",
+                style = type.body,
+                color = colors.textSecondary
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        if (isPro) {
+            Icon(painterResource(R.drawable.ic_pro_badge), contentDescription = null, tint = colors.accentLight)
+        } else {
+            ChevronRight()
+        }
+    }
+}
+
+@Composable
+private fun ThemeVariantRow(selected: DarkVariant, onSelect: (DarkVariant) -> Unit) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    Column {
+        AzListRow(
+            title = "Theme",
+            subtitle = if (selected == DarkVariant.DARK) "Dark" else "Dark · ${selected.displayName}",
+            icon = R.drawable.ic_palette,
+            onClick = { expanded = !expanded },
+            trailing = { ExpandChevron(expanded) }
+        )
+        AnimatedVisibility(visible = expanded, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
+                Modifier.fillMaxWidth().padding(top = 14.dp, start = 56.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp)
-                    )
+                DarkVariant.entries.forEach { variant ->
+                    ChoicePill(text = variant.displayName, selected = variant == selected, onClick = { onSelect(variant) })
                 }
-                Spacer(Modifier.width(14.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        value,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Icon(
-                    Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
+    }
+}
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            shape = MaterialTheme.shapes.large,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ) {
-            options.forEach { option ->
-                val selected = isSelected(option)
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            optionLabel(option),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (selected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurface
-                        )
-                    },
-                    onClick = {
-                        onSelect(option)
-                        expanded = false
-                    },
-                    trailingIcon = {
-                        if (selected) {
+@Composable
+private fun AccentColorPicker(selected: AccentColor, onSelect: (AccentColor) -> Unit) {
+    val colors = AlarmzyTheme.colors
+    val type = AlarmzyTheme.typography
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        AzListRow(
+            title = "Accent color",
+            subtitle = selected.displayName,
+            icon = R.drawable.ic_format_paint,
+            trailing = {
+                Row(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(colors.accentLight.copy(alpha = 0.2f))
+                        .border(1.dp, colors.accentLight.copy(alpha = 0.2f), CircleShape)
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(Modifier.size(8.dp).clip(CircleShape).background(colors.accent))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Active", style = type.labelStrong, color = colors.accentLight)
+                }
+            }
+        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            AccentColor.entries.forEach { accent ->
+                val isSel = accent == selected
+                val swatch = Color(accent.swatch)
+                Column(
+                    modifier = Modifier
+                        .semantics { contentDescription = "${accent.displayName} accent" }
+                        .pressable(pressedScale = 0.92f, role = Role.RadioButton) { onSelect(accent) },
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .then(if (isSel) Modifier.glow(swatch.copy(alpha = 0.35f), AzShapes.Tile, radius = 12.dp, offsetY = 6.dp) else Modifier)
+                            .size(48.dp)
+                            .alpha(if (isSel) 1f else 0.8f)
+                            .clip(AzShapes.Tile)
+                            .background(swatch)
+                            .then(if (isSel) Modifier.border(2.dp, colors.accentLight.copy(alpha = 0.4f), AzShapes.Tile) else Modifier),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isSel) {
                             Icon(
-                                Icons.Default.Check,
-                                contentDescription = "Selected",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
+                                painterResource(R.drawable.ic_check_bold),
+                                contentDescription = null,
+                                // Keep the check legible on the white Luminous swatch.
+                                tint = if (accent == AccentColor.LUMINOUS) Color(0xFF1A1A1D) else Color.White
                             )
                         }
                     }
-                )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        accent.displayName,
+                        style = type.caption.copy(
+                            fontWeight = if (isSel) FontWeight.Medium else FontWeight.SemiBold,
+                            letterSpacing = 0.6.sp
+                        ),
+                        color = if (isSel) colors.textPrimary else colors.textSecondary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SnoozeRow(selectedMinutes: Int, onSelect: (Int) -> Unit) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    Column {
+        AzListRow(
+            title = "Default snooze duration",
+            subtitle = "$selectedMinutes minutes",
+            icon = R.drawable.ic_snooze,
+            onClick = { expanded = !expanded },
+            trailing = { ExpandChevron(expanded) }
+        )
+        AnimatedVisibility(visible = expanded, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp)
+                    .horizontalScroll(rememberScrollState())
+                    .padding(start = 56.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SnoozeOptions.forEach { minutes ->
+                    ChoicePill(
+                        text = "$minutes min",
+                        selected = minutes == selectedMinutes,
+                        onClick = { onSelect(minutes) }
+                    )
+                }
             }
         }
     }

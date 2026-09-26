@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.datastore.core.DataStore
@@ -16,7 +15,6 @@ import dev.redfox.alarmzy.domain.model.AccentColor
 import dev.redfox.alarmzy.domain.model.AlarmButtonLayout
 import dev.redfox.alarmzy.domain.model.AlarmClockPosition
 import dev.redfox.alarmzy.domain.model.DarkVariant
-import dev.redfox.alarmzy.domain.model.ThemeMode
 import dev.redfox.alarmzy.presentation.alarmringing.AlarmRingingContent
 import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
 import dev.redfox.alarmzy.presentation.settings.customize.AlarmScreenCustomizeViewModel
@@ -47,15 +45,8 @@ class AlarmRingingActivity : ComponentActivity() {
         setContent {
             val prefs by dataStore.data.collectAsState(initial = null)
 
-            val themeMode = runCatching {
-                ThemeMode.valueOf(prefs?.get(SettingsViewModel.KEY_THEME_MODE) ?: ThemeMode.SYSTEM.name)
-            }.getOrDefault(ThemeMode.SYSTEM)
-            val accentColor = runCatching {
-                AccentColor.valueOf(prefs?.get(SettingsViewModel.KEY_ACCENT_COLOR) ?: AccentColor.DYNAMIC.name)
-            }.getOrDefault(AccentColor.DYNAMIC)
-            val darkVariant = runCatching {
-                DarkVariant.valueOf(prefs?.get(SettingsViewModel.KEY_DARK_VARIANT) ?: DarkVariant.DARK.name)
-            }.getOrDefault(DarkVariant.DARK)
+            val accentColor = AccentColor.fromName(prefs?.get(SettingsViewModel.KEY_ACCENT_COLOR))
+            val darkVariant = DarkVariant.fromName(prefs?.get(SettingsViewModel.KEY_DARK_VARIANT))
 
             val backgroundImagePath = prefs?.get(AlarmScreenCustomizeViewModel.KEY_BG_IMAGE_PATH)
             val buttonLayout = runCatching {
@@ -69,14 +60,7 @@ class AlarmRingingActivity : ComponentActivity() {
                 )
             }.getOrDefault(AlarmClockPosition.MIDDLE)
 
-            val darkTheme = when (themeMode) {
-                ThemeMode.SYSTEM -> isSystemInDarkTheme()
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
-            }
-
             AlarmzyTheme(
-                darkTheme = darkTheme,
                 accentColor = accentColor,
                 darkVariant = darkVariant
             ) {

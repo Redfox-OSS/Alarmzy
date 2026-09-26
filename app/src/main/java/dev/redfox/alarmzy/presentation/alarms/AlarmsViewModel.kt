@@ -58,6 +58,7 @@ class AlarmsViewModel @Inject constructor(
             is AlarmsIntent.EnterSelection -> _selection.update {
                 Selection(active = true, ids = setOf(intent.alarmId))
             }
+            is AlarmsIntent.StartSelection -> _selection.value = Selection(active = true)
             is AlarmsIntent.ToggleSelection -> _selection.update { current ->
                 val newIds = if (intent.alarmId in current.ids) {
                     current.ids - intent.alarmId

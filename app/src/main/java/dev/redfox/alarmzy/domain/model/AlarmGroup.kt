@@ -5,6 +5,7 @@ data class AlarmGroup(
     val name: String = "",
     val isEnabled: Boolean = true,
     val color: String? = null,
+    val icon: GroupIcon? = null,
     val alarms: List<Alarm> = emptyList()
 ) {
     val alarmCount: Int get() = alarms.size

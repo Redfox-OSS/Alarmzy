@@ -1,32 +1,43 @@
 package dev.redfox.alarmzy.presentation.paywall
 
 import android.app.Activity
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.WorkspacePremium
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import dev.redfox.alarmzy.R
+import dev.redfox.alarmzy.ui.components.AzShapes
+import dev.redfox.alarmzy.ui.components.PillButton
+import dev.redfox.alarmzy.ui.components.PrimaryButton
+import dev.redfox.alarmzy.ui.components.glow
+import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +49,8 @@ fun PaywallBottomSheet(
     val uiState by viewModel.uiState.collectAsState()
     val sheetState = rememberModalBottomSheetState()
     val activity = LocalContext.current as? Activity
+    val colors = AlarmzyTheme.colors
+    val type = AlarmzyTheme.typography
 
     LaunchedEffect(uiState.isPro) {
         if (uiState.isPro) onDismiss()
@@ -46,79 +59,116 @@ fun PaywallBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        containerColor = colors.card,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = {
+            Box(
+                Modifier
+                    .padding(top = 12.dp, bottom = 8.dp)
+                    .size(width = 40.dp, height = 4.dp)
+                    .clip(CircleShape)
+                    .background(colors.textSecondary.copy(alpha = 0.3f))
+            )
+        },
         modifier = modifier
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp),
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
-                Icons.Default.WorkspacePremium,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text("Unlock Alarmzy Pro", style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .glow(colors.accent.copy(alpha = 0.35f), AzShapes.CardLarge, radius = 28.dp)
+                    .size(72.dp)
+                    .clip(AzShapes.CardLarge)
+                    .background(colors.accentContainer)
+                    .border(1.dp, colors.accentBorder, AzShapes.CardLarge),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_pro_verified),
+                    contentDescription = null,
+                    tint = colors.accentLight,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+            Spacer(Modifier.height(20.dp))
+            Text("Unlock Alarmzy Pro", style = type.screenTitle.copy(fontSize = type.screenTitle.fontSize * 1.2f), color = colors.textPrimary)
+            Spacer(Modifier.height(6.dp))
             Text(
                 "A one-time purchase, yours forever.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+                style = type.body,
+                color = colors.textSecondary,
+                textAlign = TextAlign.Center
             )
+            Spacer(Modifier.height(24.dp))
 
-            PerkRow("Unlimited groups")
-            PerkRow("Unlimited alarms per group")
-            PerkRow("Alarm series generation")
-
-            Button(
-                onClick = { activity?.let { viewModel.onIntent(PaywallIntent.Purchase(it)) } },
-                enabled = !uiState.isPurchasing,
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 20.dp)
+                    .clip(AzShapes.Card)
+                    .background(colors.cardInner)
+                    .border(1.dp, colors.border, AzShapes.Card)
+                    .padding(horizontal = 17.dp, vertical = 8.dp)
             ) {
-                if (uiState.isPurchasing) {
-                    CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
-                }
-                Text(uiState.priceText?.let { "Unlock Pro — $it" } ?: "Unlock Pro")
+                PerkRow("Unlimited groups")
+                PerkRow("Unlimited alarms per group")
+                PerkRow("Alarm series generation")
             }
+
+            Spacer(Modifier.height(24.dp))
+            PrimaryButton(
+                text = when {
+                    uiState.isPurchasing -> "Connecting…"
+                    uiState.priceText != null -> "Unlock Pro — ${uiState.priceText}"
+                    else -> "Unlock Pro"
+                },
+                enabled = !uiState.isPurchasing,
+                onClick = { activity?.let { viewModel.onIntent(PaywallIntent.Purchase(it)) } }
+            )
 
             uiState.errorMessage?.let {
                 Text(
                     it,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 8.dp)
+                    color = colors.error,
+                    style = type.label,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 10.dp)
                 )
             }
 
-            TextButton(
+            Spacer(Modifier.height(12.dp))
+            PillButton(
+                text = "Restore purchases",
                 onClick = { viewModel.onIntent(PaywallIntent.Restore) },
-                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-            ) {
-                Text("Restore purchases")
-            }
+                containerColor = colors.card,
+                contentColor = colors.textSecondary
+            )
         }
     }
 }
 
 @Composable
-private fun PerkRow(text: String, modifier: Modifier = Modifier) {
+private fun PerkRow(text: String) {
+    val colors = AlarmzyTheme.colors
     Row(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            Icons.Default.CheckCircle,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(end = 12.dp)
-        )
-        Text(text, style = MaterialTheme.typography.bodyLarge)
+        Box(
+            Modifier.size(24.dp).clip(CircleShape).background(colors.accentContainerStrong),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(painterResource(R.drawable.ic_check), contentDescription = null, tint = colors.accentLight)
+        }
+        Spacer(Modifier.width(14.dp))
+        Text(text, style = AlarmzyTheme.typography.bodyLarge, color = colors.textPrimary)
     }
 }

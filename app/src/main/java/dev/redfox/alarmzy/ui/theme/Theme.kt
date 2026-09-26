@@ -1,65 +1,81 @@
 package dev.redfox.alarmzy.ui.theme
 
-import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.dp
 import dev.redfox.alarmzy.domain.model.AccentColor
 import dev.redfox.alarmzy.domain.model.DarkVariant
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
-)
-
+/**
+ * Root theme. Screens read tokens from [AlarmzyTheme.colors] / [AlarmzyTheme.typography];
+ * a matching Material 3 scheme is also installed so the few stock M3 components left
+ * (dialogs, dropdown menus, text fields, bottom sheets) blend in.
+ */
 @Composable
 fun AlarmzyTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    accentColor: AccentColor = AccentColor.DYNAMIC,
+    accentColor: AccentColor = AccentColor.DEFAULT,
     darkVariant: DarkVariant = DarkVariant.DARK,
     content: @Composable () -> Unit
 ) {
-    val fixedScheme = accentColorScheme(accentColor, darkTheme)
-    val baseColorScheme = when {
-        // A chosen fixed accent always wins.
-        fixedScheme != null -> fixedScheme
-        // Dynamic (Material You) — available on Android 12+ (minSdk 31, always true here).
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    val colors = remember(accentColor, darkVariant) { alarmzyColors(accentColor, darkVariant) }
+    val colorScheme = remember(colors) {
+        darkColorScheme(
+            primary = colors.accent,
+            onPrimary = colors.onAccent,
+            primaryContainer = colors.accentContainer,
+            onPrimaryContainer = colors.accentLight,
+            secondary = colors.accentLight,
+            onSecondary = colors.onAccentLight,
+            secondaryContainer = colors.tileHigh,
+            onSecondaryContainer = colors.textPrimary,
+            background = colors.background,
+            onBackground = colors.textPrimary,
+            surface = colors.background,
+            onSurface = colors.textPrimary,
+            surfaceVariant = colors.tile,
+            onSurfaceVariant = colors.textSecondary,
+            surfaceContainerLowest = colors.background,
+            surfaceContainerLow = colors.cardInner,
+            surfaceContainer = colors.card,
+            surfaceContainerHigh = colors.card,
+            surfaceContainerHighest = colors.tile,
+            outline = colors.borderStrong,
+            outlineVariant = colors.border,
+            error = colors.error,
+        )
     }
-    val colorScheme = if (darkTheme) applyDarkVariant(baseColorScheme, darkVariant) else baseColorScheme
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = AppTypography,
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalAlarmzyColors provides colors,
+        LocalAlarmzyTypography provides DefaultAlarmzyTypography,
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = MaterialTypography,
+            shapes = AlarmzyMaterialShapes,
+            content = content
+        )
+    }
 }
+
+object AlarmzyTheme {
+    val colors: AlarmzyColors
+        @Composable @ReadOnlyComposable get() = LocalAlarmzyColors.current
+
+    val typography: AlarmzyTypography
+        @Composable @ReadOnlyComposable get() = LocalAlarmzyTypography.current
+}
+
+private val AlarmzyMaterialShapes = Shapes(
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(28.dp),
+)

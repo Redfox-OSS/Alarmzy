@@ -6,6 +6,7 @@ import dev.redfox.alarmzy.data.local.dao.GroupDao
 import dev.redfox.alarmzy.data.local.entity.GroupEntity
 import dev.redfox.alarmzy.domain.model.Alarm
 import dev.redfox.alarmzy.domain.model.AlarmGroup
+import dev.redfox.alarmzy.domain.model.GroupIcon
 import dev.redfox.alarmzy.domain.model.RepeatMode
 import dev.redfox.alarmzy.domain.repository.GroupRepository
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +29,7 @@ class GroupRepositoryImpl @Inject constructor(
                     name = gwa.group.name,
                     isEnabled = gwa.group.isEnabled,
                     color = gwa.group.color,
+                    icon = GroupIcon.fromKey(gwa.group.icon),
                     alarms = gwa.alarms.map { entity ->
                         val days = AlarmRepositoryImpl.parseDays(entity.repeatDays)
                         Alarm(
@@ -65,7 +67,8 @@ class GroupRepositoryImpl @Inject constructor(
             id = group.id,
             name = group.name,
             isEnabled = group.isEnabled,
-            color = group.color
+            color = group.color,
+            icon = group.icon?.key
         )
         return if (group.id == 0L) {
             groupDao.insertGroup(entity)
@@ -81,7 +84,8 @@ class GroupRepositoryImpl @Inject constructor(
                 id = group.id,
                 name = group.name,
                 isEnabled = group.isEnabled,
-                color = group.color
+                color = group.color,
+                icon = group.icon?.key
             )
         )
     }
@@ -111,6 +115,7 @@ class GroupRepositoryImpl @Inject constructor(
         id = id,
         name = name,
         isEnabled = isEnabled,
-        color = color
+        color = color,
+        icon = GroupIcon.fromKey(icon)
     )
 }

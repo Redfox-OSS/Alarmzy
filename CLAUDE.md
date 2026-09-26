@@ -42,7 +42,16 @@ Every screen has four files: `XUiState` (immutable data class), `XIntent` (seale
 - Screens are stateless: they take `uiState` + `onIntent` and render. Navigation is done by the caller in `AlarmzyNavHost`, not the ViewModel.
 - **Side effects** (navigate-back after save/delete, return a picked ringtone) use a separate `Channel`/`Flow` `sideEffect` on the ViewModel, collected in the NavHost via `LaunchedEffect` (`AlarmEditSideEffect`, `GroupEditSideEffect`, `RingtonePickerSideEffect`). Cross-screen results (ringtone picker → caller) are passed via `savedStateHandle` on the back-stack entry.
 
-Navigation lives entirely in `presentation/navigation/AlarmzyNavHost.kt` + `Screen.kt` (routes). `MainActivity` hosts the `NavHost` in a `Scaffold` with a bottom bar shown only on the three `BottomNavScreen` destinations. Theme (dark/light + accent) is driven reactively from `SettingsViewModel` at the `MainActivity` level.
+Navigation lives entirely in `presentation/navigation/AlarmzyNavHost.kt` + `Screen.kt` (routes). `MainActivity` hosts the `NavHost` in a `Box` with a floating frosted-glass pill nav (`BottomNavBar`) overlaid at the bottom, shown only on the five `BottomNavScreen` tabs (Alarms, Timer, Stopwatch, Groups, Settings — Timer/Stopwatch are `presentation/comingsoon` placeholders). Tab screens pad their scrolling content by `floatingNavClearance()`. Theme (accent + dark variant) is driven reactively from `SettingsViewModel` at the `MainActivity` level.
+
+### Design system (Alarmzy Obsidian — from the Stitch/Figma redesign)
+
+- **Always dark.** There is no light/system theme; `DarkVariant` (Dark `#131316` / Darker `#0E0E11` / AMOLED) sets the neutrals, `AccentColor` (Crimson, Electric, Solar, Emerald, Luminous) the accent roles.
+- Read tokens via `AlarmzyTheme.colors` / `AlarmzyTheme.typography` (`ui/theme/AlarmzyColors.kt`, `AppTypography.kt`), **not** `MaterialTheme`. A matching M3 scheme is still installed only so the few stock M3 pieces (dialogs, `DropdownMenu`, `ModalBottomSheet`) blend in. Font is Inter (single variable TTF, `res/font/inter_variable.ttf`, OFL license in `assets/licenses`).
+- Reusable components live in `ui/components/` (`AzCard`, `AlarmzySwitch`, `ChoicePill`, `SegmentedPill`, `AzCheckbox`, `PrimaryButton`, `AzFab`, `LargeHeader`/`DetailHeader`, `AzDropdownMenu`, `AzAlertDialog`…). Prefer these over stock M3 components.
+- Icons are vector drawables `res/drawable/ic_*.xml` converted from the Figma (Material Symbols Rounded) and tinted at use. A few glyphs not in the Figma set (delete, select-all, close, lock, play/stop, alarm-off, warning, music library) temporarily use `Icons.Rounded.*`.
+- **Blur/glow:** Haze 1.7.x (not 2.x — that needs Compose 1.12/Kotlin 2.4). One `HazeState` is provided via `LocalHazeState`; screens mark scrolling content with `Modifier.glassSource()` and headers/nav use `Modifier.glassEffect(tint)` as *siblings* (never inside the source). Glows use the native `Modifier.glow(...)` wrapper over Compose's `dropShadow`.
+- Tactile clicks use `Modifier.pressable { }` (scale-on-press, no ripple).
 
 ### Alarm scheduling & playback engine (`alarm/`)
 
@@ -62,7 +71,8 @@ This is the most subtle part of the app. Flow of a firing alarm:
 - `repeatDays` is stored as a comma-separated string of `DayOfWeek.value` ints; `RepeatMode` (sealed interface: `OneTime`/`Daily`/`Weekdays`/`Weekends`/`Custom`) is the domain representation. Convert with `RepeatMode.fromDays()` / `toDays()`.
 - `nextTriggerTimeMillis` is denormalized onto the alarm row and recomputed on every save/toggle so `getNextEnabledAlarm()` (home-screen "next alarm" indicator) is a cheap `ORDER BY … LIMIT 1` query.
 - **Cascade toggle lives in `GroupRepositoryImpl.toggleGroup()`**: it flips the group flag, flips every member alarm's `isEnabled`, recomputes trigger times, and schedules/cancels each alarm through the `AlarmScheduler`. Preserve this behavior — it's the app's headline feature.
-- Room schema version is 2 with an explicit `MIGRATION_1_2` (adds group `color`). `exportSchema = true` writes JSON to `app/schemas/` — bump the version and add a `Migration` (never rely on destructive migration) when changing entities.
+- Groups have an optional category `icon` (`GroupIcon` enum; the persisted `key` must never be renamed) and `color` hex string.
+- Room schema version is 3 with explicit `MIGRATION_1_2` (adds group `color`) and `MIGRATION_2_3` (adds group `icon`). `exportSchema = true` writes JSON to `app/schemas/` — bump the version and add a `Migration` (never rely on destructive migration) when changing entities.
 
 Settings are stored in **DataStore Preferences** (not Room), read/written directly by `SettingsViewModel` via typed keys in its companion object.
 

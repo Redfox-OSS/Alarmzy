@@ -85,6 +85,9 @@ dependencies {
     // Coil
     implementation(libs.coil.compose)
 
+    // Haze (glass blur behind the header + floating nav bar)
+    implementation(libs.haze)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

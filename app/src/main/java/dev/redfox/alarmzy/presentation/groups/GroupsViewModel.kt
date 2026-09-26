@@ -70,6 +70,7 @@ class GroupsViewModel @Inject constructor(
             is GroupsIntent.EnterSelection -> _selection.update {
                 Selection(active = true, ids = setOf(intent.groupId))
             }
+            is GroupsIntent.StartSelection -> _selection.value = Selection(active = true)
             is GroupsIntent.ToggleSelection -> _selection.update { current ->
                 val newIds = if (intent.groupId in current.ids) {
                     current.ids - intent.groupId

@@ -13,7 +13,7 @@ import dev.redfox.alarmzy.data.local.entity.GroupEntity
 
 @Database(
     entities = [AlarmEntity::class, GroupEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -25,6 +25,12 @@ abstract class AlarmzyDatabase : RoomDatabase() {
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `groups` ADD COLUMN `color` TEXT DEFAULT NULL")
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `groups` ADD COLUMN `icon` TEXT DEFAULT NULL")
             }
         }
     }

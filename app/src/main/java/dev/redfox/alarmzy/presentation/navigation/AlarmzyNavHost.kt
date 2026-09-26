@@ -1,5 +1,9 @@
 package dev.redfox.alarmzy.presentation.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -9,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -19,6 +24,8 @@ import dev.redfox.alarmzy.presentation.alarmedit.AlarmEditSideEffect
 import dev.redfox.alarmzy.presentation.alarmedit.AlarmEditViewModel
 import dev.redfox.alarmzy.presentation.alarms.AlarmsScreen
 import dev.redfox.alarmzy.presentation.alarms.AlarmsViewModel
+import dev.redfox.alarmzy.presentation.comingsoon.StopwatchScreen
+import dev.redfox.alarmzy.presentation.comingsoon.TimerScreen
 import dev.redfox.alarmzy.presentation.groupedit.GroupEditScreen
 import dev.redfox.alarmzy.presentation.groupedit.GroupEditSideEffect
 import dev.redfox.alarmzy.presentation.groupedit.GroupEditViewModel
@@ -44,7 +51,21 @@ fun AlarmzyNavHost(
     NavHost(
         navController = navController,
         startDestination = BottomNavScreen.Alarms.route,
-        modifier = modifier
+        modifier = modifier,
+        // Tab switches cross-fade; pushed screens slide in from the right (OxygenOS-like).
+        enterTransition = {
+            if (isTabSwitch()) fadeIn(tween(220))
+            else slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(320)) { it / 4 } + fadeIn(tween(320))
+        },
+        exitTransition = {
+            if (isTabSwitch()) fadeOut(tween(160))
+            else fadeOut(tween(200))
+        },
+        popEnterTransition = { fadeIn(tween(260)) },
+        popExitTransition = {
+            if (isTabSwitch()) fadeOut(tween(160))
+            else slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(280)) { it / 4 } + fadeOut(tween(280))
+        }
     ) {
         composable(BottomNavScreen.Alarms.route) {
             val viewModel: AlarmsViewModel = hiltViewModel()
@@ -55,6 +76,14 @@ fun AlarmzyNavHost(
                 onAddAlarm = { navController.navigate(Routes.ALARM_EDIT) },
                 onAlarmClick = { alarmId -> navController.navigate(Routes.alarmEdit(alarmId)) }
             )
+        }
+
+        composable(BottomNavScreen.Timer.route) {
+            TimerScreen()
+        }
+
+        composable(BottomNavScreen.Stopwatch.route) {
+            StopwatchScreen()
         }
 
         composable(BottomNavScreen.Groups.route) {
@@ -182,6 +211,10 @@ fun AlarmzyNavHost(
         }
     }
 }
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean =
+    BottomNavScreen.isTabRoute(initialState.destination.route) &&
+        BottomNavScreen.isTabRoute(targetState.destination.route)
 
 @Composable
 private fun AlarmEditDestination(navController: NavHostController) {
