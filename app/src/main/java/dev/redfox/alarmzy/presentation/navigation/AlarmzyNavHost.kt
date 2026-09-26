@@ -24,8 +24,10 @@ import dev.redfox.alarmzy.presentation.alarmedit.AlarmEditSideEffect
 import dev.redfox.alarmzy.presentation.alarmedit.AlarmEditViewModel
 import dev.redfox.alarmzy.presentation.alarms.AlarmsScreen
 import dev.redfox.alarmzy.presentation.alarms.AlarmsViewModel
-import dev.redfox.alarmzy.presentation.comingsoon.StopwatchScreen
-import dev.redfox.alarmzy.presentation.comingsoon.TimerScreen
+import dev.redfox.alarmzy.presentation.stopwatch.StopwatchScreen
+import dev.redfox.alarmzy.presentation.stopwatch.StopwatchViewModel
+import dev.redfox.alarmzy.presentation.timer.TimerScreen
+import dev.redfox.alarmzy.presentation.timer.TimerViewModel
 import dev.redfox.alarmzy.presentation.groupedit.GroupEditScreen
 import dev.redfox.alarmzy.presentation.groupedit.GroupEditSideEffect
 import dev.redfox.alarmzy.presentation.groupedit.GroupEditViewModel
@@ -79,11 +81,15 @@ fun AlarmzyNavHost(
         }
 
         composable(BottomNavScreen.Timer.route) {
-            TimerScreen()
+            val viewModel: TimerViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            TimerScreen(uiState = uiState, onIntent = viewModel::onIntent)
         }
 
         composable(BottomNavScreen.Stopwatch.route) {
-            StopwatchScreen()
+            val viewModel: StopwatchViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            StopwatchScreen(uiState = uiState, onIntent = viewModel::onIntent)
         }
 
         composable(BottomNavScreen.Groups.route) {

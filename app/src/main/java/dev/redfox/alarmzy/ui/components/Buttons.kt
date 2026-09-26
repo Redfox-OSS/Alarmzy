@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -22,7 +23,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
@@ -57,6 +60,53 @@ fun PrimaryButton(
             Box(Modifier.size(8.dp))
         }
         Text(text, style = AlarmzyTheme.typography.button, color = colors.onAccent)
+    }
+}
+
+/**
+ * 56dp action pill used by the Stopwatch/Timer controls: accent + glow when [primary]
+ * (Pause, Resume, Start), dark neutral otherwise (Lap, Reset, Cancel).
+ */
+@Composable
+fun ClockActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: Painter? = null,
+    primary: Boolean = false,
+    enabled: Boolean = true,
+) {
+    val colors = AlarmzyTheme.colors
+    val content = if (primary) {
+        if (colors.accent.luminance() > 0.6f) colors.onAccent else Color.White
+    } else colors.textPrimary
+    Row(
+        modifier = modifier
+            .height(56.dp)
+            .alpha(if (enabled) 1f else 0.4f)
+            .then(
+                if (primary && enabled) Modifier.glow(colors.accent.copy(alpha = 0.45f), CircleShape, radius = 12.dp)
+                else Modifier
+            )
+            .pressable(enabled = enabled, pressedScale = 0.95f, onClick = onClick)
+            .clip(CircleShape)
+            .background(if (primary) colors.accent else colors.cardInner)
+            .border(1.dp, if (primary) Color.Transparent else colors.border, CircleShape)
+            .padding(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(16.dp))
+            Box(Modifier.size(8.dp))
+        }
+        Text(
+            text,
+            style = AlarmzyTheme.typography.bodyLarge.copy(
+                fontWeight = if (primary) FontWeight.SemiBold else FontWeight.Medium
+            ),
+            color = content
+        )
     }
 }
 

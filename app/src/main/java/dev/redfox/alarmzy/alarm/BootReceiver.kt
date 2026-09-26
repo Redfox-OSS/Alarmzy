@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import dev.redfox.alarmzy.clock.TimerEngine
 
 @AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
@@ -22,8 +23,13 @@ class BootReceiver : BroadcastReceiver() {
     @Inject
     lateinit var alarmScheduler: AlarmScheduler
 
+    @Inject
+    lateinit var timerEngine: TimerEngine
+
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
+
+        timerEngine.rearmAfterBoot()
 
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {

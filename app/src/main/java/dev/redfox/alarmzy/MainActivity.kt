@@ -21,6 +21,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -33,6 +34,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import dev.chrisbanes.haze.rememberHazeState
+import dev.redfox.alarmzy.clock.TimerNotifications
 import dev.redfox.alarmzy.presentation.navigation.AlarmzyNavHost
 import dev.redfox.alarmzy.presentation.navigation.BottomNavBar
 import dev.redfox.alarmzy.presentation.navigation.BottomNavScreen
@@ -45,6 +47,9 @@ class MainActivity : ComponentActivity() {
 
     var overlayPermissionGranted by mutableStateOf(false)
         private set
+
+    /** Tab requested by a notification (e.g. the running timer); consumed once navigated. */
+    private var pendingTab by mutableStateOf<String?>(null)
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -59,6 +64,7 @@ class MainActivity : ComponentActivity() {
         )
         requestNotificationPermissionIfNeeded()
         overlayPermissionGranted = Settings.canDrawOverlays(this)
+        pendingTab = intent?.getStringExtra(TimerNotifications.EXTRA_OPEN_TAB)
         setContent {
             val settingsViewModel: SettingsViewModel = hiltViewModel()
             val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
@@ -72,6 +78,16 @@ class MainActivity : ComponentActivity() {
                 val currentRoute = navBackStackEntry?.destination?.route
                 val showBottomBar = BottomNavScreen.isTabRoute(currentRoute)
                 val hazeState = rememberHazeState()
+
+                LaunchedEffect(pendingTab) {
+                    val tab = BottomNavScreen.entries.firstOrNull { it.route == pendingTab } ?: return@LaunchedEffect
+                    pendingTab = null
+                    navController.navigate(tab.route) {
+                        popUpTo(BottomNavScreen.Alarms.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
 
                 CompositionLocalProvider(LocalHazeState provides hazeState) {
                     Box(
@@ -109,6 +125,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.getStringExtra(TimerNotifications.EXTRA_OPEN_TAB)?.let { pendingTab = it }
     }
 
     override fun onResume() {

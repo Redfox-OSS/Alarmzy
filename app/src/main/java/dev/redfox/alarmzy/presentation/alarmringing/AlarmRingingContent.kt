@@ -64,7 +64,8 @@ fun AlarmRingingContent(
     clockPosition: AlarmClockPosition,
     onSnooze: () -> Unit,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    dismissLabel: String = "Dismiss",
 ) {
     val colors = AlarmzyTheme.colors
     val type = AlarmzyTheme.typography
@@ -193,12 +194,12 @@ fun AlarmRingingContent(
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     RingButton("Snooze", R.drawable.ic_snooze, primary = false, onClick = onSnooze, modifier = Modifier.weight(1f))
-                    RingButton("Dismiss", null, primary = true, onClick = onDismiss, modifier = Modifier.weight(1f))
+                    RingButton(dismissLabel, null, primary = true, onClick = onDismiss, modifier = Modifier.weight(1f))
                 }
                 AlarmButtonLayout.SNOOZE_ONLY ->
                     RingButton("Snooze", R.drawable.ic_snooze, primary = true, onClick = onSnooze, modifier = Modifier.fillMaxWidth())
                 AlarmButtonLayout.DISMISS_ONLY ->
-                    RingButton("Dismiss", null, primary = true, onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+                    RingButton(dismissLabel, null, primary = true, onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
 
             Spacer(Modifier.height(16.dp))

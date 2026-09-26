@@ -64,6 +64,15 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <receiver
+            android:name=".clock.TimerReceiver"
+            android:exported="false" />
+
+        <service
+            android:name=".clock.TimerRingService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
     </application>
 
 </manifest>

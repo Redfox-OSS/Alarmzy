@@ -42,7 +42,7 @@ Every screen has four files: `XUiState` (immutable data class), `XIntent` (seale
 - Screens are stateless: they take `uiState` + `onIntent` and render. Navigation is done by the caller in `AlarmzyNavHost`, not the ViewModel.
 - **Side effects** (navigate-back after save/delete, return a picked ringtone) use a separate `Channel`/`Flow` `sideEffect` on the ViewModel, collected in the NavHost via `LaunchedEffect` (`AlarmEditSideEffect`, `GroupEditSideEffect`, `RingtonePickerSideEffect`). Cross-screen results (ringtone picker → caller) are passed via `savedStateHandle` on the back-stack entry.
 
-Navigation lives entirely in `presentation/navigation/AlarmzyNavHost.kt` + `Screen.kt` (routes). `MainActivity` hosts the `NavHost` in a `Box` with a floating frosted-glass pill nav (`BottomNavBar`) overlaid at the bottom, shown only on the five `BottomNavScreen` tabs (Alarms, Timer, Stopwatch, Groups, Settings — Timer/Stopwatch are `presentation/comingsoon` placeholders). Tab screens pad their scrolling content by `floatingNavClearance()`. Theme (accent + dark variant) is driven reactively from `SettingsViewModel` at the `MainActivity` level.
+Navigation lives entirely in `presentation/navigation/AlarmzyNavHost.kt` + `Screen.kt` (routes). `MainActivity` hosts the `NavHost` in a `Box` with a floating frosted-glass pill nav (`BottomNavBar`) overlaid at the bottom, shown only on the five `BottomNavScreen` tabs (Alarms, Timer, Stopwatch, Groups, Settings). Tab screens pad their scrolling content by `floatingNavClearance()`. Theme (accent + dark variant) is driven reactively from `SettingsViewModel` at the `MainActivity` level.
 
 ### Design system (Alarmzy Obsidian — from the Stitch/Figma redesign)
 
@@ -64,6 +64,13 @@ This is the most subtle part of the app. Flow of a firing alarm:
 5. **`BootReceiver`** re-computes next trigger times and re-schedules all enabled alarms after device reboot (schedules are lost on reboot).
 
 `AlarmService` and `BootReceiver` are `@AndroidEntryPoint` and inject `AlarmDao` + `AlarmScheduler` directly (no repository) — they intentionally call the static helpers `AlarmRepositoryImpl.parseDays(...)` and `AlarmRepositoryImpl.calculateNextTriggerTime(...)` for the day-parsing / next-trigger logic. **Keep that trigger-time math in those companion functions** so every entry point (repository, service, boot) stays consistent.
+
+### Stopwatch & Timer engine (`clock/`)
+
+- `StopwatchEngine` and `TimerEngine` are `@Singleton`s that own the state (`StopwatchState` / `TimerState` in `domain/model`) and persist it to the settings DataStore, so they survive tab switches and process death. ViewModels just forward intents and mirror the engine's `StateFlow`. Engines store only timestamps; screens derive the live reading per frame with `rememberTicker()` (`presentation/common/ClockFormat.kt`).
+- Stopwatch uses `SystemClock.elapsedRealtime()` (reset if `BOOT_COUNT` changed). Timer uses wall-clock `endAtMillis` so it can be scheduled with `AlarmManager.setExactAndAllowWhileIdle(RTC_WAKEUP)` (deliberately not `setAlarmClock`, so timers don't show as the system "next alarm") and re-armed by `BootReceiver`.
+- All timer side effects (exact alarm, ongoing countdown notification, stopping the ring service) happen in `TimerEngine.applySideEffects` on each state transition — don't schedule/notify from elsewhere. `TimerReceiver` handles the fire + notification actions; `TimerRingService` rings (default ringtone/vibration from Settings) and reuses `AlarmRingingActivity` with `EXTRA_IS_TIMER` (single Stop button).
+- Notifications deep-link to a tab via `TimerNotifications.EXTRA_OPEN_TAB` (handled in `MainActivity.onCreate`/`onNewIntent`).
 
 ### Data model & the grouping invariant
 
