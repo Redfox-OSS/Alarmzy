@@ -31,7 +31,8 @@ class BootReceiver : BroadcastReceiver() {
     lateinit var stopwatchEngine: StopwatchEngine
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
+        // Also runs after an app update, so alarms are re-armed even if the user never opens the app.
+        if (intent.action != Intent.ACTION_BOOT_COMPLETED && intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
 
         // Re-arm AND re-show: reboot clears every alarm and notification.
         timerEngine.rearmAfterBoot()
