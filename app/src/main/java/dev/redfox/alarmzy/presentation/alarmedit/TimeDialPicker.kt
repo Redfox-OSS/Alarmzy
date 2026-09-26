@@ -54,6 +54,14 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.graphicsLayer
+import dev.redfox.alarmzy.ui.components.AzMotion
+import dev.redfox.alarmzy.ui.components.RollingText
+import dev.redfox.alarmzy.ui.components.popOnSelect
 
 private enum class TimeField { HOUR, MINUTE }
 
@@ -122,15 +130,16 @@ private fun TimeTile(text: String, active: Boolean, description: String, onClick
     Box(
         modifier = Modifier
             .semantics { contentDescription = "$description $text" }
+            .popOnSelect(active, amount = 0.05f)
             .then(if (active) Modifier.glow(colors.accent.copy(alpha = 0.12f), shape, radius = 15.dp, offsetY = 8.dp) else Modifier)
-            .pressable(pressedScale = 0.95f, onClick = onClick)
+            .pressable(pressedScale = 0.94f, haptic = HapticFeedbackType.SegmentTick, onClick = onClick)
             .size(94.dp)
             .clip(shape)
             .background(bg)
             .border(1.dp, if (active) colors.accentLight.copy(alpha = 0.4f) else colors.border, shape),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, style = AlarmzyTheme.typography.timeTile, color = fg)
+        RollingText(text, style = AlarmzyTheme.typography.timeTile, color = fg)
     }
 }
 
@@ -150,7 +159,8 @@ private fun MeridiemToggle(isPm: Boolean, onChange: (Boolean) -> Unit) {
             val bg by animateColorAsState(if (selected) colors.accentLight else Color.Transparent, label = "meridiemBg")
             Box(
                 modifier = Modifier
-                    .pressable(pressedScale = 0.92f) { onChange(pm) }
+                    .popOnSelect(selected, amount = 0.1f)
+                    .pressable(pressedScale = 0.9f, haptic = HapticFeedbackType.SegmentTick) { onChange(pm) }
                     .clip(CircleShape)
                     .background(bg)
                     .padding(horizontal = 12.dp, vertical = 6.dp),
@@ -204,6 +214,18 @@ private fun ClockDial(
     val currentOnMinutePicked by rememberUpdatedState(onMinutePicked)
     val currentOnGestureEnd by rememberUpdatedState(onGestureEnd)
     val lastValue = remember { mutableFloatStateOf(-1f) }
+
+    // Switching hours <-> minutes re-deals the numerals clockwise around the face.
+    val deal = remember { Animatable(1f) }
+    val firstFace = remember { booleanArrayOf(true) }
+    LaunchedEffect(showMinutes) {
+        if (firstFace[0]) {
+            firstFace[0] = false
+            return@LaunchedEffect
+        }
+        deal.snapTo(0f)
+        deal.animateTo(1f, tween(DealMillis, easing = LinearEasing))
+    }
 
     Box(
         modifier = Modifier
@@ -272,7 +294,14 @@ private fun ClockDial(
                 text = label,
                 x = radius * sin(a).toFloat(),
                 y = -radius * cos(a).toFloat(),
-                color = colors.textSecondary
+                color = colors.textSecondary,
+                modifier = Modifier.graphicsLayer {
+                    val t = ((deal.value * DealMillis - i * 22f) / 300f).coerceIn(0f, 1f)
+                    val e = AzMotion.EaseOutEmphasized.transform(t)
+                    alpha = t
+                    scaleX = 0.5f + 0.5f * e
+                    scaleY = scaleX
+                }
             )
         }
 
@@ -296,9 +325,11 @@ private fun ClockDial(
     }
 }
 
+private const val DealMillis = 560
+
 @Composable
-private fun DialLabel(text: String, x: Dp, y: Dp, color: Color) {
-    Box(Modifier.offset(x, y).size(28.dp), contentAlignment = Alignment.Center) {
+private fun DialLabel(text: String, x: Dp, y: Dp, color: Color, modifier: Modifier = Modifier) {
+    Box(Modifier.offset(x, y).size(28.dp).then(modifier), contentAlignment = Alignment.Center) {
         Text(text, style = AlarmzyTheme.typography.label.copy(letterSpacing = 0.sp), color = color)
     }
 }

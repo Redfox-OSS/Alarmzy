@@ -75,6 +75,23 @@ import dev.redfox.alarmzy.ui.components.glassSource
 import dev.redfox.alarmzy.ui.components.glow
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
 import dev.redfox.alarmzy.ui.theme.InterFontFamily
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.graphics.graphicsLayer
+import dev.redfox.alarmzy.ui.components.AzMotion
+import dev.redfox.alarmzy.ui.components.RollingText
+import dev.redfox.alarmzy.ui.components.revealOnEnter
 
 /** Tabular (fixed-width) digits so the running readout doesn't jitter. */
 private const val Tnum = "tnum"
@@ -103,15 +120,15 @@ fun StopwatchScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             item(key = "dial") {
-                StopwatchDial(state = sw, elapsedMs = elapsed)
+                StopwatchDial(state = sw, elapsedMs = elapsed, modifier = Modifier.revealOnEnter(0))
             }
             item(key = "controls") {
-                Controls(state = sw, onIntent = onIntent)
+                Controls(state = sw, onIntent = onIntent, modifier = Modifier.revealOnEnter(1))
             }
             if (sw.laps.isEmpty()) {
-                item(key = "empty") { EmptyLaps(running = sw.running) }
+                item(key = "empty") { EmptyLaps(running = sw.running, modifier = Modifier.animateItem().revealOnEnter(2)) }
             } else {
-                item(key = "laps_header") { LapsHeader() }
+                item(key = "laps_header") { LapsHeader(Modifier.animateItem().revealOnEnter(2)) }
                 item(key = "lap_current") {
                     // The lap in progress, live.
                     LapRow(
@@ -120,6 +137,7 @@ fun StopwatchScreen(
                         overall = elapsed,
                         current = true,
                         splitColor = AlarmzyTheme.colors.accent,
+                        modifier = Modifier.animateItem().revealOnEnter(3)
                     )
                 }
                 val splits = sw.lapSplits
@@ -136,7 +154,7 @@ fun StopwatchScreen(
                             slowest -> AlarmzyTheme.colors.warning
                             else -> AlarmzyTheme.colors.textPrimary
                         },
-                        modifier = Modifier.animateItem()
+                        modifier = Modifier.animateItem().revealOnEnter(4 + (splits.size - 1 - i))
                     )
                 }
             }
@@ -147,7 +165,7 @@ fun StopwatchScreen(
 }
 
 @Composable
-private fun StopwatchDial(state: StopwatchState, elapsedMs: Long) {
+private fun StopwatchDial(state: StopwatchState, elapsedMs: Long, modifier: Modifier = Modifier) {
     val colors = AlarmzyTheme.colors
     val active = !state.isIdle
     val readout = stopwatchReadout(elapsedMs)
@@ -155,13 +173,45 @@ private fun StopwatchDial(state: StopwatchState, elapsedMs: Long) {
         if (state.running) colors.accent else Color.White.copy(alpha = 0.4f),
         label = "colon"
     )
+    // Paused readout breathes, like a held breath.
+    val breathe by rememberInfiniteTransition(label = "swPaused").animateFloat(
+        initialValue = 1f,
+        targetValue = 0.5f,
+        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+        label = "breathe"
+    )
+    val paused = active && !state.running
+
+    // Sonar ripple from the dial on Start, and a smaller one on every Lap.
+    val ripple = remember { Animatable(1f) }
+    val rippleStrength = remember { mutableFloatStateOf(1f) }
+    val initialRun = remember { booleanArrayOf(true) }
+    LaunchedEffect(state.running, state.laps.size) {
+        if (initialRun[0]) {
+            initialRun[0] = false
+            return@LaunchedEffect
+        }
+        if (state.running) {
+            ripple.snapTo(0f)
+            ripple.animateTo(1f, tween(900, easing = AzMotion.EaseOutEmphasized))
+        }
+    }
+    LaunchedEffect(state.laps.size) { rippleStrength.floatValue = if (state.laps.isEmpty()) 1f else 0.6f }
 
     BoxWithConstraints(
-        modifier = Modifier.widthIn(max = 320.dp).fillMaxWidth().aspectRatio(1f).padding(4.dp),
+        modifier = modifier.widthIn(max = 320.dp).fillMaxWidth().aspectRatio(1f).padding(4.dp),
         contentAlignment = Alignment.Center
     ) {
         val dialSize = maxWidth
         Canvas(Modifier.fillMaxSize()) {
+            val r = ripple.value
+            if (r < 1f) {
+                drawCircle(
+                    colors.accent.copy(alpha = (1f - r) * 0.45f * rippleStrength.floatValue),
+                    radius = size.minDimension / 2f * (0.86f + 0.2f * r * rippleStrength.floatValue),
+                    style = Stroke(width = (1f - r) * 6.dp.toPx() + 1f)
+                )
+            }
             drawStopwatchRing(
                 sweepFraction = if (active) (elapsedMs % 60_000L) / 60_000f else 0f,
                 running = state.running,
@@ -198,10 +248,10 @@ private fun StopwatchDial(state: StopwatchState, elapsedMs: Long) {
                 letterSpacing = (-0.4).sp,
                 fontFeatureSettings = Tnum,
             )
-            Row {
+            Row(Modifier.graphicsLayer { alpha = if (paused) breathe else 1f }) {
                 readout.main.forEachIndexed { i, part ->
                     if (i > 0) Text(":", style = digits, color = colonColor, modifier = Modifier.alignByBaseline().padding(horizontal = 2.dp))
-                    Text(part, style = digits, color = Color.White, modifier = Modifier.alignByBaseline())
+                    RollingText(part, style = digits, color = Color.White, rollUp = true, modifier = Modifier.alignByBaseline())
                 }
                 Text(
                     ".${readout.tenths}",
@@ -277,16 +327,19 @@ private fun DrawScope.drawStopwatchRing(
 }
 
 @Composable
-private fun Controls(state: StopwatchState, onIntent: (StopwatchIntent) -> Unit) {
+private fun Controls(state: StopwatchState, onIntent: (StopwatchIntent) -> Unit, modifier: Modifier = Modifier) {
     AnimatedContent(
         targetState = when {
             state.running -> 1
             state.isIdle -> 0
             else -> 2
         },
-        transitionSpec = { fadeIn() togetherWith fadeOut() },
+        transitionSpec = {
+            (fadeIn(tween(200, delayMillis = 50)) + scaleIn(spring(dampingRatio = 0.6f, stiffness = 380f), initialScale = 0.86f)) togetherWith
+                (fadeOut(tween(120)) + scaleOut(tween(160), targetScale = 0.92f))
+        },
         label = "stopwatchControls",
-        modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 20.dp)
+        modifier = modifier.fillMaxWidth().padding(top = 12.dp, bottom = 20.dp)
     ) { mode ->
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 8.dp),
@@ -337,10 +390,10 @@ private fun Controls(state: StopwatchState, onIntent: (StopwatchIntent) -> Unit)
 }
 
 @Composable
-private fun EmptyLaps(running: Boolean) {
+private fun EmptyLaps(running: Boolean, modifier: Modifier = Modifier) {
     val colors = AlarmzyTheme.colors
     Column(
-        Modifier.fillMaxWidth().padding(top = 12.dp),
+        modifier.fillMaxWidth().padding(top = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
@@ -372,10 +425,10 @@ private val LapNumberWidth: Dp = 56.dp
 private val LapOverallWidth: Dp = 80.dp
 
 @Composable
-private fun LapsHeader() {
+private fun LapsHeader(modifier: Modifier = Modifier) {
     val style = AlarmzyTheme.typography.caption.copy(fontSize = 11.sp, letterSpacing = 0.05.em)
     val color = AlarmzyTheme.colors.textTertiary
-    Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 6.dp)) {
+    Row(modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 6.dp)) {
         Text("LAP", style = style, color = color, modifier = Modifier.width(LapNumberWidth))
         Text("LAP SPLIT", style = style, color = color, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
         Text("OVERALL", style = style, color = color, modifier = Modifier.width(LapOverallWidth), textAlign = TextAlign.End)
@@ -412,9 +465,16 @@ private fun LapRow(
             )
             if (current) {
                 Spacer(Modifier.width(8.dp))
+                val live by rememberInfiniteTransition(label = "liveDot").animateFloat(
+                    initialValue = 0.35f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(tween(700, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                    label = "live"
+                )
                 Box(
                     Modifier
-                        .glow(colors.accent.copy(alpha = 0.9f), CircleShape, radius = 4.dp)
+                        .graphicsLayer { scaleX = 0.8f + 0.2f * live; scaleY = scaleX }
+                        .glow(colors.accent.copy(alpha = 0.9f * live), CircleShape, radius = 6.dp)
                         .size(8.dp)
                         .clip(CircleShape)
                         .background(colors.accent)

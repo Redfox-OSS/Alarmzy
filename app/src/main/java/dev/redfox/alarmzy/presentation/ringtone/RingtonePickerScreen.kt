@@ -52,6 +52,17 @@ import dev.redfox.alarmzy.ui.components.SectionLabel
 import dev.redfox.alarmzy.ui.components.glassSource
 import dev.redfox.alarmzy.ui.components.pressable
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import dev.redfox.alarmzy.ui.components.AzMotion
+import dev.redfox.alarmzy.ui.components.revealOnEnter
 
 @Composable
 fun RingtonePickerScreen(
@@ -87,6 +98,7 @@ fun RingtonePickerScreen(
             item(key = "choose_from_device") {
                 Row(
                     modifier = Modifier
+                        .revealOnEnter(0)
                         .fillMaxWidth()
                         .pressable(pressedScale = 0.985f) { pickAudioLauncher.launch(arrayOf("audio/*")) }
                         .clip(AzShapes.CardLarge)
@@ -121,6 +133,7 @@ fun RingtonePickerScreen(
                     else -> RoundedCornerShape(0.dp)
                 }
                 RingtoneRow(
+                    modifier = Modifier.revealOnEnter(index + 2),
                     ringtone = ringtone,
                     isSelected = ringtone.uri == uiState.selectedUri,
                     isPlaying = ringtone.uri == uiState.playingUri && uiState.isPlaying,
@@ -152,12 +165,13 @@ private fun RingtoneRow(
     showDivider: Boolean,
     onSelect: () -> Unit,
     onTogglePreview: (playing: Boolean) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = AlarmzyTheme.colors
     val type = AlarmzyTheme.typography
     val ring by animateColorAsState(if (isSelected) colors.accent else colors.textDisabled, label = "radioRing")
     Column(
-        Modifier
+        modifier
             .fillMaxWidth()
             .clip(shape)
             .background(colors.card)
@@ -171,7 +185,16 @@ private fun RingtoneRow(
                 Modifier.size(22.dp).clip(CircleShape).border(2.dp, ring, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                if (isSelected) Box(Modifier.size(10.dp).clip(CircleShape).background(colors.accent))
+                val dot by animateFloatAsState(if (isSelected) 1f else 0f, AzMotion.bouncy(), label = "radioDot")
+                if (dot > 0.01f) {
+                    Box(
+                        Modifier
+                            .graphicsLayer { scaleX = dot; scaleY = dot }
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(colors.accent)
+                    )
+                }
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
@@ -187,10 +210,25 @@ private fun RingtoneRow(
                 }
             }
             Spacer(Modifier.width(12.dp))
+            // While previewing, a soft halo pulses out of the button in time-ish with the sound.
+            val halo by rememberInfiniteTransition(label = "previewHalo").animateFloat(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(tween(1100, easing = LinearEasing)),
+                label = "halo"
+            )
             Box(
                 Modifier
                     .size(36.dp)
-                    .pressable(pressedScale = 0.9f) { onTogglePreview(isPlaying) }
+                    .drawBehind {
+                        if (isPlaying) {
+                            drawCircle(
+                                colors.accent.copy(alpha = 0.35f * (1f - halo)),
+                                radius = size.minDimension / 2f * (1f + 0.6f * halo)
+                            )
+                        }
+                    }
+                    .pressable(pressedScale = 0.86f, haptic = HapticFeedbackType.ContextClick) { onTogglePreview(isPlaying) }
                     .clip(CircleShape)
                     .background(if (isPlaying) colors.accentContainerStrong else colors.tile),
                 contentAlignment = Alignment.Center

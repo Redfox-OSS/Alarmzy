@@ -1,6 +1,19 @@
 package dev.redfox.alarmzy.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.abs
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -50,7 +63,8 @@ fun ChoicePill(
     val border by animateColorAsState(if (selected) colors.accentBorder else colors.border, label = "pillBorder")
     Box(
         modifier = modifier
-            .pressable(role = Role.RadioButton, onClick = onClick)
+            .popOnSelect(selected)
+            .pressable(role = Role.RadioButton, haptic = HapticFeedbackType.SegmentTick, onClick = onClick)
             .clip(CircleShape)
             .background(bg)
             .border(1.dp, border, CircleShape)
@@ -81,7 +95,8 @@ fun DayChip(
     Box(
         modifier = modifier
             .size(40.dp)
-            .pressable(pressedScale = 0.9f, role = Role.Checkbox, onClick = onClick)
+            .popOnSelect(selected, amount = 0.12f)
+            .pressable(pressedScale = 0.88f, role = Role.Checkbox, haptic = HapticFeedbackType.SegmentTick, onClick = onClick)
             .clip(CircleShape)
             .background(bg)
             .border(1.dp, if (selected) colors.accentBorder else colors.border, CircleShape),
@@ -119,14 +134,21 @@ fun SegmentedPill(
             .padding(5.dp)
     ) {
         val segmentWidth = maxWidth / options.size
-        val indicatorOffset by animateDpAsState(
-            targetValue = segmentWidth * selectedIndex,
-            animationSpec = spring(dampingRatio = 0.8f, stiffness = 500f),
+        val haptics = LocalHapticFeedback.current
+        val position by animateFloatAsState(
+            targetValue = selectedIndex.toFloat(),
+            animationSpec = spring(dampingRatio = 0.6f, stiffness = 420f),
             label = "segmentIndicator"
         )
         Box(
             Modifier
-                .offset(x = indicatorOffset)
+                .offset { IntOffset((segmentWidth * position).roundToPx(), 0) }
+                .graphicsLayer {
+                    // Liquid stretch while travelling between segments.
+                    val stretch = abs(selectedIndex - position).coerceAtMost(1f)
+                    scaleX = 1f + 0.18f * stretch
+                    scaleY = 1f - 0.08f * stretch
+                }
                 .width(segmentWidth)
                 .fillMaxHeight()
                 .clip(CircleShape)
@@ -146,18 +168,27 @@ fun SegmentedPill(
                             role = Role.Tab,
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = { onSelect(index) }
+                            onClick = {
+                                if (!selected) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                onSelect(index)
+                            }
                         ),
                     horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (selected) {
-                        Icon(
-                            painterResource(R.drawable.ic_check),
-                            contentDescription = null,
-                            tint = colors.accentLight
-                        )
-                        Box(Modifier.size(6.dp))
+                    AnimatedVisibility(
+                        visible = selected,
+                        enter = scaleIn(AzMotion.bouncy()) + fadeIn() + expandHorizontally(AzMotion.snappy()),
+                        exit = scaleOut() + fadeOut() + shrinkHorizontally(AzMotion.snappy())
+                    ) {
+                        Row {
+                            Icon(
+                                painterResource(R.drawable.ic_check),
+                                contentDescription = null,
+                                tint = colors.accentLight
+                            )
+                            Box(Modifier.size(6.dp))
+                        }
                     }
                     Text(
                         option.label,
@@ -190,9 +221,11 @@ fun AzCheckbox(
 ) {
     val colors = AlarmzyTheme.colors
     val shape = RoundedCornerShape(8.dp)
-    val bg by animateColorAsState(if (checked) colors.accent else Color.Transparent, label = "checkBg")
+    val bg by animateColorAsState(if (checked) colors.accent else Color.Transparent, AzMotion.snappy(), label = "checkBg")
+    val haptics = LocalHapticFeedback.current
     Box(
         modifier = modifier
+            .popOnSelect(checked, amount = 0.14f)
             .then(if (checked) Modifier.glow(colors.accent.copy(alpha = 0.25f), shape, radius = 6.dp, offsetY = 2.dp) else Modifier)
             .size(24.dp)
             .clip(shape)
@@ -204,12 +237,19 @@ fun AzCheckbox(
                     role = Role.Checkbox,
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    onValueChange = onCheckedChange
+                    onValueChange = {
+                        haptics.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                        onCheckedChange(it)
+                    }
                 ) else Modifier
             ),
         contentAlignment = Alignment.Center
     ) {
-        if (checked) {
+        AnimatedVisibility(
+            visible = checked,
+            enter = scaleIn(AzMotion.bouncy(), initialScale = 0.3f) + fadeIn(),
+            exit = scaleOut(targetScale = 0.5f) + fadeOut()
+        ) {
             Icon(painterResource(R.drawable.ic_check_bold), contentDescription = null, tint = colors.onAccent)
         }
     }

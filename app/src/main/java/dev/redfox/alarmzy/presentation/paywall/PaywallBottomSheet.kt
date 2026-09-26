@@ -38,6 +38,9 @@ import dev.redfox.alarmzy.ui.components.PillButton
 import dev.redfox.alarmzy.ui.components.PrimaryButton
 import dev.redfox.alarmzy.ui.components.glow
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.alarmzy.ui.components.RevealScope
+import dev.redfox.alarmzy.ui.components.revealOnEnter
+import dev.redfox.alarmzy.ui.components.popIn
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +75,8 @@ fun PaywallBottomSheet(
         },
         modifier = modifier
     ) {
+      // Fresh scope: the sheet's content cascades in every time it opens.
+      RevealScope {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -82,6 +87,7 @@ fun PaywallBottomSheet(
             Spacer(Modifier.height(8.dp))
             Box(
                 modifier = Modifier
+                    .popIn(from = 0.4f)
                     .glow(colors.accent.copy(alpha = 0.35f), AzShapes.CardLarge, radius = 28.dp)
                     .size(72.dp)
                     .clip(AzShapes.CardLarge)
@@ -97,27 +103,34 @@ fun PaywallBottomSheet(
                 )
             }
             Spacer(Modifier.height(20.dp))
-            Text("Unlock Alarmzy Pro", style = type.screenTitle.copy(fontSize = type.screenTitle.fontSize * 1.2f), color = colors.textPrimary)
+            Text(
+                "Unlock Alarmzy Pro",
+                style = type.screenTitle.copy(fontSize = type.screenTitle.fontSize * 1.2f),
+                color = colors.textPrimary,
+                modifier = Modifier.revealOnEnter(1)
+            )
             Spacer(Modifier.height(6.dp))
             Text(
                 "A one-time purchase, yours forever.",
                 style = type.body,
                 color = colors.textSecondary,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.revealOnEnter(2)
             )
             Spacer(Modifier.height(24.dp))
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .revealOnEnter(3)
                     .clip(AzShapes.Card)
                     .background(colors.cardInner)
                     .border(1.dp, colors.border, AzShapes.Card)
                     .padding(horizontal = 17.dp, vertical = 8.dp)
             ) {
-                PerkRow("Unlimited groups")
-                PerkRow("Unlimited alarms per group")
-                PerkRow("Alarm series generation")
+                PerkRow("Unlimited groups", Modifier.revealOnEnter(4, offsetY = 10.dp))
+                PerkRow("Unlimited alarms per group", Modifier.revealOnEnter(5, offsetY = 10.dp))
+                PerkRow("Alarm series generation", Modifier.revealOnEnter(6, offsetY = 10.dp))
             }
 
             Spacer(Modifier.height(24.dp))
@@ -128,7 +141,8 @@ fun PaywallBottomSheet(
                     else -> "Unlock Pro"
                 },
                 enabled = !uiState.isPurchasing,
-                onClick = { activity?.let { viewModel.onIntent(PaywallIntent.Purchase(it)) } }
+                onClick = { activity?.let { viewModel.onIntent(PaywallIntent.Purchase(it)) } },
+                modifier = Modifier.revealOnEnter(6)
             )
 
             uiState.errorMessage?.let {
@@ -146,17 +160,19 @@ fun PaywallBottomSheet(
                 text = "Restore purchases",
                 onClick = { viewModel.onIntent(PaywallIntent.Restore) },
                 containerColor = colors.card,
-                contentColor = colors.textSecondary
+                contentColor = colors.textSecondary,
+                modifier = Modifier.revealOnEnter(7)
             )
         }
+      }
     }
 }
 
 @Composable
-private fun PerkRow(text: String) {
+private fun PerkRow(text: String, modifier: Modifier = Modifier) {
     val colors = AlarmzyTheme.colors
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.Start,

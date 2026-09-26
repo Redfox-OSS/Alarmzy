@@ -1,11 +1,23 @@
 package dev.redfox.alarmzy.presentation.navigation
 
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.ui.unit.IntOffset
+import androidx.navigation.NamedNavArgument
+import androidx.navigation.NavGraphBuilder
+import dev.redfox.alarmzy.ui.components.RevealScope
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.navigation.NavController
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,26 +62,61 @@ fun AlarmzyNavHost(
     onRequestOverlayPermission: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    // Staggered entrances play when arriving at a screen, but not when returning to it from a
+    // detail screen (back / save), where the parent should simply be there.
+    DisposableEffect(navController) {
+        val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+            RevealPolicy.replay = RevealPolicy.lastRoute.let { it == null || BottomNavScreen.isTabRoute(it) }
+            RevealPolicy.lastRoute = destination.route
+        }
+        navController.addOnDestinationChangedListener(listener)
+        onDispose { navController.removeOnDestinationChangedListener(listener) }
+    }
+
     NavHost(
         navController = navController,
         startDestination = BottomNavScreen.Alarms.route,
         modifier = modifier,
-        // Tab switches cross-fade; pushed screens slide in from the right (OxygenOS-like).
+        // Tabs glide sideways in the direction of travel; pushed screens slide in over a
+        // receding, dimming parent (iOS-style parallax). All springs, so predictive back can
+        // scrub them.
         enterTransition = {
-            if (isTabSwitch()) fadeIn(tween(220))
-            else slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(320)) { it / 4 } + fadeIn(tween(320))
+            val dir = tabDirection()
+            if (dir != null) {
+                slideInHorizontally(TabSpring) { w -> dir * w / 9 } +
+                    fadeIn(tween(240, delayMillis = 40)) + scaleIn(TabScaleSpring, initialScale = 0.97f)
+            } else {
+                slideInHorizontally(PushSpring) { it / 3 } + fadeIn(tween(220))
+            }
         },
         exitTransition = {
-            if (isTabSwitch()) fadeOut(tween(160))
-            else fadeOut(tween(200))
+            val dir = tabDirection()
+            if (dir != null) {
+                slideOutHorizontally(TabSpring) { w -> -dir * w / 12 } + fadeOut(tween(150))
+            } else {
+                slideOutHorizontally(PushSpring) { -it / 8 } + scaleOut(PushScaleSpring, targetScale = 0.93f) +
+                    fadeOut(tween(300), targetAlpha = 0.25f)
+            }
         },
-        popEnterTransition = { fadeIn(tween(260)) },
+        popEnterTransition = {
+            val dir = tabDirection()
+            if (dir != null) {
+                slideInHorizontally(TabSpring) { w -> dir * w / 9 } + fadeIn(tween(240, delayMillis = 40))
+            } else {
+                slideInHorizontally(PushSpring) { -it / 8 } + scaleIn(PushScaleSpring, initialScale = 0.93f) +
+                    fadeIn(tween(260), initialAlpha = 0.25f)
+            }
+        },
         popExitTransition = {
-            if (isTabSwitch()) fadeOut(tween(160))
-            else slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(280)) { it / 4 } + fadeOut(tween(280))
+            val dir = tabDirection()
+            if (dir != null) {
+                slideOutHorizontally(TabSpring) { w -> -dir * w / 12 } + fadeOut(tween(150))
+            } else {
+                slideOutHorizontally(PushSpring) { it / 3 } + fadeOut(tween(200))
+            }
         }
     ) {
-        composable(BottomNavScreen.Alarms.route) {
+        screen(BottomNavScreen.Alarms.route) {
             val viewModel: AlarmsViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             AlarmsScreen(
@@ -80,19 +127,19 @@ fun AlarmzyNavHost(
             )
         }
 
-        composable(BottomNavScreen.Timer.route) {
+        screen(BottomNavScreen.Timer.route) {
             val viewModel: TimerViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             TimerScreen(uiState = uiState, onIntent = viewModel::onIntent)
         }
 
-        composable(BottomNavScreen.Stopwatch.route) {
+        screen(BottomNavScreen.Stopwatch.route) {
             val viewModel: StopwatchViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             StopwatchScreen(uiState = uiState, onIntent = viewModel::onIntent)
         }
 
-        composable(BottomNavScreen.Groups.route) {
+        screen(BottomNavScreen.Groups.route) {
             val viewModel: GroupsViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             var showPaywall by remember { mutableStateOf(false) }
@@ -112,7 +159,7 @@ fun AlarmzyNavHost(
             }
         }
 
-        composable(BottomNavScreen.Settings.route) {
+        screen(BottomNavScreen.Settings.route) {
             val viewModel: SettingsViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -150,29 +197,29 @@ fun AlarmzyNavHost(
             )
         }
 
-        composable(Routes.ALARM_EDIT) {
+        screen(Routes.ALARM_EDIT) {
             AlarmEditDestination(navController)
         }
 
-        composable(
+        screen(
             route = Routes.ALARM_EDIT_WITH_ID,
             arguments = listOf(navArgument("alarmId") { type = NavType.LongType })
         ) {
             AlarmEditDestination(navController)
         }
 
-        composable(Routes.GROUP_EDIT) {
+        screen(Routes.GROUP_EDIT) {
             GroupEditDestination(navController)
         }
 
-        composable(
+        screen(
             route = Routes.GROUP_EDIT_WITH_ID,
             arguments = listOf(navArgument("groupId") { type = NavType.LongType })
         ) {
             GroupEditDestination(navController)
         }
 
-        composable(
+        screen(
             route = Routes.RINGTONE_PICKER,
             arguments = listOf(
                 navArgument("uri") { type = NavType.StringType; nullable = true; defaultValue = null },
@@ -205,7 +252,7 @@ fun AlarmzyNavHost(
             )
         }
 
-        composable(Routes.CUSTOMIZE_ALARM_SCREEN) {
+        screen(Routes.CUSTOMIZE_ALARM_SCREEN) {
             val viewModel: AlarmScreenCustomizeViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -218,9 +265,36 @@ fun AlarmzyNavHost(
     }
 }
 
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean =
-    BottomNavScreen.isTabRoute(initialState.destination.route) &&
-        BottomNavScreen.isTabRoute(targetState.destination.route)
+private val TabSpring = spring(dampingRatio = 0.9f, stiffness = 420f, visibilityThreshold = IntOffset.VisibilityThreshold)
+private val TabScaleSpring = spring(dampingRatio = 0.9f, stiffness = 420f, visibilityThreshold = 0.001f)
+private val PushSpring = spring(dampingRatio = 1f, stiffness = 380f, visibilityThreshold = IntOffset.VisibilityThreshold)
+private val PushScaleSpring = spring(dampingRatio = 1f, stiffness = 380f, visibilityThreshold = 0.001f)
+
+/**
+ * For a switch between two tabs, +1 when moving to a tab on the right, -1 to the left;
+ * null when a detail screen is involved.
+ */
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.tabDirection(): Int? {
+    val from = BottomNavScreen.entries.indexOfFirst { it.route == initialState.destination.route }
+    val to = BottomNavScreen.entries.indexOfFirst { it.route == targetState.destination.route }
+    if (from < 0 || to < 0) return null
+    return if (to >= from) 1 else -1
+}
+
+/** [composable] whose content gets a fresh [RevealScope], so its staggered entrance plays on each visit. */
+private fun NavGraphBuilder.screen(
+    route: String,
+    arguments: List<NamedNavArgument> = emptyList(),
+    content: @Composable (NavBackStackEntry) -> Unit,
+) = composable(route, arguments) { entry ->
+    val replay = remember { RevealPolicy.replay }
+    RevealScope(enabled = replay) { content(entry) }
+}
+
+private object RevealPolicy {
+    var lastRoute: String? = null
+    var replay: Boolean = true
+}
 
 @Composable
 private fun AlarmEditDestination(navController: NavHostController) {

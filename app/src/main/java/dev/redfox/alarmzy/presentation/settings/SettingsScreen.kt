@@ -73,6 +73,11 @@ import dev.redfox.alarmzy.ui.components.glassSource
 import dev.redfox.alarmzy.ui.components.glow
 import dev.redfox.alarmzy.ui.components.pressable
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.alarmzy.ui.components.RevealColumn
+import dev.redfox.alarmzy.ui.components.popOnSelect
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import dev.redfox.alarmzy.ui.components.ExpandEnter
+import dev.redfox.alarmzy.ui.components.CollapseExit
 
 private val SnoozeOptions = listOf(5, 10, 15, 20, 30)
 
@@ -91,7 +96,7 @@ fun SettingsScreen(
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + LargeHeaderHeight
 
     Box(modifier.fillMaxSize().background(colors.background)) {
-        Column(
+        RevealColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .glassSource()
@@ -334,7 +339,7 @@ private fun ThemeVariantRow(selected: DarkVariant, onSelect: (DarkVariant) -> Un
             onClick = { expanded = !expanded },
             trailing = { ExpandChevron(expanded) }
         )
-        AnimatedVisibility(visible = expanded, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+        AnimatedVisibility(visible = expanded, enter = ExpandEnter, exit = CollapseExit) {
             Row(
                 Modifier.fillMaxWidth().padding(top = 14.dp, start = 56.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -378,7 +383,8 @@ private fun AccentColorPicker(selected: AccentColor, onSelect: (AccentColor) -> 
                 Column(
                     modifier = Modifier
                         .semantics { contentDescription = "${accent.displayName} accent" }
-                        .pressable(pressedScale = 0.92f, role = Role.RadioButton) { onSelect(accent) },
+                        .popOnSelect(isSel, amount = 0.1f)
+                        .pressable(pressedScale = 0.9f, role = Role.RadioButton, haptic = HapticFeedbackType.SegmentTick) { onSelect(accent) },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(
@@ -426,7 +432,7 @@ private fun SnoozeRow(selectedMinutes: Int, onSelect: (Int) -> Unit) {
             onClick = { expanded = !expanded },
             trailing = { ExpandChevron(expanded) }
         )
-        AnimatedVisibility(visible = expanded, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+        AnimatedVisibility(visible = expanded, enter = ExpandEnter, exit = CollapseExit) {
             Row(
                 Modifier
                     .fillMaxWidth()

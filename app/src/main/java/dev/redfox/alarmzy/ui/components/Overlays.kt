@@ -73,6 +73,7 @@ fun AzAlertDialog(
     val colors = AlarmzyTheme.colors
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.popIn(),
         containerColor = colors.card,
         shape = AzShapes.CardLarge,
         title = { Text(title, style = AlarmzyTheme.typography.title, color = colors.textPrimary) },

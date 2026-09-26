@@ -102,6 +102,16 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.animateContentSize
+import androidx.compose.ui.graphics.graphicsLayer
+import dev.redfox.alarmzy.ui.components.AzMotion
+import dev.redfox.alarmzy.ui.components.RollingText
+import dev.redfox.alarmzy.ui.components.revealOnEnter
+import dev.redfox.alarmzy.ui.components.popOnSelect
 
 private const val Tnum = "tnum"
 
@@ -117,7 +127,17 @@ fun TimerScreen(
     Box(modifier.fillMaxSize().background(AlarmzyTheme.colors.background)) {
         AnimatedContent(
             targetState = timer.status == TimerStatus.IDLE,
-            transitionSpec = { (fadeIn() + scaleIn(initialScale = 0.96f)) togetherWith fadeOut() },
+            transitionSpec = {
+                if (targetState) {
+                    // Back to the picker: it settles in as the ring shrinks away.
+                    (fadeIn(tween(260, delayMillis = 60)) + scaleIn(AzMotion.gentle(), initialScale = 1.06f)) togetherWith
+                        (fadeOut(tween(160)) + scaleOut(tween(220), targetScale = 0.86f))
+                } else {
+                    // Start: the picker lifts away and the ring blooms in with a bounce.
+                    (fadeIn(tween(240, delayMillis = 80)) + scaleIn(spring(dampingRatio = 0.62f, stiffness = 260f), initialScale = 0.8f)) togetherWith
+                        (fadeOut(tween(160)) + scaleOut(tween(220), targetScale = 1.08f))
+                }
+            },
             label = "timerMode",
             modifier = Modifier
                 .fillMaxSize()
@@ -148,7 +168,7 @@ private fun TimerSetup(timer: TimerState, onIntent: (TimerIntent) -> Unit) {
         Spacer(Modifier.weight(1f))
 
         // Column headers aligned with the wheels below.
-        Row(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+        Row(Modifier.fillMaxWidth().padding(bottom = 12.dp).revealOnEnter(0)) {
             val label = AlarmzyTheme.typography.label.copy(letterSpacing = 0.025.em)
             listOf("HOURS", "MINUTES", "SECONDS").forEachIndexed { i, text ->
                 if (i > 0) Spacer(Modifier.width(ColonWidth))
@@ -156,7 +176,7 @@ private fun TimerSetup(timer: TimerState, onIntent: (TimerIntent) -> Unit) {
             }
         }
 
-        Box(contentAlignment = Alignment.Center) {
+        Box(Modifier.revealOnEnter(1), contentAlignment = Alignment.Center) {
             // Ambient accent glow behind the selected row.
             Box(
                 Modifier
@@ -179,12 +199,12 @@ private fun TimerSetup(timer: TimerState, onIntent: (TimerIntent) -> Unit) {
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)
         ) {
-            TimerUiState.Presets.forEach { preset ->
+            TimerUiState.Presets.forEachIndexed { i, preset ->
                 PresetPill(
                     durationMs = preset,
                     selected = preset == timer.pickerMs,
                     onClick = { onIntent(TimerIntent.SetDuration(preset)) },
-                    modifier = Modifier.weight(1f).widthIn(max = 105.dp)
+                    modifier = Modifier.weight(1f).widthIn(max = 105.dp).revealOnEnter(2 + i)
                 )
             }
         }
@@ -194,7 +214,7 @@ private fun TimerSetup(timer: TimerState, onIntent: (TimerIntent) -> Unit) {
             primary = true,
             enabled = timer.pickerMs > 0,
             onClick = { onIntent(TimerIntent.Start) },
-            modifier = Modifier.width(192.dp)
+            modifier = Modifier.width(192.dp).revealOnEnter(2 + TimerUiState.Presets.size)
         )
         Spacer(Modifier.height(24.dp))
     }
@@ -277,18 +297,39 @@ private fun NumberWheel(
             .semantics { contentDescription = "$description ${"%02d".format(value)}" }
     ) {
         items(count) { index ->
-            val selected = index == centerIndex
-            Box(Modifier.height(WheelItemHeight).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier
+                    .height(WheelItemHeight)
+                    .fillMaxWidth()
+                    .graphicsLayer {
+                        // A real drum: numbers curl away around a cylinder, shrinking and
+                        // fading continuously with their distance from the center row.
+                        val info = state.layoutInfo
+                        val item = info.visibleItemsInfo.firstOrNull { it.index == index }
+                        val d = if (item == null) 1.5f else {
+                            val center = (info.viewportStartOffset + info.viewportEndOffset) / 2f
+                            ((item.offset + item.size / 2f) - center) / item.size
+                        }
+                        val a = abs(d).coerceAtMost(1.5f)
+                        val scale = 1f - 0.3f * a.coerceAtMost(1f)
+                        scaleX = scale
+                        scaleY = scale
+                        alpha = (1f - 0.8f * a).coerceIn(0.08f, 1f)
+                        rotationX = -d * 32f
+                        cameraDistance = 10f * density
+                    },
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
                     "%02d".format(index % range),
                     style = TextStyle(
                         fontFamily = InterFontFamily,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                        fontSize = if (selected) 54.sp else 38.sp,
-                        letterSpacing = if (selected) (-1.35).sp else 0.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 54.sp,
+                        letterSpacing = (-1.35).sp,
                         fontFeatureSettings = Tnum,
                     ),
-                    color = if (selected) Color.White else Color.White.copy(alpha = 0.2f)
+                    color = Color.White
                 )
             }
         }
@@ -301,8 +342,9 @@ private fun PresetPill(durationMs: Long, selected: Boolean, onClick: () -> Unit,
     val (h, m, s) = millisToHms(durationMs)
     Box(
         modifier = modifier
+            .popOnSelect(selected)
             .then(if (selected) Modifier.glow(colors.accent.copy(alpha = 0.2f), CircleShape, radius = 6.dp) else Modifier)
-            .pressable(pressedScale = 0.94f, onClick = onClick)
+            .pressable(pressedScale = 0.92f, haptic = HapticFeedbackType.SegmentTick, onClick = onClick)
             .clip(CircleShape)
             .background(colors.cardInner)
             .border(1.dp, if (selected) colors.accent.copy(alpha = 0.3f) else colors.border, CircleShape)
@@ -332,31 +374,57 @@ private fun TimerRunning(timer: TimerState, onIntent: (TimerIntent) -> Unit) {
     val fraction = if (timer.durationMs > 0) (remaining.toFloat() / timer.durationMs).coerceIn(0f, 1f) else 0f
 
     // Paused and finished readouts pulse gently.
-    val pulse by rememberInfiniteTransition(label = "timerPulse").animateFloat(
+    val ambient = rememberInfiniteTransition(label = "timerPulse")
+    val pulse by ambient.animateFloat(
         initialValue = 1f,
         targetValue = 0.45f,
         animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
         label = "pulse"
     )
+    // "Time's up": the whole ring throbs like a heartbeat.
+    val beat by ambient.animateFloat(
+        initialValue = 1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(keyframes {
+            durationMillis = 1100
+            1.045f at 120
+            1f at 300
+            1.03f at 420
+            1f at 640
+        }),
+        label = "beat"
+    )
+    // The ring draws itself in when the countdown screen appears.
+    val intro = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { intro.animateTo(1f, tween(1100, easing = AzMotion.EaseOutEmphasized)) }
 
     Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.weight(1f))
         BoxWithConstraints(
-            modifier = Modifier.widthIn(max = 288.dp).fillMaxWidth().aspectRatio(1f),
+            modifier = Modifier
+                .widthIn(max = 288.dp)
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .graphicsLayer {
+                    val s = if (finished) beat else 1f
+                    scaleX = s
+                    scaleY = s
+                },
             contentAlignment = Alignment.Center
         ) {
             val ringSize: Dp = maxWidth
             Canvas(Modifier.fillMaxSize()) {
                 drawTimerRing(
-                    fraction = if (finished) 1f else fraction,
+                    fraction = (if (finished) 1f else fraction) * intro.value,
                     dim = !running && !finished,
                     track = colors.cardInner.copy(alpha = 0.8f),
                     accent = colors.accent,
                 )
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
+                RollingText(
                     countdownReadout(remaining),
+                    rollUp = false,
                     style = TextStyle(
                         fontFamily = InterFontFamily,
                         fontWeight = FontWeight.Bold,
@@ -368,7 +436,7 @@ private fun TimerRunning(timer: TimerState, onIntent: (TimerIntent) -> Unit) {
                     modifier = Modifier.alpha(if (running) 1f else pulse)
                 )
                 Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.animateContentSize(AzMotion.snappy())) {
                     when {
                         running -> {
                             Icon(painterResource(R.drawable.ic_bell_ring), contentDescription = null, tint = colors.accent)

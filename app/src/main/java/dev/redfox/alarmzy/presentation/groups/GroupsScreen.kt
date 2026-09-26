@@ -77,6 +77,18 @@ import dev.redfox.alarmzy.ui.components.glow
 import dev.redfox.alarmzy.ui.components.parseGroupColor
 import dev.redfox.alarmzy.ui.components.pressable
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.CompositingStrategy
+import dev.redfox.alarmzy.ui.components.AzMotion
+import dev.redfox.alarmzy.ui.components.HorizontalReveal
+import dev.redfox.alarmzy.ui.components.ExpandEnter
+import dev.redfox.alarmzy.ui.components.CollapseExit
+import dev.redfox.alarmzy.ui.components.RevealScope
+import dev.redfox.alarmzy.ui.components.revealOnEnter
+import dev.redfox.alarmzy.ui.components.HeaderActionsSwap
 
 @Composable
 fun GroupsScreen(
@@ -109,7 +121,7 @@ fun GroupsScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(uiState.groups, key = { it.id }) { group ->
+                itemsIndexed(uiState.groups, key = { _, it -> it.id }) { index, group ->
                     GroupCard(
                         group = group,
                         isExpanded = !uiState.selectionMode && group.id in uiState.expandedGroupIds,
@@ -125,40 +137,50 @@ fun GroupsScreen(
                         onToggleAlarm = { alarmId, enabled ->
                             onIntent(GroupsIntent.ToggleAlarmInGroup(alarmId, enabled))
                         },
-                        modifier = Modifier.animateItem()
+                        modifier = Modifier.animateItem().revealOnEnter(index)
                     )
                 }
             }
         }
 
-        if (uiState.selectionMode) {
-            LargeHeader(
-                title = if (uiState.selectedCount == 0) "Select groups" else "${uiState.selectedCount} selected",
-                modifier = Modifier.align(Alignment.TopCenter)
-            ) {
-                HeaderIconButton(Icons.Rounded.DoneAll, "Select all", onClick = { onIntent(GroupsIntent.SelectAll) })
-                HeaderIconButton(
-                    Icons.Rounded.DeleteOutline,
-                    "Delete selected",
-                    onClick = { showDeleteDialog = true },
-                    enabled = uiState.selectedCount > 0,
-                    tint = AlarmzyTheme.colors.accentLight
-                )
-                HeaderIconButton(Icons.Rounded.Close, "Exit selection", onClick = { onIntent(GroupsIntent.ClearSelection) })
-            }
-        } else {
-            LargeHeader(title = "Alarm Groups", modifier = Modifier.align(Alignment.TopCenter)) {
-                var menuOpen by remember { mutableStateOf(false) }
-                Box {
-                    HeaderIconButton(R.drawable.ic_more_vert, "More options", onClick = { menuOpen = true })
-                    AzDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        AzMenuItem(
-                            text = "Select groups",
-                            onClick = {
-                                menuOpen = false
-                                onIntent(GroupsIntent.StartSelection)
-                            }
+        LargeHeader(
+            title = when {
+                !uiState.selectionMode -> "Alarm Groups"
+                uiState.selectedCount == 0 -> "Select groups"
+                else -> "${uiState.selectedCount} selected"
+            },
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            AnimatedContent(
+                targetState = uiState.selectionMode,
+                transitionSpec = { HeaderActionsSwap },
+                label = "groupsHeaderActions"
+            ) { selecting ->
+                Row {
+                    if (selecting) {
+                        HeaderIconButton(Icons.Rounded.DoneAll, "Select all", onClick = { onIntent(GroupsIntent.SelectAll) })
+                        HeaderIconButton(
+                            Icons.Rounded.DeleteOutline,
+                            "Delete selected",
+                            onClick = { showDeleteDialog = true },
+                            enabled = uiState.selectedCount > 0,
+                            tint = AlarmzyTheme.colors.accentLight
                         )
+                        HeaderIconButton(Icons.Rounded.Close, "Exit selection", onClick = { onIntent(GroupsIntent.ClearSelection) })
+                    } else {
+                        var menuOpen by remember { mutableStateOf(false) }
+                        Box {
+                            HeaderIconButton(R.drawable.ic_more_vert, "More options", onClick = { menuOpen = true })
+                            AzDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                AzMenuItem(
+                                    text = "Select groups",
+                                    onClick = {
+                                        menuOpen = false
+                                        onIntent(GroupsIntent.StartSelection)
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -166,8 +188,8 @@ fun GroupsScreen(
 
         AnimatedVisibility(
             visible = !uiState.selectionMode,
-            enter = scaleIn() + fadeIn(),
-            exit = scaleOut() + fadeOut(),
+            enter = scaleIn(AzMotion.bouncy()) + fadeIn(),
+            exit = scaleOut(AzMotion.snappy()) + fadeOut(),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = ScreenGutter, bottom = navClearance + 16.dp)
@@ -210,7 +232,13 @@ private fun GroupCard(
     val type = AlarmzyTheme.typography
     val enabled = group.isEnabled
     val groupColor = parseGroupColor(group.color)
-    val chevronRotation by animateFloatAsState(if (isExpanded) 180f else 0f, label = "chevron")
+    val chevronRotation by animateFloatAsState(
+        if (isExpanded) 180f else 0f,
+        spring(dampingRatio = 0.55f, stiffness = 400f),
+        label = "chevron"
+    )
+    val dim by animateFloatAsState(if (enabled || isSelected) 1f else 0.8f, AzMotion.gentle(), label = "groupDim")
+    val cardColor by animateColorAsState(if (enabled) colors.card else colors.cardInner, AzMotion.gentle(), label = "groupBg")
     val border by animateColorAsState(
         if (isSelected) colors.accentBorder else colors.border.copy(alpha = 0f),
         label = "groupBorder"
@@ -220,9 +248,9 @@ private fun GroupCard(
         modifier = modifier
             .fillMaxWidth()
             .then(if (enabled) Modifier.glow(colors.background.copy(alpha = 0.6f), AzShapes.Card, radius = 6.dp, offsetY = 4.dp) else Modifier)
-            .alpha(if (enabled || isSelected) 1f else 0.8f)
+            .graphicsLayer { alpha = dim; compositingStrategy = CompositingStrategy.ModulateAlpha }
             .clip(AzShapes.Card)
-            .background(if (enabled) colors.card else colors.cardInner)
+            .background(cardColor)
             .border(1.dp, border, AzShapes.Card)
             .padding(16.dp)
     ) {
@@ -232,7 +260,7 @@ private fun GroupCard(
                 .pressable(pressedScale = 0.985f, onLongClick = onLongClick, onClick = onCardClick),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AnimatedVisibility(visible = selectionMode) {
+            HorizontalReveal(visible = selectionMode) {
                 Row {
                     AzCheckbox(checked = isSelected, onCheckedChange = { onCardClick() })
                     Spacer(Modifier.width(12.dp))
@@ -259,7 +287,8 @@ private fun GroupCard(
                     color = colors.textSecondary.copy(alpha = if (enabled) 1f else 0.7f)
                 )
             }
-            if (!selectionMode) {
+            HorizontalReveal(visible = !selectionMode) {
+              Row(verticalAlignment = Alignment.CenterVertically) {
                 Spacer(Modifier.width(8.dp))
                 AlarmzySwitch(checked = enabled, onCheckedChange = onToggleGroup, size = SwitchSize.Large)
                 Spacer(Modifier.width(4.dp))
@@ -277,14 +306,17 @@ private fun GroupCard(
                         modifier = Modifier.rotate(chevronRotation)
                     )
                 }
+              }
             }
         }
 
         AnimatedVisibility(
             visible = isExpanded,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
+            enter = ExpandEnter,
+            exit = CollapseExit
         ) {
+          // Fresh scope: the member alarms cascade in each time the group opens.
+          RevealScope {
             Column {
                 Spacer(Modifier.height(16.dp))
                 Box(Modifier.fillMaxWidth().height(1.dp).background(colors.border))
@@ -298,27 +330,37 @@ private fun GroupCard(
                     )
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        group.alarms.forEach { alarm ->
-                            GroupAlarmRow(alarm = alarm, onToggle = { onToggleAlarm(alarm.id, it) })
+                        group.alarms.forEachIndexed { i, alarm ->
+                            GroupAlarmRow(
+                                alarm = alarm,
+                                onToggle = { onToggleAlarm(alarm.id, it) },
+                                modifier = Modifier.revealOnEnter(i + 1, offsetY = 12.dp)
+                            )
                         }
                     }
                 }
                 Spacer(Modifier.height(20.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    PillButton(text = "Edit Group", icon = R.drawable.ic_tune, onClick = onEditGroup)
+                    PillButton(
+                        text = "Edit Group",
+                        icon = R.drawable.ic_tune,
+                        onClick = onEditGroup,
+                        modifier = Modifier.revealOnEnter(group.alarms.size + 1, offsetY = 12.dp)
+                    )
                 }
             }
+          }
         }
     }
 }
 
 @Composable
-private fun GroupAlarmRow(alarm: Alarm, onToggle: (Boolean) -> Unit) {
+private fun GroupAlarmRow(alarm: Alarm, onToggle: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     val colors = AlarmzyTheme.colors
     val type = AlarmzyTheme.typography
     val time = alarm.clockTime
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(AzShapes.Card)
             .background(colors.cardInner.copy(alpha = 0.8f))

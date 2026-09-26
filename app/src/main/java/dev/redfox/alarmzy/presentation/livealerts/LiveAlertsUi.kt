@@ -57,6 +57,7 @@ import dev.redfox.alarmzy.ui.components.AzListRow
 import dev.redfox.alarmzy.ui.components.AzShapes
 import dev.redfox.alarmzy.ui.components.PillButton
 import dev.redfox.alarmzy.ui.components.glow
+import dev.redfox.alarmzy.ui.components.popIn
 import dev.redfox.alarmzy.ui.components.pressable
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
 
@@ -156,6 +157,7 @@ fun LiveAlertsHomePrompt(
     Dialog(onDismissRequest = dismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(
             modifier = Modifier
+                .popIn()
                 .padding(horizontal = 20.dp)
                 .fillMaxWidth()
                 .clip(AzShapes.CardLarge)

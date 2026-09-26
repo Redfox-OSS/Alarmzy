@@ -41,6 +41,10 @@ import dev.redfox.alarmzy.presentation.navigation.BottomNavScreen
 import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
 import dev.redfox.alarmzy.ui.components.LocalHazeState
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.ui.unit.IntOffset
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -104,8 +108,11 @@ class MainActivity : ComponentActivity() {
 
                         AnimatedVisibility(
                             visible = showBottomBar,
-                            enter = slideInVertically { it } + fadeIn(),
-                            exit = slideOutVertically { it } + fadeOut(),
+                            // Rises with a soft bounce when returning from a detail screen.
+                            enter = slideInVertically(spring(dampingRatio = 0.72f, stiffness = 380f, visibilityThreshold = IntOffset.VisibilityThreshold)) { it } +
+                                fadeIn(tween(200)),
+                            exit = slideOutVertically(spring(dampingRatio = 1f, stiffness = 500f, visibilityThreshold = IntOffset.VisibilityThreshold)) { it } +
+                                fadeOut(tween(150)),
                             modifier = Modifier.align(Alignment.BottomCenter)
                         ) {
                             BottomNavBar(

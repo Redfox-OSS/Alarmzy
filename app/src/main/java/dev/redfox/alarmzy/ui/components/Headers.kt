@@ -1,6 +1,16 @@
 package dev.redfox.alarmzy.ui.components
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -49,14 +59,7 @@ fun LargeHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                title,
-                style = AlarmzyTheme.typography.screenTitle,
-                color = AlarmzyTheme.colors.textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
+            HeaderTitle(title, Modifier.weight(1f))
             Row(verticalAlignment = Alignment.CenterVertically, content = actions)
         }
     }
@@ -85,15 +88,35 @@ fun DetailHeader(
         ) {
             HeaderIconButton(icon = R.drawable.ic_back, contentDescription = "Back", onClick = onBack)
             Spacer(Modifier.width(4.dp))
-            Text(
-                title,
-                style = AlarmzyTheme.typography.screenTitle,
-                color = AlarmzyTheme.colors.textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
+            HeaderTitle(title, Modifier.weight(1f))
             Row(verticalAlignment = Alignment.CenterVertically, content = actions)
         }
+    }
+}
+
+/**
+ * Header title that slides in on first show and rolls vertically when it changes
+ * ("Alarms" -> "Select alarms" -> "2 selected").
+ */
+@Composable
+private fun HeaderTitle(title: String, modifier: Modifier = Modifier) {
+    AnimatedContent(
+        targetState = title,
+        transitionSpec = {
+            val spec = spring<IntOffset>(dampingRatio = 0.8f, stiffness = 500f)
+            (slideInVertically(spec) { it / 2 } + fadeIn(tween(180))) togetherWith
+                (slideOutVertically(spec) { -it / 2 } + fadeOut(tween(120))) using SizeTransform(clip = false)
+        },
+        contentAlignment = Alignment.CenterStart,
+        label = "headerTitle",
+        modifier = modifier.revealOnEnter(offsetY = 10.dp)
+    ) { text ->
+        Text(
+            text,
+            style = AlarmzyTheme.typography.screenTitle,
+            color = AlarmzyTheme.colors.textPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }

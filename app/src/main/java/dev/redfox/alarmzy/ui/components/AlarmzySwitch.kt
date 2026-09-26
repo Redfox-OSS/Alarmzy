@@ -2,6 +2,11 @@ package dev.redfox.alarmzy.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -46,18 +51,33 @@ fun AlarmzySwitch(
     enabled: Boolean = true,
 ) {
     val colors = AlarmzyTheme.colors
-    val track by animateColorAsState(if (checked) colors.accent else colors.switchTrackOff, label = "track")
-    val thumb by animateColorAsState(if (checked) Color.White else colors.switchThumbOff, label = "thumb")
+    val haptics = LocalHapticFeedback.current
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val track by animateColorAsState(if (checked) colors.accent else colors.switchTrackOff, AzMotion.snappy(), label = "track")
+    val thumb by animateColorAsState(if (checked) Color.White else colors.switchThumbOff, AzMotion.snappy(), label = "thumb")
+    val glowAlpha by animateFloatAsState(if (checked) 0.35f else 0f, AzMotion.gentle(), label = "glow")
     val travel = size.width - size.thumb - size.padding * 2
+    // iOS-style squish: the thumb stretches while held, then snaps across with a little bounce.
+    val stretch by animateDpAsState(
+        targetValue = if (pressed && enabled) 6.dp else 0.dp,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 800f),
+        label = "thumbStretch"
+    )
     val thumbOffset by animateDpAsState(
         targetValue = if (checked) travel else 0.dp,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 700f),
+        animationSpec = spring(dampingRatio = 0.58f, stiffness = 520f),
         label = "thumbOffset"
+    )
+    val dotScale by animateFloatAsState(
+        targetValue = if (showDot && checked) 1f else 0f,
+        animationSpec = AzMotion.bouncy(),
+        label = "dot"
     )
 
     Box(
         modifier = modifier
-            .then(if (checked) Modifier.glow(colors.accent.copy(alpha = 0.35f), CircleShape, radius = 6.dp) else Modifier)
+            .glow(colors.accent.copy(alpha = glowAlpha), CircleShape, radius = 6.dp)
             .size(size.width, size.height)
             .clip(CircleShape)
             .background(track)
@@ -65,23 +85,33 @@ fun AlarmzySwitch(
                 value = checked,
                 enabled = enabled,
                 role = Role.Switch,
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = interaction,
                 indication = null,
-                onValueChange = onCheckedChange
+                onValueChange = {
+                    haptics.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                    onCheckedChange(it)
+                }
             )
             .padding(size.padding),
         contentAlignment = Alignment.CenterStart
     ) {
         Box(
             modifier = Modifier
-                .offset(x = thumbOffset)
-                .size(size.thumb)
+                // Grow towards the far side, so the thumb stays anchored where it rests.
+                .offset(x = thumbOffset - stretch * (thumbOffset / travel))
+                .size(size.thumb + stretch, size.thumb)
                 .clip(CircleShape)
                 .background(thumb),
             contentAlignment = Alignment.Center
         ) {
-            if (showDot && checked) {
-                Box(Modifier.size(6.dp).clip(CircleShape).background(colors.accent))
+            if (dotScale > 0f) {
+                Box(
+                    Modifier
+                        .graphicsLayer { scaleX = dotScale; scaleY = dotScale }
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(colors.accent)
+                )
             }
         }
     }

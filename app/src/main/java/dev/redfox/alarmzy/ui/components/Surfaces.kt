@@ -1,7 +1,15 @@
 package dev.redfox.alarmzy.ui.components
 
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -177,6 +185,20 @@ fun EmptyState(
     modifier: Modifier = Modifier,
 ) {
     val colors = AlarmzyTheme.colors
+    // The badge floats and its halo breathes, so an empty screen still feels alive.
+    val ambient = rememberInfiniteTransition(label = "emptyAmbient")
+    val float by ambient.animateFloat(
+        initialValue = -4f,
+        targetValue = 4f,
+        animationSpec = infiniteRepeatable(tween(2600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "float"
+    )
+    val breathe by ambient.animateFloat(
+        initialValue = 0.16f,
+        targetValue = 0.34f,
+        animationSpec = infiniteRepeatable(tween(2600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "breathe"
+    )
     Column(
         modifier = modifier.fillMaxSize().padding(horizontal = 40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -184,7 +206,9 @@ fun EmptyState(
     ) {
         Box(
             modifier = Modifier
-                .glow(colors.accentGlow.copy(alpha = 0.25f), CircleShape, radius = 32.dp)
+                .revealOnEnter(0)
+                .graphicsLayer { translationY = float * density }
+                .glow(colors.accentGlow.copy(alpha = breathe), CircleShape, radius = 32.dp)
                 .size(88.dp)
                 .clip(CircleShape)
                 .background(colors.accentContainer)
@@ -199,8 +223,20 @@ fun EmptyState(
             )
         }
         Spacer(Modifier.height(20.dp))
-        Text(title, style = AlarmzyTheme.typography.title, color = colors.textPrimary, textAlign = TextAlign.Center)
+        Text(
+            title,
+            style = AlarmzyTheme.typography.title,
+            color = colors.textPrimary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.revealOnEnter(1)
+        )
         Spacer(Modifier.height(6.dp))
-        Text(subtitle, style = AlarmzyTheme.typography.body, color = colors.textSecondary, textAlign = TextAlign.Center)
+        Text(
+            subtitle,
+            style = AlarmzyTheme.typography.body,
+            color = colors.textSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.revealOnEnter(2)
+        )
     }
 }

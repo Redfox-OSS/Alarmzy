@@ -48,6 +48,18 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import dev.redfox.alarmzy.ui.components.revealOnEnter
 
 private val CLOCK_TEXT_SIZE = 84.sp
 
@@ -81,6 +93,22 @@ fun AlarmRingingContent(
     val digits = time.substringBeforeLast(' ', time)
     val meridiem = time.substringAfterLast(' ', "").takeIf { it != time }.orEmpty()
 
+    // Living screen: the bloom breathes, sonar rings pulse out of the clock, the CTA glows.
+    val ambient = rememberInfiniteTransition(label = "ringAmbient")
+    val breathe by ambient.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(2400, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "breathe"
+    )
+    val sonar by ambient.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(3000, easing = LinearEasing)),
+        label = "sonar"
+    )
+    val ringColor = if (hasImage) Color.White else colors.accent
+
     Box(modifier = modifier.fillMaxSize().background(colors.background)) {
         if (backgroundImagePath != null) {
             AsyncImage(
@@ -108,10 +136,10 @@ fun AlarmRingingContent(
                     .fillMaxSize()
                     .background(
                         Brush.radialGradient(
-                            0f to colors.accent.copy(alpha = 0.28f),
-                            0.55f to colors.accent.copy(alpha = 0.06f),
+                            0f to colors.accent.copy(alpha = 0.22f + 0.1f * breathe),
+                            0.55f to colors.accent.copy(alpha = 0.04f + 0.04f * breathe),
                             1f to Color.Transparent,
-                            radius = 1400f
+                            radius = 1250f + 250f * breathe
                         )
                     )
             )
@@ -122,6 +150,7 @@ fun AlarmRingingContent(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
+                    .revealOnEnter(0, offsetY = (-16).dp)
                     .padding(top = 64.dp)
                     .padding(horizontal = 32.dp)
                     .clip(CircleShape)
@@ -144,7 +173,20 @@ fun AlarmRingingContent(
             modifier = Modifier
                 .align(if (clockPosition == AlarmClockPosition.TOP) Alignment.TopCenter else Alignment.Center)
                 .padding(top = if (clockPosition == AlarmClockPosition.TOP) 140.dp else 0.dp)
-                .padding(horizontal = 32.dp),
+                .padding(horizontal = 32.dp)
+                .drawBehind {
+                    // Three staggered rings expanding from behind the time, fading as they grow.
+                    val base = size.minDimension * 0.55f
+                    for (k in 0 until 3) {
+                        val t = (sonar + k / 3f) % 1f
+                        drawCircle(
+                            ringColor.copy(alpha = 0.22f * (1f - t) * (1f - t)),
+                            radius = base + size.maxDimension * 0.55f * t,
+                            style = Stroke(width = 1.5.dp.toPx())
+                        )
+                    }
+                }
+                .revealOnEnter(1, offsetY = 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row {
@@ -185,6 +227,7 @@ fun AlarmRingingContent(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                .revealOnEnter(3, offsetY = 40.dp)
                 .padding(horizontal = 28.dp, vertical = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -194,12 +237,12 @@ fun AlarmRingingContent(
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     RingButton("Snooze", R.drawable.ic_snooze, primary = false, onClick = onSnooze, modifier = Modifier.weight(1f))
-                    RingButton(dismissLabel, null, primary = true, onClick = onDismiss, modifier = Modifier.weight(1f))
+                    RingButton(dismissLabel, null, primary = true, onClick = onDismiss, glow = breathe, modifier = Modifier.weight(1f))
                 }
                 AlarmButtonLayout.SNOOZE_ONLY ->
-                    RingButton("Snooze", R.drawable.ic_snooze, primary = true, onClick = onSnooze, modifier = Modifier.fillMaxWidth())
+                    RingButton("Snooze", R.drawable.ic_snooze, primary = true, onClick = onSnooze, glow = breathe, modifier = Modifier.fillMaxWidth())
                 AlarmButtonLayout.DISMISS_ONLY ->
-                    RingButton(dismissLabel, null, primary = true, onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+                    RingButton(dismissLabel, null, primary = true, onClick = onDismiss, glow = breathe, modifier = Modifier.fillMaxWidth())
             }
 
             Spacer(Modifier.height(16.dp))
@@ -220,13 +263,18 @@ private fun RingButton(
     primary: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** 0..1 breathing phase for the primary glow. */
+    glow: Float = 0.5f,
 ) {
     val colors = AlarmzyTheme.colors
     val content = if (primary) colors.onAccent else colors.textPrimary
     Row(
         modifier = modifier
-            .then(if (primary) Modifier.glow(colors.accent.copy(alpha = 0.45f), CircleShape, radius = 24.dp, offsetY = 8.dp) else Modifier)
-            .pressable(pressedScale = 0.95f, onClick = onClick)
+            .then(
+                if (primary) Modifier.glow(colors.accent.copy(alpha = 0.3f + 0.3f * glow), CircleShape, radius = 20.dp + 10.dp * glow, offsetY = 8.dp)
+                else Modifier
+            )
+            .pressable(pressedScale = 0.94f, haptic = HapticFeedbackType.Confirm, onClick = onClick)
             .height(64.dp)
             .clip(CircleShape)
             .background(if (primary) colors.accent else colors.tile.copy(alpha = 0.85f))

@@ -46,6 +46,7 @@ import dev.redfox.alarmzy.ui.components.glassSource
 import dev.redfox.alarmzy.ui.components.glow
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
 import kotlin.math.roundToInt
+import dev.redfox.alarmzy.ui.components.RevealColumn
 
 @Composable
 fun AlarmScreenCustomizeScreen(
@@ -65,7 +66,7 @@ fun AlarmScreenCustomizeScreen(
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + DetailHeaderHeight
 
     Box(modifier.fillMaxSize().background(colors.background)) {
-        Column(
+        RevealColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .glassSource()

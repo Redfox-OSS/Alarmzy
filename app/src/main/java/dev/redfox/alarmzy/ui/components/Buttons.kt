@@ -1,7 +1,13 @@
 package dev.redfox.alarmzy.ui.components
 
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +32,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
@@ -48,7 +55,7 @@ fun PrimaryButton(
                 if (enabled) Modifier.glow(colors.accent.copy(alpha = 0.3f), CircleShape, radius = 18.dp, offsetY = 8.dp)
                 else Modifier
             )
-            .pressable(enabled = enabled, onClick = onClick)
+            .pressable(enabled = enabled, pressedScale = 0.96f, haptic = HapticFeedbackType.Confirm, onClick = onClick)
             .clip(CircleShape)
             .background(colors.accent)
             .padding(vertical = 16.dp),
@@ -59,7 +66,8 @@ fun PrimaryButton(
             Icon(painterResource(icon), contentDescription = null, tint = colors.onAccent)
             Box(Modifier.size(8.dp))
         }
-        Text(text, style = AlarmzyTheme.typography.button, color = colors.onAccent)
+        // Counts in the label ("Create 7 alarms") roll as they change.
+        RollingText(text, style = AlarmzyTheme.typography.button, color = colors.onAccent)
     }
 }
 
@@ -88,7 +96,7 @@ fun ClockActionButton(
                 if (primary && enabled) Modifier.glow(colors.accent.copy(alpha = 0.45f), CircleShape, radius = 12.dp)
                 else Modifier
             )
-            .pressable(enabled = enabled, pressedScale = 0.95f, onClick = onClick)
+            .pressable(enabled = enabled, pressedScale = 0.93f, haptic = HapticFeedbackType.ContextClick, onClick = onClick)
             .clip(CircleShape)
             .background(if (primary) colors.accent else colors.cardInner)
             .border(1.dp, if (primary) Color.Transparent else colors.border, CircleShape)
@@ -96,17 +104,27 @@ fun ClockActionButton(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (icon != null) {
-            Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(16.dp))
-            Box(Modifier.size(8.dp))
+        // Label + glyph morph when the action changes (Pause <-> Resume).
+        AnimatedContent(
+            targetState = text to icon,
+            contentKey = { it.first },
+            transitionSpec = { RollSwap },
+            label = "clockActionLabel"
+        ) { (label, glyph) ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (glyph != null) {
+                    Icon(glyph, contentDescription = null, tint = content, modifier = Modifier.size(16.dp))
+                    Box(Modifier.size(8.dp))
+                }
+                Text(
+                    label,
+                    style = AlarmzyTheme.typography.bodyLarge.copy(
+                        fontWeight = if (primary) FontWeight.SemiBold else FontWeight.Medium
+                    ),
+                    color = content
+                )
+            }
         }
-        Text(
-            text,
-            style = AlarmzyTheme.typography.bodyLarge.copy(
-                fontWeight = if (primary) FontWeight.SemiBold else FontWeight.Medium
-            ),
-            color = content
-        )
     }
 }
 
@@ -146,10 +164,14 @@ fun AzFab(
 ) {
     val colors = AlarmzyTheme.colors
     val shape = RoundedCornerShape(18.dp)
+    // Arrives with a pop while the glyph twists into place.
+    val spin = remember { Animatable(-135f) }
+    LaunchedEffect(Unit) { spin.animateTo(0f, spring(dampingRatio = 0.55f, stiffness = 220f)) }
     Box(
         modifier = modifier
+            .popIn(from = 0.5f)
             .glow(colors.accent.copy(alpha = 0.45f), shape, radius = 14.dp, offsetY = 8.dp)
-            .pressable(pressedScale = 0.92f, onClick = onClick)
+            .pressable(pressedScale = 0.88f, haptic = HapticFeedbackType.ContextClick, onClick = onClick)
             .size(56.dp)
             .clip(shape)
             .background(
@@ -161,7 +183,8 @@ fun AzFab(
         Icon(
             painterResource(icon),
             contentDescription = contentDescription,
-            tint = if (colors.accent.luminance() > 0.6f) colors.onAccent else Color.White
+            tint = if (colors.accent.luminance() > 0.6f) colors.onAccent else Color.White,
+            modifier = Modifier.graphicsLayer { rotationZ = spin.value }
         )
     }
 }

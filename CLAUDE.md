@@ -51,7 +51,9 @@ Navigation lives entirely in `presentation/navigation/AlarmzyNavHost.kt` + `Scre
 - Reusable components live in `ui/components/` (`AzCard`, `AlarmzySwitch`, `ChoicePill`, `SegmentedPill`, `AzCheckbox`, `PrimaryButton`, `AzFab`, `LargeHeader`/`DetailHeader`, `AzDropdownMenu`, `AzAlertDialog`…). Prefer these over stock M3 components.
 - Icons are vector drawables `res/drawable/ic_*.xml` converted from the Figma (Material Symbols Rounded) and tinted at use. A few glyphs not in the Figma set (delete, select-all, close, lock, play/stop, alarm-off, warning, music library) temporarily use `Icons.Rounded.*`.
 - **Blur/glow:** Haze 1.7.x (not 2.x — that needs Compose 1.12/Kotlin 2.4). One `HazeState` is provided via `LocalHazeState`; screens mark scrolling content with `Modifier.glassSource()` and headers/nav use `Modifier.glassEffect(tint)` as *siblings* (never inside the source). Glows use the native `Modifier.glow(...)` wrapper over Compose's `dropShadow`.
-- Tactile clicks use `Modifier.pressable { }` (scale-on-press, no ripple).
+- Tactile clicks use `Modifier.pressable { }` (scale-on-press with a bouncy release, no ripple; optional `haptic`).
+- **Motion** lives in `ui/components/Motion.kt`: `AzMotion` springs (`bouncy`/`snappy`/`gentle`), `revealOnEnter(index)` / `RevealColumn` staggered entrances, `popOnSelect`, `popIn` (dialogs), `RollingText` (odometer digits), `HorizontalReveal`, `ExpandEnter`/`CollapseExit`, `HeaderActionsSwap`. Every nav destination is wrapped in a `RevealScope` by the `screen(...)` helper in `AlarmzyNavHost`; entrances replay on arrival but not when popping back from a detail screen (`RevealPolicy`). Nested sections that should re-animate on expand (group members, custom days, paywall) get their own `RevealScope`. Prefer springs for anything interruptible, and keep per-frame work in `graphicsLayer`/`placeWithLayer` lambdas.
+- `BottomNavBar` has one shared "liquid" indicator (spring position, stretch from velocity) and per-tab icon animations in `IconMotion.play`.
 
 ### Alarm scheduling & playback engine (`alarm/`)
 

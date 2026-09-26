@@ -77,6 +77,9 @@ import dev.redfox.alarmzy.ui.components.glow
 import dev.redfox.alarmzy.ui.components.parseGroupColor
 import dev.redfox.alarmzy.ui.components.pressable
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.alarmzy.ui.components.RevealColumn
+import dev.redfox.alarmzy.ui.components.popOnSelect
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 
 @Composable
 fun GroupEditScreen(
@@ -96,7 +99,7 @@ fun GroupEditScreen(
             .background(colors.background)
             .imePadding()
     ) {
-        Column(
+        RevealColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .glassSource()
@@ -282,8 +285,9 @@ private fun IconGrid(selected: GroupIcon?, tint: Color, onSelect: (GroupIcon?) -
                             Box(
                                 modifier = Modifier
                                     .semantics { contentDescription = icon.label }
+                                    .popOnSelect(isSel, amount = 0.12f)
                                     .then(if (isSel) Modifier.glow(tint.copy(alpha = 0.25f), AzShapes.Tile, radius = 12.dp, offsetY = 6.dp) else Modifier)
-                                    .pressable(pressedScale = 0.9f, role = Role.RadioButton) { onSelect(if (isSel) null else icon) }
+                                    .pressable(pressedScale = 0.88f, role = Role.RadioButton, haptic = HapticFeedbackType.SegmentTick) { onSelect(if (isSel) null else icon) }
                                     .size(cell)
                                     .clip(AzShapes.Tile)
                                     .background(if (isSel) colors.tile else colors.cardInner)
@@ -336,8 +340,9 @@ private fun ColorGrid(selected: String?, onSelect: (String?) -> Unit) {
                         Box(
                             modifier = Modifier
                                 .semantics { contentDescription = "Color $hex" }
+                                .popOnSelect(isSel, amount = 0.14f)
                                 .then(if (isSel) Modifier.glow(color.copy(alpha = 0.35f), CircleShape, radius = 12.dp, offsetY = 6.dp) else Modifier)
-                                .pressable(pressedScale = 0.9f, role = Role.RadioButton) { onSelect(if (isSel) null else hex) }
+                                .pressable(pressedScale = 0.88f, role = Role.RadioButton, haptic = HapticFeedbackType.SegmentTick) { onSelect(if (isSel) null else hex) }
                                 .size(cell)
                                 .then(if (isSel) Modifier.border(2.dp, Color.White, CircleShape) else Modifier)
                                 .padding(if (isSel) 3.dp else 0.dp)

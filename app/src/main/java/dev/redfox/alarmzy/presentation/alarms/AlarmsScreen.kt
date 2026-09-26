@@ -71,6 +71,24 @@ import dev.redfox.alarmzy.ui.components.glassSource
 import dev.redfox.alarmzy.ui.components.glow
 import dev.redfox.alarmzy.ui.components.pressable
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.TransformOrigin
+import dev.redfox.alarmzy.ui.components.AzMotion
+import dev.redfox.alarmzy.ui.components.HorizontalReveal
+import dev.redfox.alarmzy.ui.components.revealOnEnter
+import dev.redfox.alarmzy.ui.components.HeaderActionsSwap
+import dev.redfox.alarmzy.ui.components.RollSwap
 
 @Composable
 fun AlarmsScreen(
@@ -107,10 +125,10 @@ fun AlarmsScreen(
                 val next = uiState.nextAlarm
                 if (!uiState.selectionMode && next != null) {
                     item(key = "next_alarm_banner") {
-                        NextAlarmBanner(alarm = next, modifier = Modifier.animateItem())
+                        NextAlarmBanner(alarm = next, modifier = Modifier.animateItem().revealOnEnter(0))
                     }
                 }
-                items(uiState.alarms, key = { it.id }) { alarm ->
+                itemsIndexed(uiState.alarms, key = { _, it -> it.id }) { index, alarm ->
                     AlarmCard(
                         alarm = alarm,
                         selectionMode = uiState.selectionMode,
@@ -121,40 +139,50 @@ fun AlarmsScreen(
                         },
                         onLongClick = { onIntent(AlarmsIntent.EnterSelection(alarm.id)) },
                         onToggle = { enabled -> onIntent(AlarmsIntent.ToggleAlarm(alarm.id, enabled)) },
-                        modifier = Modifier.animateItem()
+                        modifier = Modifier.animateItem().revealOnEnter(index + 1)
                     )
                 }
             }
         }
 
-        if (uiState.selectionMode) {
-            LargeHeader(
-                title = if (uiState.selectedCount == 0) "Select alarms" else "${uiState.selectedCount} selected",
-                modifier = Modifier.align(Alignment.TopCenter)
-            ) {
-                HeaderIconButton(Icons.Rounded.DoneAll, "Select all", onClick = { onIntent(AlarmsIntent.SelectAll) })
-                HeaderIconButton(
-                    Icons.Rounded.DeleteOutline,
-                    "Delete selected",
-                    onClick = { showDeleteDialog = true },
-                    enabled = uiState.selectedCount > 0,
-                    tint = AlarmzyTheme.colors.accentLight
-                )
-                HeaderIconButton(Icons.Rounded.Close, "Exit selection", onClick = { onIntent(AlarmsIntent.ClearSelection) })
-            }
-        } else {
-            LargeHeader(title = "Alarms", modifier = Modifier.align(Alignment.TopCenter)) {
-                var menuOpen by remember { mutableStateOf(false) }
-                Box {
-                    HeaderIconButton(R.drawable.ic_more_vert, "More options", onClick = { menuOpen = true })
-                    AzDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        AzMenuItem(
-                            text = "Select alarms",
-                            onClick = {
-                                menuOpen = false
-                                onIntent(AlarmsIntent.StartSelection)
-                            }
+        LargeHeader(
+            title = when {
+                !uiState.selectionMode -> "Alarms"
+                uiState.selectedCount == 0 -> "Select alarms"
+                else -> "${uiState.selectedCount} selected"
+            },
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            AnimatedContent(
+                targetState = uiState.selectionMode,
+                transitionSpec = { HeaderActionsSwap },
+                label = "alarmsHeaderActions"
+            ) { selecting ->
+                Row {
+                    if (selecting) {
+                        HeaderIconButton(Icons.Rounded.DoneAll, "Select all", onClick = { onIntent(AlarmsIntent.SelectAll) })
+                        HeaderIconButton(
+                            Icons.Rounded.DeleteOutline,
+                            "Delete selected",
+                            onClick = { showDeleteDialog = true },
+                            enabled = uiState.selectedCount > 0,
+                            tint = AlarmzyTheme.colors.accentLight
                         )
+                        HeaderIconButton(Icons.Rounded.Close, "Exit selection", onClick = { onIntent(AlarmsIntent.ClearSelection) })
+                    } else {
+                        var menuOpen by remember { mutableStateOf(false) }
+                        Box {
+                            HeaderIconButton(R.drawable.ic_more_vert, "More options", onClick = { menuOpen = true })
+                            AzDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                AzMenuItem(
+                                    text = "Select alarms",
+                                    onClick = {
+                                        menuOpen = false
+                                        onIntent(AlarmsIntent.StartSelection)
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -162,8 +190,8 @@ fun AlarmsScreen(
 
         AnimatedVisibility(
             visible = !uiState.selectionMode,
-            enter = scaleIn() + fadeIn(),
-            exit = scaleOut() + fadeOut(),
+            enter = scaleIn(AzMotion.bouncy()) + fadeIn(),
+            exit = scaleOut(AzMotion.snappy()) + fadeOut(),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = ScreenGutter, bottom = navClearance + 16.dp)
@@ -204,6 +232,30 @@ private fun NextAlarmBanner(alarm: Alarm, modifier: Modifier = Modifier) {
     val time = alarm.clockTime
     val day = if (alarm.nextTriggerTimeMillis > 0) relativeDay(alarm.nextTriggerTimeMillis) else null
 
+    // The ambient glow breathes, and every few seconds the bell gives a little ring.
+    val ambient = rememberInfiniteTransition(label = "bannerAmbient")
+    val breathe by ambient.animateFloat(
+        initialValue = 0.14f,
+        targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(tween(2800, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "breathe"
+    )
+    val ring by ambient.animateFloat(
+        initialValue = 0f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(keyframes {
+            durationMillis = 5200
+            0f at 4200
+            -16f at 4270
+            14f at 4350
+            -10f at 4430
+            7f at 4510
+            -3f at 4600
+            0f at 4700
+        }),
+        label = "bellRing"
+    )
+
     Box(modifier.fillMaxWidth()) {
         // Subtle ambient accent glow bleeding out from behind the card.
         Box(
@@ -212,7 +264,7 @@ private fun NextAlarmBanner(alarm: Alarm, modifier: Modifier = Modifier) {
                 .padding(horizontal = 40.dp)
                 .fillMaxWidth()
                 .height(56.dp)
-                .glow(colors.accent.copy(alpha = 0.22f), CircleShape, radius = 32.dp)
+                .glow(colors.accent.copy(alpha = breathe), CircleShape, radius = 32.dp)
         )
         Row(
             modifier = Modifier
@@ -231,20 +283,34 @@ private fun NextAlarmBanner(alarm: Alarm, modifier: Modifier = Modifier) {
                     .border(1.dp, colors.accentBorder, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(painterResource(R.drawable.ic_alarm), contentDescription = null, tint = colors.accentLight)
+                Icon(
+                    painterResource(R.drawable.ic_alarm),
+                    contentDescription = null,
+                    tint = colors.accentLight,
+                    modifier = Modifier.graphicsLayer {
+                        rotationZ = ring
+                        transformOrigin = TransformOrigin(0.5f, 0.15f)
+                    }
+                )
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text("NEXT ALARM", style = type.caption, color = colors.accentLight)
                 Row {
+                    AnimatedContent(
+                        targetState = if (day != null) "$day at ${time.digits}" else time.digits,
+                        transitionSpec = { RollSwap },
+                        label = "nextAlarmTime",
+                        modifier = Modifier.weight(1f, fill = false).alignByBaseline()
+                    ) { text ->
                     Text(
-                        if (day != null) "$day at ${time.digits}" else time.digits,
+                        text,
                         style = type.title.copy(letterSpacing = (-0.5).sp),
                         color = colors.textPrimary,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false).alignByBaseline()
+                        overflow = TextOverflow.Ellipsis
                     )
+                    }
                     Spacer(Modifier.width(4.dp))
                     Text(time.meridiem, style = type.body, color = colors.textSecondary, modifier = Modifier.alignByBaseline())
                 }
@@ -269,21 +335,31 @@ private fun AlarmCard(
     val time = alarm.clockTime
     val border by animateColorAsState(
         if (isSelected) colors.accentBorder else colors.border.copy(alpha = 0f),
+        AzMotion.snappy(),
         label = "cardBorder"
     )
+    // Switching an alarm off lets the card sink back instead of snapping grey.
+    val dim by animateFloatAsState(if (enabled || isSelected) 1f else 0.7f, AzMotion.gentle(), label = "cardDim")
+    val cardBg by animateColorAsState(
+        if (enabled) colors.cardGlass else colors.cardInner.copy(alpha = 0.5f),
+        AzMotion.gentle(),
+        label = "cardBg"
+    )
+    val timeColor by animateColorAsState(if (enabled) colors.textPrimary else colors.textSecondary, AzMotion.gentle(), label = "timeColor")
+    val captionColor by animateColorAsState(if (enabled) colors.accentLight else colors.textSecondary, AzMotion.gentle(), label = "captionColor")
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .pressable(pressedScale = 0.98f, onLongClick = onLongClick, onClick = onClick)
-            .alpha(if (enabled || isSelected) 1f else 0.7f)
+            .graphicsLayer { alpha = dim; compositingStrategy = CompositingStrategy.ModulateAlpha }
             .clip(AzShapes.Card)
-            .background(if (enabled) colors.cardGlass else colors.cardInner.copy(alpha = 0.5f))
+            .background(cardBg)
             .border(1.dp, border, AzShapes.Card)
             .padding(24.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AnimatedVisibility(visible = selectionMode) {
+        HorizontalReveal(visible = selectionMode) {
             Row {
                 AzCheckbox(checked = isSelected, onCheckedChange = { onClick() })
                 Spacer(Modifier.width(16.dp))
@@ -294,7 +370,7 @@ private fun AlarmCard(
                 Text(
                     caption.uppercase(),
                     style = type.caption.copy(letterSpacing = 0.025.em),
-                    color = if (enabled) colors.accentLight else colors.textSecondary,
+                    color = captionColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -304,7 +380,7 @@ private fun AlarmCard(
                 Text(
                     time.digits,
                     style = type.timeLarge,
-                    color = if (enabled) colors.textPrimary else colors.textSecondary,
+                    color = timeColor,
                     modifier = Modifier.alignByBaseline()
                 )
                 Spacer(Modifier.width(4.dp))
@@ -322,14 +398,16 @@ private fun AlarmCard(
                 color = colors.textSecondary.copy(alpha = if (enabled) 1f else 0.7f)
             )
         }
-        if (!selectionMode) {
-            Spacer(Modifier.width(12.dp))
-            AlarmzySwitch(
-                checked = enabled,
-                onCheckedChange = onToggle,
-                size = SwitchSize.Large,
-                showDot = true
-            )
+        HorizontalReveal(visible = !selectionMode) {
+            Row {
+                Spacer(Modifier.width(12.dp))
+                AlarmzySwitch(
+                    checked = enabled,
+                    onCheckedChange = onToggle,
+                    size = SwitchSize.Large,
+                    showDot = true
+                )
+            }
         }
     }
 }

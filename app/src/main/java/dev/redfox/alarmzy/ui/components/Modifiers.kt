@@ -16,6 +16,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
@@ -73,7 +75,8 @@ fun Modifier.glow(
 
 /**
  * Tactile click: the element dips to [pressedScale] while pressed instead of showing a ripple,
- * which reads better on the translucent glass surfaces.
+ * which reads better on the translucent glass surfaces, then springs back with a small overshoot
+ * on release. [haptic] ticks on click; a long click always gives the long-press haptic.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -81,14 +84,19 @@ fun Modifier.pressable(
     enabled: Boolean = true,
     role: Role? = Role.Button,
     pressedScale: Float = 0.97f,
+    haptic: HapticFeedbackType? = null,
     onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ): Modifier {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    val haptics = LocalHapticFeedback.current
+    val down = pressed && enabled
     val scale by animateFloatAsState(
-        targetValue = if (pressed && enabled) pressedScale else 1f,
-        animationSpec = spring(stiffness = 600f),
+        targetValue = if (down) pressedScale else 1f,
+        // Sink fast and firm; release with a gentle bounce.
+        animationSpec = if (down) spring(dampingRatio = 1f, stiffness = 900f)
+        else spring(dampingRatio = 0.42f, stiffness = 420f),
         label = "pressScale"
     )
     return this
@@ -98,7 +106,15 @@ fun Modifier.pressable(
             indication = null,
             enabled = enabled,
             role = role,
-            onLongClick = onLongClick,
-            onClick = onClick
+            onLongClick = onLongClick?.let { longClick ->
+                {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    longClick()
+                }
+            },
+            onClick = {
+                haptic?.let(haptics::performHapticFeedback)
+                onClick()
+            }
         )
 }

@@ -90,6 +90,18 @@ import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
+import dev.redfox.alarmzy.ui.components.popIn
+import dev.redfox.alarmzy.ui.components.RevealColumn
+import dev.redfox.alarmzy.ui.components.ExpandEnter
+import dev.redfox.alarmzy.ui.components.CollapseExit
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.ui.unit.IntOffset
+import dev.redfox.alarmzy.ui.components.RevealScope
+import dev.redfox.alarmzy.ui.components.revealOnEnter
+import dev.redfox.alarmzy.ui.components.AzMotion
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 
 private val SeriesIntervals = listOf(5, 10, 15, 20, 30, 60)
 
@@ -111,7 +123,7 @@ fun AlarmEditScreen(
             .background(colors.background)
             .imePadding()
     ) {
-        Column(
+        RevealColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .glassSource()
@@ -132,7 +144,7 @@ fun AlarmEditScreen(
                 Spacer(Modifier.height(20.dp))
             }
 
-            AnimatedVisibility(visible = uiState.isSeries) {
+            AnimatedVisibility(visible = uiState.isSeries, enter = ExpandEnter, exit = CollapseExit) {
                 Box(Modifier.fillMaxWidth().padding(bottom = 12.dp), contentAlignment = Alignment.Center) {
                     Text(
                         "START TIME",
@@ -152,8 +164,8 @@ fun AlarmEditScreen(
 
             AnimatedVisibility(
                 visible = uiState.isSeries,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+                enter = ExpandEnter,
+                exit = CollapseExit
             ) {
                 SeriesSection(
                     uiState = uiState,
@@ -268,8 +280,8 @@ internal fun BottomActionBar(modifier: Modifier = Modifier, content: @Composable
     val bg = AlarmzyTheme.colors.background
     AnimatedVisibility(
         visible = !WindowInsets.isImeVisible,
-        enter = slideInVertically { it } + fadeIn(),
-        exit = slideOutVertically { it } + fadeOut(),
+        enter = slideInVertically(spring(dampingRatio = 0.75f, stiffness = 360f, visibilityThreshold = IntOffset.VisibilityThreshold)) { it } + fadeIn(),
+        exit = slideOutVertically(spring(dampingRatio = 1f, stiffness = 600f, visibilityThreshold = IntOffset.VisibilityThreshold)) { it } + fadeOut(),
         modifier = modifier
     ) {
         BottomActionBarContent(bg, content)
@@ -343,10 +355,11 @@ private fun SeriesSummary(uiState: AlarmEditUiState) {
     val colors = AlarmzyTheme.colors
     val type = AlarmzyTheme.typography
     val valid = uiState.seriesRangeValid && uiState.seriesWithinCap
-    val tone = if (valid) colors.accentLight else colors.error
+    val tone by animateColorAsState(if (valid) colors.accentLight else colors.error, AzMotion.gentle(), label = "summaryTone")
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .animateContentSize(AzMotion.snappy())
             .clip(AzShapes.Card)
             .background(colors.cardInner.copy(alpha = 0.8f))
             .background(Brush.horizontalGradient(listOf(colors.accent.copy(alpha = 0.1f), colors.accent.copy(alpha = 0f))))
@@ -415,16 +428,19 @@ private fun RepeatSection(repeatMode: RepeatMode, onRepeatChange: (RepeatMode) -
         }
         AnimatedVisibility(
             visible = repeatMode is RepeatMode.Custom,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
+            enter = ExpandEnter,
+            exit = CollapseExit
         ) {
+          // Fresh scope so the days deal in left to right each time Custom opens.
+          RevealScope {
             val days = repeatMode.toDays()
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                DayOfWeek.entries.forEach { day ->
+                DayOfWeek.entries.forEachIndexed { i, day ->
                     DayChip(
+                        modifier = Modifier.revealOnEnter(i, offsetY = 10.dp),
                         letter = day.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
                         selected = day in days,
                         onClick = {
@@ -434,6 +450,7 @@ private fun RepeatSection(repeatMode: RepeatMode, onRepeatChange: (RepeatMode) -
                     )
                 }
             }
+          }
         }
     }
 }
@@ -576,6 +593,7 @@ private fun TimePickerDialog(
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(
             modifier = Modifier
+                .popIn()
                 .padding(horizontal = 16.dp)
                 .fillMaxWidth()
                 .clip(AzShapes.CardLarge)
