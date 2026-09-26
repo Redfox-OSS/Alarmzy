@@ -1,10 +1,10 @@
 package dev.redfox.alarmzy.domain.model
 
 /**
- * Stopwatch snapshot. Times are on the monotonic `SystemClock.elapsedRealtime()` clock so a
- * running stopwatch is unaffected by wall-clock changes and survives process death.
+ * Stopwatch snapshot. Times are wall-clock (`System.currentTimeMillis()`) instants so a running
+ * stopwatch survives process death and reboots.
  *
- * @param startedAt elapsedRealtime when the current running segment began (only meaningful while [running]).
+ * @param startedAt wall-clock time when the current running segment began (only meaningful while [running]).
  * @param accumulatedMs time banked from previous running segments (before the last pause).
  * @param laps overall elapsed time at each lap press, oldest first.
  */

@@ -9,6 +9,9 @@ sealed interface AlarmsIntent {
     data object SelectAll : AlarmsIntent
     data object ClearSelection : AlarmsIntent
     data object DeleteSelected : AlarmsIntent
+    data object MarkLiveAlertsPromptAsked : AlarmsIntent
+    /** Permissions changed: re-post running timer/stopwatch Live Updates. */
+    data object RestoreLiveAlerts : AlarmsIntent
 }
 
 sealed interface AlarmsSideEffect {

@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import dev.redfox.alarmzy.clock.StopwatchEngine
 import dev.redfox.alarmzy.clock.TimerEngine
 
 @AndroidEntryPoint
@@ -26,10 +27,15 @@ class BootReceiver : BroadcastReceiver() {
     @Inject
     lateinit var timerEngine: TimerEngine
 
+    @Inject
+    lateinit var stopwatchEngine: StopwatchEngine
+
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
 
+        // Re-arm AND re-show: reboot clears every alarm and notification.
         timerEngine.rearmAfterBoot()
+        stopwatchEngine.refresh()
 
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {

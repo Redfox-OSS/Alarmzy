@@ -52,6 +52,7 @@ import dev.redfox.alarmzy.presentation.common.caption
 import dev.redfox.alarmzy.presentation.common.clockTime
 import dev.redfox.alarmzy.presentation.common.detailText
 import dev.redfox.alarmzy.presentation.common.relativeDay
+import dev.redfox.alarmzy.presentation.livealerts.LiveAlertsHomePrompt
 import dev.redfox.alarmzy.presentation.navigation.floatingNavClearance
 import dev.redfox.alarmzy.ui.components.AlarmzySwitch
 import dev.redfox.alarmzy.ui.components.AzAlertDialog
@@ -169,6 +170,14 @@ fun AlarmsScreen(
         ) {
             AzFab(icon = R.drawable.ic_add, contentDescription = "Add alarm", onClick = onAddAlarm)
         }
+    }
+
+    if (!uiState.isLoading) {
+        LiveAlertsHomePrompt(
+            asked = uiState.liveAlertsPromptAsked,
+            onMarkAsked = { onIntent(AlarmsIntent.MarkLiveAlertsPromptAsked) },
+            onPermissionsChanged = { onIntent(AlarmsIntent.RestoreLiveAlerts) }
+        )
     }
 
     if (showDeleteDialog) {

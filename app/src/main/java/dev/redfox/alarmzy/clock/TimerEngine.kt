@@ -1,7 +1,6 @@
 package dev.redfox.alarmzy.clock
 
 import android.app.AlarmManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.datastore.core.DataStore
@@ -27,9 +26,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Process-wide countdown timer. State is persisted to DataStore; every transition also drives its
- * side effects in one place ([applySideEffects]): the exact AlarmManager wake-up that fires
- * [TimerReceiver] at zero, the ongoing countdown notification, and the ring service.
+ * Process-wide countdown timer — the single owner of timer state. Everything (UI, notification
+ * buttons, alarm receiver, boot receiver) goes through here, and every transition drives its side
+ * effects in one place ([applySideEffects]): the finish alarm, the 60s Live Update TICK, the
+ * promoted notification, and the ring service.
  */
 @Singleton
 class TimerEngine @Inject constructor(
@@ -44,7 +44,7 @@ class TimerEngine @Inject constructor(
 
     private val loaded = scope.async { load() }
 
-    /** The current state once persisted state has been loaded (for cold starts from the alarm). */
+    /** The current state once persisted state has been loaded (for cold starts from an alarm). */
     suspend fun current(): TimerState {
         loaded.await()
         return _state.value
@@ -78,93 +78,133 @@ class TimerEngine @Inject constructor(
     /** Stops a running/paused timer without ringing, or silences a finished one. */
     fun cancel() = mutate { s -> s.copy(status = TimerStatus.IDLE, remainingMs = 0L, endAtMillis = 0L) }
 
-    /** Called by [TimerReceiver] when the AlarmManager wake-up fires. */
-    fun finish() = mutate { s ->
-        if (s.status == TimerStatus.RUNNING) s.copy(status = TimerStatus.FINISHED) else s
-    }
-
-    /** Re-arms a running timer after reboot (AlarmManager alarms don't survive one). */
-    fun rearmAfterBoot() = mutate(reapplySideEffects = true) { s ->
-        when {
-            s.status == TimerStatus.RUNNING && s.endAtMillis <= System.currentTimeMillis() ->
-                s.copy(status = TimerStatus.IDLE) // expired while the phone was off
-            else -> s
-        }
+    /** "+1 min" on a finished timer: silences it and runs a fresh one-minute timer. */
+    fun addMinute() = mutate { s ->
+        if (s.status != TimerStatus.FINISHED) s
+        else s.copy(
+            status = TimerStatus.RUNNING,
+            durationMs = ONE_MINUTE,
+            endAtMillis = System.currentTimeMillis() + ONE_MINUTE,
+        )
     }
 
     /**
-     * @param reapplySideEffects run [applySideEffects] even when the state is unchanged
-     * (used after boot, when the AlarmManager wake-up and notification are gone).
+     * Called by [TimerReceiver] when the finish alarm fires. Ignores stale fires (the timer was
+     * paused, cancelled or restarted since) and only then calls [onRing] to start ringing.
      */
-    private fun mutate(reapplySideEffects: Boolean = false, transform: (TimerState) -> TimerState) {
+    fun finish(onRing: () -> Unit) = mutate(onAccepted = onRing) { s ->
+        val due = s.status == TimerStatus.RUNNING &&
+            System.currentTimeMillis() >= s.endAtMillis - FIRE_TOLERANCE_MS
+        if (due) s.copy(status = TimerStatus.FINISHED) else s
+    }
+
+    /** Re-posts the Live Update and re-arms the next TICK (TICK alarm, permission granted). */
+    fun refresh() = mutate(reapplySideEffects = true) { it }
+
+    /**
+     * After a reboot, alarms and notifications are gone: re-arm and re-show a running/paused timer.
+     * One that ended while the phone was off can't ring from boot, so it gets a silent "Time's up".
+     */
+    fun rearmAfterBoot() = mutate(
+        reapplySideEffects = true,
+        onAccepted = { TimerNotifications.showMissedFinish(context, _state.value.durationMs) },
+    ) { s ->
+        if (s.status == TimerStatus.RUNNING && s.endAtMillis <= System.currentTimeMillis()) {
+            s.copy(status = TimerStatus.FINISHED)
+        } else s
+    }
+
+    /**
+     * @param reapplySideEffects run [applySideEffects] even when the state is unchanged. Never skip
+     * on "nothing changed" for those callers: `notify()` / `AlarmManager.set*` are idempotent, and
+     * skipping would leave the notification missing after a reboot or a permission grant.
+     * @param onAccepted invoked (inside the lock) only when [transform] actually changed the state.
+     */
+    private fun mutate(
+        reapplySideEffects: Boolean = false,
+        onAccepted: (() -> Unit)? = null,
+        transform: (TimerState) -> TimerState,
+    ) {
         scope.launch {
             loaded.await()
             mutex.withLock {
                 val prev = _state.value
                 val next = transform(prev)
-                if (next != prev || reapplySideEffects) {
+                if (next != prev) {
                     _state.value = next
                     persist(next)
-                    applySideEffects(prev, next)
+                    onAccepted?.invoke()
                 }
+                if (next != prev || reapplySideEffects) applySideEffects(prev, next)
             }
         }
     }
 
     private fun applySideEffects(prev: TimerState, next: TimerState) {
+        // Leaving FINISHED (Stop, +1 min, auto-stop) silences the ringer and the "Time's up" notice.
+        if (prev.status == TimerStatus.FINISHED && next.status != TimerStatus.FINISHED) {
+            context.stopService(Intent(context, TimerRingService::class.java))
+            TimerNotifications.cancelFinished(context)
+        }
         when (next.status) {
             TimerStatus.RUNNING -> {
-                schedule(next.endAtMillis)
+                scheduleFinish(next.endAtMillis)
                 TimerNotifications.showCountdown(context, next)
+                LiveUpdates.scheduleTick(context, tickIntent())
             }
             TimerStatus.PAUSED -> {
-                cancelSchedule()
+                cancelFinish()
+                LiveUpdates.cancelTick(context, tickIntent())
                 TimerNotifications.showCountdown(context, next)
             }
             TimerStatus.FINISHED -> {
+                // The ring service (or the boot path) owns the "Time's up" notification.
+                cancelFinish()
+                LiveUpdates.cancelTick(context, tickIntent())
                 TimerNotifications.cancelCountdown(context)
             }
             TimerStatus.IDLE -> {
-                cancelSchedule()
+                cancelFinish()
+                LiveUpdates.cancelTick(context, tickIntent())
                 TimerNotifications.cancelCountdown(context)
-                if (prev.status == TimerStatus.FINISHED) {
-                    context.stopService(Intent(context, TimerRingService::class.java))
-                }
             }
         }
     }
 
-    private fun schedule(endAtMillis: Long) {
-        // setExactAndAllowWhileIdle (not setAlarmClock) so a timer doesn't show up as the
-        // system "next alarm". USE_EXACT_ALARM is already declared for the alarm engine.
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endAtMillis, firePendingIntent())
+    /**
+     * setAlarmClock: exempt from Doze throttling. The minute TICKs use the exact-while-idle budget
+     * (roughly one per ~9 minutes in deep Doze), so the finish must not compete with them. The
+     * trade-off is that a running timer shows as the system's "next alarm", as in most clock apps.
+     */
+    private fun scheduleFinish(endAtMillis: Long) {
+        if (!alarmManager.canScheduleExactAlarms()) return
+        alarmManager.setAlarmClock(
+            AlarmManager.AlarmClockInfo(endAtMillis, TimerNotifications.openTab(context)),
+            finishIntent()
+        )
     }
 
-    private fun cancelSchedule() = alarmManager.cancel(firePendingIntent())
+    private fun cancelFinish() = alarmManager.cancel(finishIntent())
 
-    private fun firePendingIntent(): PendingIntent = PendingIntent.getBroadcast(
-        context,
-        REQUEST_FIRE,
-        Intent(context, TimerReceiver::class.java).setAction(TimerReceiver.ACTION_FIRE),
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
+    private fun finishIntent() =
+        LiveUpdates.broadcast(context, TimerReceiver::class.java, TimerReceiver.ACTION_FIRE, REQUEST_FIRE)
+
+    private fun tickIntent() =
+        LiveUpdates.broadcast(context, TimerReceiver::class.java, TimerReceiver.ACTION_TICK, REQUEST_TICK)
 
     private suspend fun load() {
         val p = dataStore.data.first()
         val status = TimerStatus.entries.firstOrNull { it.name == p[KEY_STATUS] } ?: TimerStatus.IDLE
-        val loaded = TimerState(
+        _state.value = TimerState(
             status = status,
             durationMs = p[KEY_DURATION] ?: 0L,
             endAtMillis = p[KEY_END_AT] ?: 0L,
             remainingMs = p[KEY_REMAINING] ?: 0L,
             pickerMs = p[KEY_PICKER] ?: TimerState.DEFAULT_PICKER_MS,
         )
-        // A run that expired while the process was dead and was never delivered shouldn't ring late.
-        _state.value = if (loaded.status == TimerStatus.RUNNING && loaded.endAtMillis <= System.currentTimeMillis() - STALE_GRACE_MS) {
-            loaded.copy(status = TimerStatus.IDLE)
-        } else loaded
     }
 
+    /** One batched write with flat typed keys (one DataStore emission per transition). */
     private suspend fun persist(s: TimerState) {
         dataStore.edit { p ->
             p[KEY_STATUS] = s.status.name
@@ -177,7 +217,9 @@ class TimerEngine @Inject constructor(
 
     private companion object {
         const val REQUEST_FIRE = 71_001
-        const val STALE_GRACE_MS = 60_000L
+        const val REQUEST_TICK = 71_002
+        const val ONE_MINUTE = 60_000L
+        const val FIRE_TOLERANCE_MS = 2_000L
         val KEY_STATUS = stringPreferencesKey("timer_status")
         val KEY_DURATION = longPreferencesKey("timer_duration")
         val KEY_END_AT = longPreferencesKey("timer_end_at")

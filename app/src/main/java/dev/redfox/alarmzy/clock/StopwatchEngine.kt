@@ -1,13 +1,10 @@
 package dev.redfox.alarmzy.clock
 
 import android.content.Context
-import android.os.SystemClock
-import android.provider.Settings
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -27,9 +24,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Process-wide stopwatch. State lives here (not in a ViewModel) and is persisted to DataStore
- * so it keeps running across screen changes and process death. The UI derives the live
- * reading from [StopwatchState.elapsedAt] with `SystemClock.elapsedRealtime()`.
+ * Process-wide stopwatch — the single owner of stopwatch state. It's persisted to DataStore with
+ * wall-clock instants so it keeps running across screen changes, process death and reboots. Each
+ * transition re-posts the Live Update and (while running) re-arms its 60s TICK.
  */
 @Singleton
 class StopwatchEngine @Inject constructor(
@@ -57,28 +54,47 @@ class StopwatchEngine @Inject constructor(
 
     fun reset() = mutate { StopwatchState() }
 
-    private fun now() = SystemClock.elapsedRealtime()
+    /** Re-posts the Live Update and re-arms the TICK (TICK alarm, reboot, permission granted). */
+    fun refresh() = mutate(reapplySideEffects = true) { it }
 
-    private fun mutate(transform: (StopwatchState) -> StopwatchState) {
+    /** The clock the UI must read too when calling [StopwatchState.elapsedAt]. */
+    fun now(): Long = System.currentTimeMillis()
+
+    private fun mutate(reapplySideEffects: Boolean = false, transform: (StopwatchState) -> StopwatchState) {
         scope.launch {
             loaded.await()
             mutex.withLock {
-                val next = transform(_state.value)
-                if (next != _state.value) {
+                val prev = _state.value
+                val next = transform(prev)
+                if (next != prev) {
                     _state.value = next
                     persist(next)
                 }
+                if (next != prev || reapplySideEffects) applySideEffects(next)
+            }
+        }
+    }
+
+    private fun applySideEffects(s: StopwatchState) {
+        val tick = LiveUpdates.broadcast(context, StopwatchReceiver::class.java, StopwatchReceiver.ACTION_TICK, REQUEST_TICK)
+        when {
+            s.isIdle -> {
+                LiveUpdates.cancelTick(context, tick)
+                StopwatchNotifications.cancel(context)
+            }
+            s.running -> {
+                StopwatchNotifications.show(context, s)
+                LiveUpdates.scheduleTick(context, tick)
+            }
+            else -> {
+                LiveUpdates.cancelTick(context, tick)
+                StopwatchNotifications.show(context, s)
             }
         }
     }
 
     private suspend fun load() {
         val prefs = dataStore.data.first()
-        // elapsedRealtime restarts at boot, so a stopwatch saved in an earlier boot is meaningless.
-        if (prefs[KEY_BOOT_COUNT] != bootCount()) {
-            _state.value = StopwatchState()
-            return
-        }
         _state.value = StopwatchState(
             running = prefs[KEY_RUNNING] ?: false,
             startedAt = prefs[KEY_STARTED_AT] ?: 0L,
@@ -87,24 +103,22 @@ class StopwatchEngine @Inject constructor(
         )
     }
 
+    /** One batched write with flat typed keys. */
     private suspend fun persist(s: StopwatchState) {
         dataStore.edit { p ->
             p[KEY_RUNNING] = s.running
             p[KEY_STARTED_AT] = s.startedAt
             p[KEY_ACCUMULATED] = s.accumulatedMs
             p[KEY_LAPS] = s.laps.joinToString(",")
-            p[KEY_BOOT_COUNT] = bootCount()
         }
     }
 
-    private fun bootCount(): Int =
-        Settings.Global.getInt(context.contentResolver, Settings.Global.BOOT_COUNT, 0)
-
     private companion object {
-        val KEY_RUNNING = booleanPreferencesKey("stopwatch_running")
-        val KEY_STARTED_AT = longPreferencesKey("stopwatch_started_at")
-        val KEY_ACCUMULATED = longPreferencesKey("stopwatch_accumulated")
-        val KEY_LAPS = stringPreferencesKey("stopwatch_laps")
-        val KEY_BOOT_COUNT = intPreferencesKey("stopwatch_boot_count")
+        const val REQUEST_TICK = 71_101
+        // "_wall" keys: an earlier build stored elapsedRealtime under unsuffixed keys; those are ignored.
+        val KEY_RUNNING = booleanPreferencesKey("stopwatch_running_wall")
+        val KEY_STARTED_AT = longPreferencesKey("stopwatch_started_at_wall")
+        val KEY_ACCUMULATED = longPreferencesKey("stopwatch_accumulated_wall")
+        val KEY_LAPS = stringPreferencesKey("stopwatch_laps_wall")
     }
 }

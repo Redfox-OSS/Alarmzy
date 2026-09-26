@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.redfox.alarmzy.domain.model.AccentColor
 import dev.redfox.alarmzy.domain.model.DarkVariant
+import dev.redfox.alarmzy.clock.ClockLiveAlerts
 import dev.redfox.alarmzy.domain.repository.BillingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +23,8 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val dataStore: DataStore<Preferences>,
-    private val billingRepository: BillingRepository
+    private val billingRepository: BillingRepository,
+    private val clockLiveAlerts: ClockLiveAlerts,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -75,6 +77,7 @@ class SettingsViewModel @Inject constructor(
             is SettingsIntent.SetDefaultGradualVolume -> save { prefs ->
                 prefs[KEY_DEFAULT_GRADUAL_VOLUME] = intent.enabled
             }
+            is SettingsIntent.RestoreLiveAlerts -> clockLiveAlerts.restoreAll()
         }
     }
 

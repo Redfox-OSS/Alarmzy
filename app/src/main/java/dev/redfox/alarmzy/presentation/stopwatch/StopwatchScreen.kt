@@ -1,7 +1,6 @@
 package dev.redfox.alarmzy.presentation.stopwatch
 
 import android.graphics.BlurMaskFilter
-import android.os.SystemClock
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
@@ -88,7 +87,7 @@ fun StopwatchScreen(
     modifier: Modifier = Modifier
 ) {
     val sw = uiState.stopwatch
-    val now = rememberTicker(active = sw.running) { SystemClock.elapsedRealtime() }
+    val now = rememberTicker(active = sw.running) { System.currentTimeMillis() }
     val elapsed = sw.elapsedAt(now)
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + LargeHeaderHeight
 

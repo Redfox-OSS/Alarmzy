@@ -3,7 +3,13 @@ package dev.redfox.alarmzy.presentation.alarms
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import dev.redfox.alarmzy.clock.ClockLiveAlerts
 import dev.redfox.alarmzy.domain.repository.AlarmRepository
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +20,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AlarmsViewModel @Inject constructor(
-    private val alarmRepository: AlarmRepository
+    private val alarmRepository: AlarmRepository,
+    private val dataStore: DataStore<Preferences>,
+    private val clockLiveAlerts: ClockLiveAlerts,
 ) : ViewModel() {
 
     private data class Selection(
@@ -32,8 +40,9 @@ class AlarmsViewModel @Inject constructor(
             combine(
                 alarmRepository.getAllAlarms(),
                 alarmRepository.getNextEnabledAlarm(),
-                _selection
-            ) { alarms, nextAlarm, selection ->
+                _selection,
+                dataStore.data.map { it[KEY_LIVE_ALERTS_PROMPT_ASKED] ?: false }
+            ) { alarms, nextAlarm, selection, promptAsked ->
                 // Drop any selected ids that no longer exist (e.g. after deletion).
                 val validIds = alarms.map { it.id }.toSet()
                 val prunedIds = selection.ids intersect validIds
@@ -42,7 +51,8 @@ class AlarmsViewModel @Inject constructor(
                     nextAlarm = nextAlarm,
                     isLoading = false,
                     selectionMode = selection.active,
-                    selectedIds = prunedIds
+                    selectedIds = prunedIds,
+                    liveAlertsPromptAsked = promptAsked
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -71,6 +81,10 @@ class AlarmsViewModel @Inject constructor(
                 current.copy(active = true, ids = _uiState.value.alarms.map { it.id }.toSet())
             }
             is AlarmsIntent.ClearSelection -> _selection.value = Selection()
+            is AlarmsIntent.MarkLiveAlertsPromptAsked -> viewModelScope.launch {
+                dataStore.edit { it[KEY_LIVE_ALERTS_PROMPT_ASKED] = true }
+            }
+            is AlarmsIntent.RestoreLiveAlerts -> clockLiveAlerts.restoreAll()
             is AlarmsIntent.DeleteSelected -> {
                 val toDelete = _uiState.value.alarms.filter { it.id in _uiState.value.selectedIds }
                 _selection.value = Selection()
@@ -79,5 +93,9 @@ class AlarmsViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    companion object {
+        val KEY_LIVE_ALERTS_PROMPT_ASKED = booleanPreferencesKey("live_alerts_prompt_asked")
     }
 }

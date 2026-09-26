@@ -6,31 +6,27 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import androidx.core.app.NotificationCompat
 import dev.redfox.alarmzy.MainActivity
 import dev.redfox.alarmzy.R
 import dev.redfox.alarmzy.domain.model.TimerState
 import dev.redfox.alarmzy.domain.model.TimerStatus
+import java.text.DateFormat
+import java.util.Date
 
-/** Notification channels and builders for the countdown timer. */
+/** Notifications for the countdown timer: the promoted Live Update while running/paused, and "Time's up". */
 object TimerNotifications {
-    const val CHANNEL_PROGRESS = "timer_progress"
     const val CHANNEL_ALERT = "timer_alert"
     const val ID_COUNTDOWN = 2001
     const val ID_RINGING = 2002
 
-    /** Extra on the launch intent asking [MainActivity] to open the Timer tab. */
+    /** Extra on the launch intent asking [MainActivity] to open a tab (its route). */
     const val EXTRA_OPEN_TAB = "open_tab"
     const val TAB_TIMER = "timer"
 
     fun ensureChannels(context: Context) {
-        val nm = context.getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_PROGRESS, "Running timer", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Shows the countdown while a timer is running"
-                setShowBadge(false)
-            }
-        )
-        nm.createNotificationChannel(
+        LiveUpdates.ensureChannel(context)
+        context.getSystemService(NotificationManager::class.java).createNotificationChannel(
             NotificationChannel(CHANNEL_ALERT, "Timer finished", NotificationManager.IMPORTANCE_HIGH).apply {
                 description = "Rings when a timer reaches zero"
                 setBypassDnd(true)
@@ -39,33 +35,48 @@ object TimerNotifications {
         )
     }
 
-    /** Ongoing countdown (running) or frozen remaining time (paused), with Pause/Resume + Cancel. */
+    /** Running: countdown chronometer + draining bar. Paused: frozen text. Both promoted on Android 16+. */
     fun showCountdown(context: Context, state: TimerState) {
         ensureChannels(context)
+        val now = System.currentTimeMillis()
         val running = state.status == TimerStatus.RUNNING
-        val builder = Notification.Builder(context, CHANNEL_PROGRESS)
+        val remaining = state.remainingAt(now)
+        val builder = NotificationCompat.Builder(context, LiveUpdates.CHANNEL_LIVE)
             .setSmallIcon(R.drawable.ic_nav_timer)
-            .setContentTitle(if (running) "Timer" else "Timer paused")
-            .setContentIntent(openTimerTab(context))
+            .setContentIntent(openTab(context))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .setCategory(Notification.CATEGORY_STOPWATCH)
-            .addAction(
-                Notification.Action.Builder(
-                    null,
-                    if (running) "Pause" else "Resume",
-                    action(context, if (running) TimerReceiver.ACTION_PAUSE else TimerReceiver.ACTION_RESUME)
-                ).build()
-            )
-            .addAction(Notification.Action.Builder(null, "Cancel", action(context, TimerReceiver.ACTION_CANCEL)).build())
+            .setAutoCancel(false)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
+            .setColor(LiveUpdates.ACCENT)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
         if (running) {
-            builder.setUsesChronometer(true)
+            builder.setContentTitle("Ends at ${DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(state.endAtMillis))}")
+                .setContentText("${formatDuration(state.durationMs)} timer")
+                .setUsesChronometer(true)
                 .setChronometerCountDown(true)
                 .setWhen(state.endAtMillis)
                 .setShowWhen(true)
+                .setShortCriticalText(LiveUpdates.chipText(remaining))
+                .addAction(R.drawable.ic_pause, "Pause", action(context, TimerReceiver.ACTION_PAUSE))
+                .addAction(R.drawable.ic_cancel, "Cancel", action(context, TimerReceiver.ACTION_CANCEL))
         } else {
-            builder.setContentText("${formatDuration(state.remainingMs)} left").setShowWhen(false)
+            // A chronometer can't be frozen, so paused shows static text.
+            builder.setContentTitle("Paused • ${formatDuration(remaining)} left")
+                .setContentText("${formatDuration(state.durationMs)} timer")
+                .setUsesChronometer(false)
+                .setShowWhen(false)
+                .setShortCriticalText("Paused")
+                .addAction(R.drawable.ic_nav_timer, "Resume", action(context, TimerReceiver.ACTION_RESUME))
+                .addAction(R.drawable.ic_cancel, "Cancel", action(context, TimerReceiver.ACTION_CANCEL))
         }
+        // The bar drains toward zero (a growing bar reads as "almost done").
+        LiveUpdates.promote(
+            builder,
+            LiveUpdates.progressStyle((state.durationMs / 1000).toInt(), ((remaining + 999) / 1000).toInt())
+        )
         context.getSystemService(NotificationManager::class.java).notify(ID_COUNTDOWN, builder.build())
     }
 
@@ -73,14 +84,38 @@ object TimerNotifications {
         context.getSystemService(NotificationManager::class.java).cancel(ID_COUNTDOWN)
     }
 
-    fun action(context: Context, action: String): PendingIntent = PendingIntent.getBroadcast(
-        context,
-        action.hashCode(),
-        Intent(context, TimerReceiver::class.java).setAction(action),
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
+    /** "Time's up" with Stop / +1 min. Used as the ring service's foreground notification. */
+    fun buildFinished(context: Context, durationMs: Long, fullScreen: PendingIntent?): Notification {
+        ensureChannels(context)
+        return NotificationCompat.Builder(context, CHANNEL_ALERT)
+            .setSmallIcon(R.drawable.ic_nav_timer)
+            .setContentTitle("Time's up")
+            .setContentText("${formatDuration(durationMs)} timer")
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setOngoing(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setContentIntent(openTab(context))
+            .apply { if (fullScreen != null) setFullScreenIntent(fullScreen, true) }
+            .addAction(R.drawable.ic_cancel, "Stop", action(context, TimerReceiver.ACTION_STOP))
+            .addAction(R.drawable.ic_add, "+1 min", action(context, TimerReceiver.ACTION_ADD_MINUTE))
+            .build()
+    }
 
-    fun openTimerTab(context: Context): PendingIntent = PendingIntent.getActivity(
+    /** Silent "Time's up" for a timer that ended while the phone was off (can't ring from boot). */
+    fun showMissedFinish(context: Context, durationMs: Long) {
+        context.getSystemService(NotificationManager::class.java)
+            .notify(ID_RINGING, buildFinished(context, durationMs, fullScreen = null))
+    }
+
+    fun cancelFinished(context: Context) {
+        context.getSystemService(NotificationManager::class.java).cancel(ID_RINGING)
+    }
+
+    fun action(context: Context, action: String): PendingIntent =
+        LiveUpdates.broadcast(context, TimerReceiver::class.java, action, action.hashCode())
+
+    fun openTab(context: Context): PendingIntent = PendingIntent.getActivity(
         context,
         ID_COUNTDOWN,
         Intent(context, MainActivity::class.java)

@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android 16 Live Updates (timer/stopwatch chip, Now Bar, Live Alerts). Auto-granted. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
@@ -66,6 +68,10 @@
 
         <receiver
             android:name=".clock.TimerReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".clock.StopwatchReceiver"
             android:exported="false" />
 
         <service

@@ -1,6 +1,5 @@
 package dev.redfox.alarmzy.clock
 
-import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
@@ -10,7 +9,6 @@ import android.provider.Settings
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import dagger.hilt.android.AndroidEntryPoint
-import dev.redfox.alarmzy.R
 import dev.redfox.alarmzy.alarm.AlarmPlayer
 import dev.redfox.alarmzy.alarm.AlarmRingingActivity
 import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
@@ -49,7 +47,8 @@ class TimerRingService : Service() {
         }
         TimerNotifications.ensureChannels(this)
 
-        val durationLabel = TimerNotifications.formatDuration(runBlocking { timerEngine.current() }.durationMs)
+        val durationMs = runBlocking { timerEngine.current() }.durationMs
+        val durationLabel = TimerNotifications.formatDuration(durationMs)
         val ringingIntent = Intent(this, AlarmRingingActivity::class.java).apply {
             putExtra(AlarmRingingActivity.EXTRA_IS_TIMER, true)
             putExtra(AlarmRingingActivity.EXTRA_TIMER_LABEL, "Timer · $durationLabel")
@@ -60,18 +59,7 @@ class TimerRingService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = Notification.Builder(this, TimerNotifications.CHANNEL_ALERT)
-            .setSmallIcon(R.drawable.ic_nav_timer)
-            .setContentTitle("Time's up")
-            .setContentText("$durationLabel timer")
-            .setCategory(Notification.CATEGORY_ALARM)
-            .setOngoing(true)
-            .setFullScreenIntent(fullScreen, true)
-            .setContentIntent(TimerNotifications.openTimerTab(this))
-            .addAction(
-                Notification.Action.Builder(null, "Stop", TimerNotifications.action(this, TimerReceiver.ACTION_STOP)).build()
-            )
-            .build()
+        val notification = TimerNotifications.buildFinished(this, durationMs, fullScreen)
         startForeground(TimerNotifications.ID_RINGING, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
 
         if (Settings.canDrawOverlays(this)) startActivity(ringingIntent)

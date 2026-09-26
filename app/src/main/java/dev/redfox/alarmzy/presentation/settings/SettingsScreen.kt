@@ -55,6 +55,8 @@ import androidx.compose.ui.unit.sp
 import dev.redfox.alarmzy.R
 import dev.redfox.alarmzy.domain.model.AccentColor
 import dev.redfox.alarmzy.domain.model.DarkVariant
+import dev.redfox.alarmzy.presentation.livealerts.LiveAlertsSettingsFooter
+import dev.redfox.alarmzy.presentation.livealerts.LiveAlertsSettingsRows
 import dev.redfox.alarmzy.presentation.navigation.floatingNavClearance
 import dev.redfox.alarmzy.presentation.paywall.PaywallBottomSheet
 import dev.redfox.alarmzy.ui.components.AlarmzySwitch
@@ -197,6 +199,13 @@ fun SettingsScreen(
                         }
                     )
                 }
+            }
+
+            SettingsSection("Live Alerts") {
+                SettingsCard {
+                    LiveAlertsSettingsRows(onPermissionsChanged = { onIntent(SettingsIntent.RestoreLiveAlerts) })
+                }
+                LiveAlertsSettingsFooter()
             }
 
             SettingsSection("About") {

@@ -30,6 +30,7 @@ class TimerViewModel @Inject constructor(
             TimerIntent.Start -> engine.start(_uiState.value.timer.pickerMs)
             TimerIntent.Pause -> engine.pause()
             TimerIntent.Resume -> engine.resume()
+            TimerIntent.AddMinute -> engine.addMinute()
             TimerIntent.Cancel -> engine.cancel()
         }
     }

@@ -407,10 +407,15 @@ private fun TimerRunning(timer: TimerState, onIntent: (TimerIntent) -> Unit) {
         ) {
             if (finished) {
                 ClockActionButton(
+                    text = "+1 min",
+                    onClick = { onIntent(TimerIntent.AddMinute) },
+                    modifier = Modifier.weight(1f)
+                )
+                ClockActionButton(
                     text = "Stop",
                     primary = true,
                     onClick = { onIntent(TimerIntent.Cancel) },
-                    modifier = Modifier.width(192.dp)
+                    modifier = Modifier.weight(1f)
                 )
             } else {
                 ClockActionButton(

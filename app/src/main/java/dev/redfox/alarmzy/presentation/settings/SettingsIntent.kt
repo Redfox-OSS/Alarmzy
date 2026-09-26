@@ -10,4 +10,6 @@ sealed interface SettingsIntent {
     data class SetDefaultSnoozeDuration(val minutes: Int) : SettingsIntent
     data class SetDefaultVibration(val enabled: Boolean) : SettingsIntent
     data class SetDefaultGradualVolume(val enabled: Boolean) : SettingsIntent
+    /** Permissions changed: re-post running timer/stopwatch Live Updates. */
+    data object RestoreLiveAlerts : SettingsIntent
 }
