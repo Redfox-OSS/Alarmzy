@@ -41,6 +41,8 @@ import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
 import dev.redfox.alarmzy.ui.components.RevealScope
 import dev.redfox.alarmzy.ui.components.revealOnEnter
 import dev.redfox.alarmzy.ui.components.popIn
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +52,8 @@ fun PaywallBottomSheet(
     viewModel: PaywallViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val sheetState = rememberModalBottomSheetState()
+    // Always open fully: the paywall is short enough that a half-height peek just clips it.
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val activity = LocalContext.current as? Activity
     val colors = AlarmzyTheme.colors
     val type = AlarmzyTheme.typography
@@ -80,6 +83,8 @@ fun PaywallBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                // Small screens / large font sizes: scroll rather than cut off the buttons.
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally

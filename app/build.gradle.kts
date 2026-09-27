@@ -81,6 +81,7 @@ dependencies {
 
     // Billing
     implementation(libs.billing.ktx)
+    implementation(libs.play.app.update.ktx)
 
     // Coil
     implementation(libs.coil.compose)

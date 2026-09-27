@@ -141,8 +141,8 @@ class BillingRepositoryImpl @Inject constructor(
 
         /**
          * Manual switch for sharing test builds with Pro pre-enabled, bypassing Play
-         * Billing entirely. MUST be set back to false before any real release build.
+         * Billing entirely. MUST stay false for any build uploaded to Play.
          */
-        private const val FORCE_PRO_ENABLED = true
+        private const val FORCE_PRO_ENABLED = false
     }
 }

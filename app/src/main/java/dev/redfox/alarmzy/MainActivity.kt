@@ -45,12 +45,22 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.ui.unit.IntOffset
+import dev.redfox.alarmzy.presentation.update.InAppUpdater
+import dev.redfox.alarmzy.presentation.update.UpdateReadyBanner
+import dev.redfox.alarmzy.presentation.navigation.floatingNavClearance
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.ui.unit.dp
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     var overlayPermissionGranted by mutableStateOf(false)
         private set
+
+    private lateinit var inAppUpdater: InAppUpdater
 
     /** Tab requested by a notification (e.g. the running timer); consumed once navigated. */
     private var pendingTab by mutableStateOf<String?>(null)
@@ -66,6 +76,7 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
         )
+        inAppUpdater = InAppUpdater(this)
         requestNotificationPermissionIfNeeded()
         overlayPermissionGranted = Settings.canDrawOverlays(this)
         pendingTab = intent?.getStringExtra(TimerNotifications.EXTRA_OPEN_TAB)
@@ -105,6 +116,18 @@ class MainActivity : ComponentActivity() {
                             onRequestOverlayPermission = { requestOverlayPermission() },
                             modifier = Modifier.fillMaxSize()
                         )
+
+                        // "Update ready · Restart" once a flexible Play update has downloaded.
+                        AnimatedVisibility(
+                            visible = inAppUpdater.readyToInstall,
+                            enter = slideInVertically(spring(dampingRatio = 0.7f, stiffness = 380f, visibilityThreshold = IntOffset.VisibilityThreshold)) { it } + fadeIn(),
+                            exit = slideOutVertically { it } + fadeOut(),
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = if (showBottomBar) floatingNavClearance() + 12.dp else WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 96.dp)
+                        ) {
+                            UpdateReadyBanner(onRestart = { inAppUpdater.completeUpdate() })
+                        }
 
                         AnimatedVisibility(
                             visible = showBottomBar,

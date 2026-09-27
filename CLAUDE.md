@@ -87,6 +87,8 @@ This is the most subtle part of the app. Flow of a firing alarm:
 - Groups have an optional category `icon` (`GroupIcon` enum; the persisted `key` must never be renamed) and `color` hex string.
 - Room schema version is 3 with explicit `MIGRATION_1_2` (adds group `color`) and `MIGRATION_2_3` (adds group `icon`). `exportSchema = true` writes JSON to `app/schemas/` — bump the version and add a `Migration` (never rely on destructive migration) when changing entities.
 
+**In-app updates** (`presentation/update/InAppUpdater`, created in `MainActivity.onCreate`): Play Core app-update. Releases with in-app update priority ≥ 4 (set via the Play Developer API, not the Console UI) force an IMMEDIATE update; anything else offers a FLEXIBLE update at most once a day and shows `UpdateReadyBanner` ("Update ready · Restart") when downloaded. Only works for Play-installed builds (internal testing counts); sideloaded builds silently get no update info.
+
 Settings are stored in **DataStore Preferences** (not Room), read/written directly by `SettingsViewModel` via typed keys in its companion object.
 
 ## Permissions & platform notes

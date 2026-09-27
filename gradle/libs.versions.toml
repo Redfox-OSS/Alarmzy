@@ -15,6 +15,7 @@ navigationCompose = "2.9.0"
 datastore = "1.1.7"
 ksp = "2.2.10-2.0.2"
 billing = "9.1.0"
+appUpdate = "2.1.0"
 coil = "3.3.0"
 # 1.7.2 is the newest Haze built against Compose 1.10 / Kotlin 2.2 (2.x needs Compose 1.12 + Kotlin 2.4).
 haze = "1.7.2"
@@ -54,6 +55,7 @@ androidx-datastore-preferences = { group = "androidx.datastore", name = "datasto
 
 # Billing
 billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billing" }
+play-app-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "appUpdate" }
 
 # Coil
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
