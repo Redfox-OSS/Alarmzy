@@ -43,16 +43,16 @@ object StopwatchNotifications {
                 .setWhen(System.currentTimeMillis() - elapsed)
                 .setShowWhen(true)
                 .setShortCriticalText(LiveUpdates.chipText(elapsed))
-                .addAction(R.drawable.ic_lap, "Lap", action(context, StopwatchReceiver.ACTION_LAP))
-                .addAction(R.drawable.ic_pause, "Pause", action(context, StopwatchReceiver.ACTION_PAUSE))
+                .addAction(R.drawable.ic_notif_lap, "Lap", action(context, StopwatchReceiver.ACTION_LAP))
+                .addAction(R.drawable.ic_notif_pause, "Pause", action(context, StopwatchReceiver.ACTION_PAUSE))
         } else {
             builder.setContentTitle("Paused • ${lapTime(elapsed)}")
                 .setContentText(lapLabel ?: "Stopwatch")
                 .setUsesChronometer(false)
                 .setShowWhen(false)
                 .setShortCriticalText("Paused")
-                .addAction(R.drawable.ic_nav_stopwatch, "Resume", action(context, StopwatchReceiver.ACTION_RESUME))
-                .addAction(R.drawable.ic_cancel, "Reset", action(context, StopwatchReceiver.ACTION_RESET))
+                .addAction(R.drawable.ic_notif_play, "Resume", action(context, StopwatchReceiver.ACTION_RESUME))
+                .addAction(R.drawable.ic_notif_reset, "Reset", action(context, StopwatchReceiver.ACTION_RESET))
         }
         LiveUpdates.promote(
             builder,

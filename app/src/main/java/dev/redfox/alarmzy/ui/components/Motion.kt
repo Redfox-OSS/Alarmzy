@@ -38,6 +38,9 @@ import kotlinx.coroutines.delay
 import kotlin.math.max
 import kotlin.math.min
 import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.ui.layout.FirstBaseline
+import androidx.compose.ui.layout.LastBaseline
+import androidx.compose.ui.layout.AlignmentLine
 
 /**
  * Motion vocabulary for the whole app. Everything interactive uses physics (springs) so it can be
@@ -204,7 +207,27 @@ fun RollingText(
     rollUp: Boolean? = null,
 ) {
     val latestRollUp by rememberUpdatedState(rollUp)
-    Row(modifier) {
+    // AnimatedContent doesn't expose text baselines, so parents using alignByBaseline would
+    // misplace the digits. A never-placed reference Text supplies the baseline instead.
+    Layout(
+        modifier = modifier,
+        content = {
+            RollingRow(text, style, color) { latestRollUp }
+            Text(text, style = style, color = Color.Transparent, maxLines = 1)
+        }
+    ) { measurables, constraints ->
+        val row = measurables[0].measure(constraints)
+        val reference = measurables[1].measure(constraints)
+        val baseline = reference[FirstBaseline]
+        val lines = if (baseline == AlignmentLine.Unspecified) emptyMap()
+        else mapOf<AlignmentLine, Int>(FirstBaseline to baseline, LastBaseline to baseline)
+        layout(row.width, row.height, lines) { row.place(0, 0) }
+    }
+}
+
+@Composable
+private fun RollingRow(text: String, style: TextStyle, color: Color, rollUp: () -> Boolean?) {
+    Row {
         // Digits roll individually; runs of other characters stay one Text so kerning holds.
         // Keyed by distance from the end so "9" -> "10" keeps the ones column in place.
         var i = 0
@@ -215,7 +238,7 @@ fun RollingText(
                 androidx.compose.runtime.key(fromEnd) {
                     AnimatedContent(
                         targetState = char,
-                        transitionSpec = { rollTransform(up = latestRollUp ?: (targetState > initialState)) },
+                        transitionSpec = { rollTransform(up = rollUp() ?: (targetState > initialState)) },
                         label = "rollingDigit"
                     ) { c -> Text(c.toString(), style = style, color = color) }
                 }

@@ -60,8 +60,8 @@ object TimerNotifications {
                 .setWhen(state.endAtMillis)
                 .setShowWhen(true)
                 .setShortCriticalText(LiveUpdates.chipText(remaining))
-                .addAction(R.drawable.ic_pause, "Pause", action(context, TimerReceiver.ACTION_PAUSE))
-                .addAction(R.drawable.ic_cancel, "Cancel", action(context, TimerReceiver.ACTION_CANCEL))
+                .addAction(R.drawable.ic_notif_pause, "Pause", action(context, TimerReceiver.ACTION_PAUSE))
+                .addAction(R.drawable.ic_notif_close, "Cancel", action(context, TimerReceiver.ACTION_CANCEL))
         } else {
             // A chronometer can't be frozen, so paused shows static text.
             builder.setContentTitle("Paused • ${formatDuration(remaining)} left")
@@ -69,8 +69,8 @@ object TimerNotifications {
                 .setUsesChronometer(false)
                 .setShowWhen(false)
                 .setShortCriticalText("Paused")
-                .addAction(R.drawable.ic_nav_timer, "Resume", action(context, TimerReceiver.ACTION_RESUME))
-                .addAction(R.drawable.ic_cancel, "Cancel", action(context, TimerReceiver.ACTION_CANCEL))
+                .addAction(R.drawable.ic_notif_play, "Resume", action(context, TimerReceiver.ACTION_RESUME))
+                .addAction(R.drawable.ic_notif_close, "Cancel", action(context, TimerReceiver.ACTION_CANCEL))
         }
         // The bar drains toward zero (a growing bar reads as "almost done").
         LiveUpdates.promote(
@@ -97,8 +97,8 @@ object TimerNotifications {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(openTab(context))
             .apply { if (fullScreen != null) setFullScreenIntent(fullScreen, true) }
-            .addAction(R.drawable.ic_cancel, "Stop", action(context, TimerReceiver.ACTION_STOP))
-            .addAction(R.drawable.ic_add, "+1 min", action(context, TimerReceiver.ACTION_ADD_MINUTE))
+            .addAction(R.drawable.ic_notif_stop, "Stop", action(context, TimerReceiver.ACTION_STOP))
+            .addAction(R.drawable.ic_notif_add, "+1 min", action(context, TimerReceiver.ACTION_ADD_MINUTE))
             .build()
     }
 

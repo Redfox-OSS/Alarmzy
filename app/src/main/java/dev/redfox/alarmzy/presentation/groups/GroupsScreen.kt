@@ -89,6 +89,7 @@ import dev.redfox.alarmzy.ui.components.CollapseExit
 import dev.redfox.alarmzy.ui.components.RevealScope
 import dev.redfox.alarmzy.ui.components.revealOnEnter
 import dev.redfox.alarmzy.ui.components.HeaderActionsSwap
+import androidx.activity.compose.BackHandler
 
 @Composable
 fun GroupsScreen(
@@ -99,6 +100,9 @@ fun GroupsScreen(
     modifier: Modifier = Modifier
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // Back leaves selection mode instead of closing the app.
+    BackHandler(enabled = uiState.selectionMode) { onIntent(GroupsIntent.ClearSelection) }
     val navClearance = floatingNavClearance()
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + LargeHeaderHeight
 

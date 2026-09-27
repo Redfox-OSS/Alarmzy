@@ -89,6 +89,7 @@ import dev.redfox.alarmzy.ui.components.HorizontalReveal
 import dev.redfox.alarmzy.ui.components.revealOnEnter
 import dev.redfox.alarmzy.ui.components.HeaderActionsSwap
 import dev.redfox.alarmzy.ui.components.RollSwap
+import androidx.activity.compose.BackHandler
 
 @Composable
 fun AlarmsScreen(
@@ -99,6 +100,9 @@ fun AlarmsScreen(
     modifier: Modifier = Modifier
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // Back leaves selection mode instead of closing the app.
+    BackHandler(enabled = uiState.selectionMode) { onIntent(AlarmsIntent.ClearSelection) }
     val navClearance = floatingNavClearance()
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + LargeHeaderHeight
 
