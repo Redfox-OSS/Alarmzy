@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,6 +7,13 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.room)
 }
+
+// Play upload key, read from the gitignored keystore.properties in the project root.
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+val hasUploadKey = keystoreProperties.getProperty("storeFile") != null
 
 android {
     namespace = "dev.redfox.alarmzy"
@@ -24,6 +33,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (hasUploadKey) {
+            create("upload") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -31,9 +51,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Signed with the debug key so the APK installs directly when shared.
-            // Replace with a dedicated release keystore for a Play Store upload.
-            signingConfig = signingConfigs.getByName("debug")
+            // Play upload key when keystore.properties is present (required for Play uploads);
+            // otherwise the debug key, so release APKs can still be built and sideloaded.
+            signingConfig = signingConfigs.getByName(if (hasUploadKey) "upload" else "debug")
         }
     }
     compileOptions {

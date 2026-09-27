@@ -21,7 +21,7 @@ Single-module app (`:app`), package `dev.redfox.alarmzy`, min SDK 31 / target/co
 
 Requires JDK 17+. Dependencies are managed via the version catalog in `gradle/libs.versions.toml` — add libraries there, not with hardcoded versions in `app/build.gradle.kts`. KSP (not kapt) powers Room and Hilt code generation.
 
-The `release` build type is intentionally signed with the **debug key** (see `app/build.gradle.kts`) so shared APKs install directly; swap in a real keystore before any Play upload.
+Release signing: when the gitignored `keystore.properties` (project root) exists, `release` is signed with the Play **upload key** (`~/Documents/Alarmzy Signing/alarmzy-upload.jks`); without it, it falls back to the debug key so sideload APKs still build. Play uploads use `./gradlew bundleRelease` → `app/build/outputs/bundle/release/app-release.aab`. `BillingRepositoryImpl.FORCE_PRO_ENABLED` must be `false` in any Play build.
 
 ## Architecture
 
