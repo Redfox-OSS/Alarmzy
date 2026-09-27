@@ -22,9 +22,14 @@ data class LiveAlertStatus(
     val liveUpdatesAllowed: Boolean?,
     /** BBK-family phone on Android 16+: the "Show Live Updates on Live Alerts" toggle can't be read. */
     val showBbkStep: Boolean,
+    /**
+     * Android 14+ "Full-screen notifications" access: without it a ringing alarm is only a banner,
+     * never the full-screen alarm over the lock screen. Always true below API 34.
+     */
+    val fullScreenAllowed: Boolean = true,
 ) {
     val somethingMissing: Boolean
-        get() = !notificationsAllowed || !channelEnabled || liveUpdatesAllowed == false
+        get() = !notificationsAllowed || !channelEnabled || liveUpdatesAllowed == false || !fullScreenAllowed
 
     /** The home prompt also appears for the unreadable BBK toggle, which is off on a fresh install. */
     val worthPrompting: Boolean get() = somethingMissing || showBbkStep
@@ -45,7 +50,22 @@ object LiveAlertPermissions {
             channelEnabled = channel == null || channel.importance != NotificationManager.IMPORTANCE_NONE,
             liveUpdatesAllowed = if (Build.VERSION.SDK_INT >= 36) nmc.canPostPromotedNotifications() else null,
             showBbkStep = isBbkDevice() && Build.VERSION.SDK_INT >= 36,
+            fullScreenAllowed = canUseFullScreen(context),
         )
+    }
+
+    fun canUseFullScreen(context: Context): Boolean =
+        Build.VERSION.SDK_INT < 34 || context.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
+
+    /** The per-app "Full-screen notifications" switch (Android 14+). */
+    fun openFullScreenSettings(context: Context) {
+        if (Build.VERSION.SDK_INT < 34) return openNotificationSettings(context)
+        runCatching {
+            context.startActivity(
+                Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.fromParts("package", context.packageName, null))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }.onFailure { openNotificationSettings(context) }
     }
 
     // OEM builds don't all resolve every Settings action, and ActivityNotFoundException is a crash:

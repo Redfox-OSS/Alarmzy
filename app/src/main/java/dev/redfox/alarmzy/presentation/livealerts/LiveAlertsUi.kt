@@ -60,6 +60,7 @@ import dev.redfox.alarmzy.ui.components.glow
 import dev.redfox.alarmzy.ui.components.popIn
 import dev.redfox.alarmzy.ui.components.pressable
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import androidx.compose.material.icons.rounded.WarningAmber
 
 /** Live permission status plus the actions to fix each piece. Shared by the home prompt and Settings. */
 class LiveAlertsController internal constructor(
@@ -75,6 +76,7 @@ class LiveAlertsController internal constructor(
     }
 
     fun fixLiveUpdates() = LiveAlertPermissions.openLiveUpdatesSettings(context)
+    fun fixFullScreen() = LiveAlertPermissions.openFullScreenSettings(context)
     fun openBbkSettings() = LiveAlertPermissions.openNotificationSettings(context)
 }
 
@@ -194,6 +196,15 @@ fun LiveAlertsHomePrompt(
             Spacer(Modifier.height(20.dp))
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    PromptStep(
+                        icon = painterResource(R.drawable.ic_alarm),
+                        title = "Allow full-screen alarms",
+                        subtitle = "So a ringing alarm takes over the lock screen",
+                        done = status.fullScreenAllowed,
+                        onClick = controller::fixFullScreen
+                    )
+                }
                 if (Build.VERSION.SDK_INT >= 33 || !status.channelEnabled) {
                     PromptStep(
                         icon = painterResource(R.drawable.ic_bell),
@@ -310,6 +321,16 @@ fun LiveAlertsSettingsRows(onPermissionsChanged: () -> Unit) {
     val controller = rememberLiveAlertsController(onPermissionsChanged)
     val status = controller.status
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (Build.VERSION.SDK_INT >= 34) {
+            AzListRow(
+                title = "Full-screen alarms",
+                subtitle = "Ringing alarm over the lock screen",
+                icon = R.drawable.ic_alarm,
+                onClick = controller::fixFullScreen,
+                trailing = { StatusLabel(if (status.fullScreenAllowed) RowStatus.Allowed else RowStatus.Off) }
+            )
+            AzDivider()
+        }
         AzListRow(
             title = "Notifications",
             subtitle = "Timer and stopwatch notifications",
@@ -370,3 +391,48 @@ private fun StatusLabel(status: RowStatus) {
         )
     }
 }
+
+/**
+ * Persistent Alarms-tab warning while full-screen alarms are blocked (Android 14+). Without that
+ * access a ringing alarm is only a banner — easy to miss or lose in the morning — so unlike the
+ * one-time prompt this stays until it's fixed. Re-checks whenever the app resumes.
+ */
+@Composable
+fun FullScreenAlarmWarning(modifier: Modifier = Modifier) {
+    val controller = rememberLiveAlertsController(onPermissionsChanged = {})
+    val colors = AlarmzyTheme.colors
+    val type = AlarmzyTheme.typography
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .pressable(pressedScale = 0.98f, onClick = controller::fixFullScreen)
+            .clip(AzShapes.Card)
+            .background(colors.warning.copy(alpha = 0.12f))
+            .border(1.dp, colors.warning.copy(alpha = 0.35f), AzShapes.Card)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            rememberVectorPainter(Icons.Rounded.WarningAmber),
+            contentDescription = null,
+            tint = colors.warning,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text("Alarms won't open full screen", style = type.labelStrong, color = colors.textPrimary)
+            Text(
+                "Allow full-screen notifications so ringing alarms appear over the lock screen.",
+                style = type.label,
+                color = colors.textSecondary
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Text("Fix", style = type.labelStrong, color = colors.warning)
+    }
+}
+
+/** Whether full-screen alarms are allowed; re-read every time the app resumes. */
+@Composable
+fun rememberFullScreenAlarmsAllowed(): Boolean =
+    rememberLiveAlertsController(onPermissionsChanged = {}).status.fullScreenAllowed

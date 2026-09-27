@@ -14,6 +14,9 @@
     <!-- Android 16 Live Updates (timer/stopwatch chip, Now Bar, Live Alerts). Auto-granted. -->
     <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Required on Android 14+ for the ringing alarm to take over the (lock) screen; without it the
+         full-screen intent silently degrades to a heads-up notification. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application

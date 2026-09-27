@@ -12,6 +12,8 @@ sealed interface AlarmsIntent {
     data object MarkLiveAlertsPromptAsked : AlarmsIntent
     /** Permissions changed: re-post running timer/stopwatch Live Updates. */
     data object RestoreLiveAlerts : AlarmsIntent
+    data object SnoozeRinging : AlarmsIntent
+    data object DismissRinging : AlarmsIntent
 }
 
 sealed interface AlarmsSideEffect {

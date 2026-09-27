@@ -1,23 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon (Android 13+) silhouette of the launcher clock: same geometry, one colour, no glow. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="5"
-        android:pathData="M54,21 a33,33 0 1,0 0.01,0 z" />
-
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="5"
-        android:pathData="M54,32 a22,22 0 1,0 0.01,0 z" />
-
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,47 a7,7 0 1,0 0.01,0 z" />
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.82"
+        android:scaleY="0.82">
+        <group android:translateY="-2">
+            <group android:pivotX="54" android:pivotY="58" android:rotation="-42">
+                <path
+                    android:fillColor="#FFFFFFFF"
+                    android:strokeColor="#FFFFFFFF"
+                    android:strokeWidth="2"
+                    android:strokeLineJoin="round"
+                    android:pathData="M47,30.5A7,7 0 0,1 61,30.5Z" />
+            </group>
+            <group android:pivotX="54" android:pivotY="58" android:rotation="42">
+                <path
+                    android:fillColor="#FFFFFFFF"
+                    android:strokeColor="#FFFFFFFF"
+                    android:strokeWidth="2"
+                    android:strokeLineJoin="round"
+                    android:pathData="M47,30.5A7,7 0 0,1 61,30.5Z" />
+            </group>
+            <path
+                android:strokeColor="#FFFFFFFF"
+                android:strokeWidth="5"
+                android:pathData="M32,58a22,22 0 1,0 44,0a22,22 0 1,0 -44,0" />
+            <path
+                android:strokeColor="#FFFFFFFF"
+                android:strokeWidth="4"
+                android:strokeLineCap="round"
+                android:strokeLineJoin="round"
+                android:pathData="M54,46V58L61.5,63" />
+            <path
+                android:fillColor="#FFFFFFFF"
+                android:pathData="M51.4,58a2.6,2.6 0 1,0 5.2,0a2.6,2.6 0 1,0 -5.2,0" />
+        </group>
+    </group>
 </vector>

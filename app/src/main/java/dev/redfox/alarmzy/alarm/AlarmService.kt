@@ -11,6 +11,8 @@ import android.os.IBinder
 import android.provider.Settings
 import dagger.hilt.android.AndroidEntryPoint
 import dev.redfox.alarmzy.R
+import androidx.core.app.NotificationCompat
+import dev.redfox.alarmzy.clock.LiveUpdates
 import dev.redfox.alarmzy.data.local.dao.AlarmDao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,9 +32,14 @@ class AlarmService : Service() {
     @Inject
     lateinit var alarmScheduler: AlarmScheduler
 
+    @Inject
+    lateinit var ringingTracker: RingingAlarmTracker
+
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var alarmPlayer: AlarmPlayer? = null
     private var currentAlarmId: Long = -1
+    /** The ringing notification, kept so it can be re-posted instantly if the user swipes it away. */
+    private var ringingNotification: Notification? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -50,6 +57,14 @@ class AlarmService : Service() {
             }
             ACTION_DISMISS -> {
                 handleDismiss()
+                return START_NOT_STICKY
+            }
+            ACTION_REPOST -> {
+                // Android 14+ lets users swipe away even ongoing notifications. While the alarm is
+                // still sounding, put it straight back so there is always a way to stop it.
+                if (ringingTracker.ringing.value != null) {
+                    ringingNotification?.let { getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, it) }
+                }
                 return START_NOT_STICKY
             }
         }
@@ -96,20 +111,40 @@ class AlarmService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = Notification.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Alarm")
-            .setContentText(alarm.label.ifBlank { formatTime12h(alarm.hour, alarm.minute) })
-            .setCategory(Notification.CATEGORY_ALARM)
+        val timeText = formatTime12h(alarm.hour, alarm.minute)
+        val repostPendingIntent = PendingIntent.getService(
+            this, alarmId.toInt() + 30000,
+            Intent(this, AlarmService::class.java).setAction(ACTION_REPOST),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_nav_alarm)
+            .setContentTitle(alarm.label.ifBlank { "Alarm" })
+            .setContentText(if (alarm.label.isBlank()) "Ringing · $timeText" else "$timeText · Ringing")
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
+            .setAutoCancel(false)
+            .setShowWhen(true)
+            .setWhen(System.currentTimeMillis())
+            .setColor(LiveUpdates.ACCENT)
+            // Tapping the notification brings the full-screen ringer back.
+            .setContentIntent(fullScreenPendingIntent)
             .setFullScreenIntent(fullScreenPendingIntent, true)
-            .addAction(
-                Notification.Action.Builder(null, "Snooze", snoozePendingIntent).build()
-            )
-            .addAction(
-                Notification.Action.Builder(null, "Dismiss", dismissPendingIntent).build()
-            )
-            .build()
+            .setDeleteIntent(repostPendingIntent)
+            // Status chip / Live Alerts pill text (≤ 7 chars): "12:30".
+            .setShortCriticalText(timeText.substringBefore(' '))
+            .addAction(R.drawable.ic_notif_snooze, "Snooze", snoozePendingIntent)
+            .addAction(R.drawable.ic_notif_close, "Dismiss", dismissPendingIntent)
+        // Android 16 Live Update (OnePlus Live Alerts / status chip): pinned and prominent.
+        LiveUpdates.promote(builder, NotificationCompat.ProgressStyle().setProgressIndeterminate(true))
+
+        val notification = builder.build()
+        notification.flags = notification.flags or Notification.FLAG_NO_CLEAR
+        ringingNotification = notification
+        ringingTracker.set(RingingAlarm(id = alarmId, label = alarm.label, time = timeText))
 
         startForeground(
             NOTIFICATION_ID,
@@ -145,11 +180,13 @@ class AlarmService : Service() {
 
     private fun handleSnooze() {
         alarmPlayer?.stop()
+        ringingNotification = null
 
         serviceScope.launch {
             val alarm = alarmDao.getAlarmById(currentAlarmId)
             val snoozeDuration = alarm?.snoozeDurationMinutes ?: 5
             alarmScheduler.snooze(currentAlarmId, snoozeDuration)
+            ringingTracker.set(null)
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
@@ -157,9 +194,11 @@ class AlarmService : Service() {
 
     private fun handleDismiss() {
         alarmPlayer?.stop()
+        ringingNotification = null
 
         serviceScope.launch {
             val alarm = alarmDao.getAlarmById(currentAlarmId) ?: run {
+                ringingTracker.set(null)
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
                 return@launch
@@ -182,6 +221,7 @@ class AlarmService : Service() {
                 alarmScheduler.schedule(domainAlarm)
             }
 
+            ringingTracker.set(null)
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
@@ -215,6 +255,8 @@ class AlarmService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         alarmPlayer?.stop()
+        ringingNotification = null
+        ringingTracker.set(null)
         serviceScope.cancel()
     }
 
@@ -223,6 +265,7 @@ class AlarmService : Service() {
         const val NOTIFICATION_ID = 1001
         const val ACTION_SNOOZE = "dev.redfox.alarmzy.SNOOZE"
         const val ACTION_DISMISS = "dev.redfox.alarmzy.DISMISS"
+        const val ACTION_REPOST = "dev.redfox.alarmzy.REPOST_RINGING"
         const val EXTRA_ALARM_LABEL = "extra_alarm_label"
         const val EXTRA_ALARM_TIME = "extra_alarm_time"
         const val AUTO_DISMISS_MILLIS = 5L * 60 * 1000

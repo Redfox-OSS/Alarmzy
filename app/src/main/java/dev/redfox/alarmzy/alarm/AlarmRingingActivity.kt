@@ -39,6 +39,9 @@ class AlarmRingingActivity : ComponentActivity() {
     @Inject
     lateinit var timerEngine: TimerEngine
 
+    @Inject
+    lateinit var ringingTracker: RingingAlarmTracker
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -64,6 +67,16 @@ class AlarmRingingActivity : ComponentActivity() {
                 // (bounded, in case this is a stale launch), then close when it leaves FINISHED.
                 withTimeoutOrNull(5_000) { timerEngine.state.first { it.status == TimerStatus.FINISHED } }
                 timerEngine.state.first { it.status != TimerStatus.FINISHED }
+                finish()
+            }
+        }
+
+        if (!isTimer) {
+            // Close once this alarm stops ringing from anywhere else (notification, the in-app
+            // card, auto-dismiss). A stale launch (tapping an old notification) closes at once.
+            val alarmId = intent.getLongExtra(AlarmReceiver.EXTRA_ALARM_ID, -1)
+            lifecycleScope.launch {
+                ringingTracker.ringing.first { it?.id != alarmId }
                 finish()
             }
         }

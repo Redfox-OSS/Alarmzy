@@ -90,6 +90,13 @@ import dev.redfox.alarmzy.ui.components.revealOnEnter
 import dev.redfox.alarmzy.ui.components.HeaderActionsSwap
 import dev.redfox.alarmzy.ui.components.RollSwap
 import androidx.activity.compose.BackHandler
+import dev.redfox.alarmzy.alarm.RingingAlarm
+import dev.redfox.alarmzy.ui.components.ClockActionButton
+import androidx.compose.material.icons.rounded.AlarmOff
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.graphics.Brush
+import dev.redfox.alarmzy.presentation.livealerts.FullScreenAlarmWarning
+import dev.redfox.alarmzy.presentation.livealerts.rememberFullScreenAlarmsAllowed
 
 @Composable
 fun AlarmsScreen(
@@ -100,6 +107,7 @@ fun AlarmsScreen(
     modifier: Modifier = Modifier
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val fullScreenAllowed = rememberFullScreenAlarmsAllowed()
 
     // Back leaves selection mode instead of closing the app.
     BackHandler(enabled = uiState.selectionMode) { onIntent(AlarmsIntent.ClearSelection) }
@@ -126,8 +134,24 @@ fun AlarmsScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                if (!uiState.selectionMode && !fullScreenAllowed) {
+                    item(key = "full_screen_warning") {
+                        FullScreenAlarmWarning(Modifier.animateItem())
+                    }
+                }
+                val ringing = uiState.ringingAlarm
+                if (!uiState.selectionMode && ringing != null) {
+                    item(key = "ringing_now") {
+                        RingingNowCard(
+                            alarm = ringing,
+                            onSnooze = { onIntent(AlarmsIntent.SnoozeRinging) },
+                            onDismiss = { onIntent(AlarmsIntent.DismissRinging) },
+                            modifier = Modifier.animateItem().revealOnEnter(0)
+                        )
+                    }
+                }
                 val next = uiState.nextAlarm
-                if (!uiState.selectionMode && next != null) {
+                if (!uiState.selectionMode && next != null && next.id != ringing?.id) {
                     item(key = "next_alarm_banner") {
                         NextAlarmBanner(alarm = next, modifier = Modifier.animateItem().revealOnEnter(0))
                     }
@@ -300,23 +324,26 @@ private fun NextAlarmBanner(alarm: Alarm, modifier: Modifier = Modifier) {
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text("NEXT ALARM", style = type.caption, color = colors.accentLight)
-                Row {
-                    AnimatedContent(
-                        targetState = if (day != null) "$day at ${time.digits}" else time.digits,
-                        transitionSpec = { RollSwap },
-                        label = "nextAlarmTime",
-                        modifier = Modifier.weight(1f, fill = false).alignByBaseline()
-                    ) { text ->
-                    Text(
-                        text,
-                        style = type.title.copy(letterSpacing = (-0.5).sp),
-                        color = colors.textPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                // Animate the whole line so the time and its AM/PM stay on one baseline
+                // (AnimatedContent doesn't expose a baseline to align against).
+                AnimatedContent(
+                    targetState = (if (day != null) "$day at ${time.digits}" else time.digits) to time.meridiem,
+                    transitionSpec = { RollSwap },
+                    contentAlignment = Alignment.CenterStart,
+                    label = "nextAlarmTime"
+                ) { (text, meridiem) ->
+                    Row {
+                        Text(
+                            text,
+                            style = type.title.copy(letterSpacing = (-0.5).sp),
+                            color = colors.textPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false).alignByBaseline()
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(meridiem, style = type.body, color = colors.textSecondary, modifier = Modifier.alignByBaseline())
                     }
-                    Spacer(Modifier.width(4.dp))
-                    Text(time.meridiem, style = type.body, color = colors.textSecondary, modifier = Modifier.alignByBaseline())
                 }
             }
         }
@@ -412,6 +439,134 @@ private fun AlarmCard(
                     showDot = true
                 )
             }
+        }
+    }
+}
+
+/**
+ * "Ringing now" hero card: the always-available way to stop a sounding alarm from inside the app,
+ * even after the full-screen ringer was closed. The bell keeps shaking and the glow throbs.
+ */
+@Composable
+private fun RingingNowCard(
+    alarm: RingingAlarm,
+    onSnooze: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AlarmzyTheme.colors
+    val type = AlarmzyTheme.typography
+    val digits = alarm.time.substringBeforeLast(' ', alarm.time)
+    val meridiem = alarm.time.substringAfterLast(' ', "").takeIf { it != alarm.time }.orEmpty()
+    val shape = AzShapes.CardLarge
+
+    val ambient = rememberInfiniteTransition(label = "ringingCard")
+    val throb by ambient.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "throb"
+    )
+    val shake by ambient.animateFloat(
+        initialValue = 0f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(keyframes {
+            durationMillis = 1400
+            -18f at 60
+            16f at 130
+            -14f at 200
+            12f at 270
+            -8f at 340
+            5f at 410
+            0f at 500
+        }),
+        label = "shake"
+    )
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .glow(colors.accent.copy(alpha = 0.25f + 0.25f * throb), shape, radius = 22.dp + 10.dp * throb, offsetY = 6.dp)
+            .clip(shape)
+            .background(colors.card)
+            .background(
+                Brush.linearGradient(
+                    listOf(colors.accent.copy(alpha = 0.28f), colors.accent.copy(alpha = 0.06f))
+                )
+            )
+            .border(1.dp, colors.accent.copy(alpha = 0.35f + 0.25f * throb), shape)
+            .padding(20.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(colors.accent.copy(alpha = 0.2f))
+                    .border(1.dp, colors.accentBorder, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_alarm),
+                    contentDescription = null,
+                    tint = colors.accentLight,
+                    modifier = Modifier.graphicsLayer {
+                        rotationZ = shake
+                        transformOrigin = TransformOrigin(0.5f, 0.15f)
+                    }
+                )
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier
+                            .graphicsLayer { alpha = 0.4f + 0.6f * throb }
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(colors.accent)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("RINGING NOW", style = type.caption, color = colors.accentLight)
+                }
+                Row {
+                    Text(
+                        digits,
+                        style = type.timeLarge,
+                        color = colors.textPrimary,
+                        modifier = Modifier.alignByBaseline()
+                    )
+                    if (meridiem.isNotEmpty()) {
+                        Spacer(Modifier.width(4.dp))
+                        Text(meridiem, style = type.meridiem, color = colors.textSecondary, modifier = Modifier.alignByBaseline())
+                    }
+                }
+                if (alarm.label.isNotBlank()) {
+                    Text(
+                        alarm.label,
+                        style = type.body,
+                        color = colors.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(18.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ClockActionButton(
+                text = "Snooze",
+                icon = painterResource(R.drawable.ic_snooze),
+                onClick = onSnooze,
+                modifier = Modifier.weight(1f)
+            )
+            ClockActionButton(
+                text = "Dismiss",
+                icon = rememberVectorPainter(Icons.Rounded.AlarmOff),
+                primary = true,
+                onClick = onDismiss,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
