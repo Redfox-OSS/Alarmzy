@@ -13,7 +13,9 @@ val keystoreProperties = Properties().apply {
     val file = rootProject.file("keystore.properties")
     if (file.exists()) file.inputStream().use { load(it) }
 }
-val hasUploadKey = keystoreProperties.getProperty("storeFile") != null
+// `-PdebugSigned` builds a release (R8) APK signed with the debug key, so it can be installed
+// over a debug build on a test device without uninstalling it.
+val hasUploadKey = keystoreProperties.getProperty("storeFile") != null && !project.hasProperty("debugSigned")
 
 android {
     namespace = "dev.redfox.alarmzy"
@@ -46,7 +48,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8: shrink, optimise and obfuscate code, then drop unused resources. Library
+            // consumer rules (Room, Hilt, Billing, Play Core, Compose…) cover their own keeps.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

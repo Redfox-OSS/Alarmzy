@@ -68,7 +68,6 @@ import dev.redfox.alarmzy.ui.components.HeaderIconButton
 import dev.redfox.alarmzy.ui.components.IconTile
 import dev.redfox.alarmzy.ui.components.LargeHeader
 import dev.redfox.alarmzy.ui.components.LargeHeaderHeight
-import dev.redfox.alarmzy.ui.components.PillButton
 import dev.redfox.alarmzy.ui.components.ScreenGutter
 import dev.redfox.alarmzy.ui.components.SwitchSize
 import dev.redfox.alarmzy.ui.components.drawableRes
@@ -90,6 +89,7 @@ import dev.redfox.alarmzy.ui.components.RevealScope
 import dev.redfox.alarmzy.ui.components.revealOnEnter
 import dev.redfox.alarmzy.ui.components.HeaderActionsSwap
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 
 @Composable
 fun GroupsScreen(
@@ -291,6 +291,28 @@ private fun GroupCard(
                     color = colors.textSecondary.copy(alpha = if (enabled) 1f else 0.7f)
                 )
             }
+            // Edit sits in the header next to the group it edits, and only while the group is
+            // open, so it's in thumb reach without scrolling past every alarm, and collapsed
+            // cards stay clean.
+            HorizontalReveal(visible = isExpanded && !selectionMode) {
+                Box(
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .size(36.dp)
+                        .pressable(pressedScale = 0.88f, haptic = HapticFeedbackType.ContextClick, onClick = onEditGroup)
+                        .clip(CircleShape)
+                        .background(colors.tile)
+                        .border(1.dp, colors.border, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painterResource(R.drawable.ic_tune),
+                        contentDescription = "Edit ${group.name}",
+                        tint = colors.accentLight,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
             HorizontalReveal(visible = !selectionMode) {
               Row(verticalAlignment = Alignment.CenterVertically) {
                 Spacer(Modifier.width(8.dp))
@@ -322,16 +344,27 @@ private fun GroupCard(
           // Fresh scope: the member alarms cascade in each time the group opens.
           RevealScope {
             Column {
-                Spacer(Modifier.height(16.dp))
-                Box(Modifier.fillMaxWidth().height(1.dp).background(colors.border))
-                Spacer(Modifier.height(5.dp))
+                Spacer(Modifier.height(14.dp))
                 if (group.alarms.isEmpty()) {
-                    Text(
-                        "No alarms in this group yet",
-                        style = type.body,
-                        color = colors.textSecondary,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp)
-                    )
+                    // Empty group: point straight at the next step instead of a dead end.
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .revealOnEnter(1, offsetY = 12.dp)
+                            .pressable(pressedScale = 0.98f, onClick = onEditGroup)
+                            .clip(AzShapes.Card)
+                            .background(colors.cardInner.copy(alpha = 0.8f))
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "No alarms in this group yet",
+                            style = type.body,
+                            color = colors.textSecondary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text("Add alarms", style = type.labelStrong, color = colors.accentLight)
+                    }
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         group.alarms.forEachIndexed { i, alarm ->
@@ -343,15 +376,7 @@ private fun GroupCard(
                         }
                     }
                 }
-                Spacer(Modifier.height(20.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    PillButton(
-                        text = "Edit Group",
-                        icon = R.drawable.ic_tune,
-                        onClick = onEditGroup,
-                        modifier = Modifier.revealOnEnter(group.alarms.size + 1, offsetY = 12.dp)
-                    )
-                }
+                Spacer(Modifier.height(4.dp))
             }
           }
         }
