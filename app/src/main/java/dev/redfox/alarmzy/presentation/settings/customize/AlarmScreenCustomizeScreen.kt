@@ -47,6 +47,14 @@ import dev.redfox.alarmzy.ui.components.glow
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
 import kotlin.math.roundToInt
 import dev.redfox.alarmzy.ui.components.RevealColumn
+import dev.redfox.alarmzy.ui.components.AzCard
+import dev.redfox.alarmzy.ui.components.AzListRow
+import dev.redfox.alarmzy.ui.components.AlarmzySwitch
+import dev.redfox.alarmzy.ui.components.SwitchSize
+import androidx.compose.foundation.layout.PaddingValues
+import dev.redfox.alarmzy.R
+import androidx.compose.runtime.remember
+import dev.redfox.alarmzy.domain.model.Quotes
 
 @Composable
 fun AlarmScreenCustomizeScreen(
@@ -81,7 +89,8 @@ fun AlarmScreenCustomizeScreen(
             AlarmScreenPreview(
                 backgroundImagePath = uiState.backgroundImagePath,
                 buttonLayout = uiState.buttonLayout,
-                clockPosition = uiState.clockPosition
+                clockPosition = uiState.clockPosition,
+                showQuote = uiState.showQuote
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -131,6 +140,25 @@ fun AlarmScreenCustomizeScreen(
                     }
                 }
             }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionLabel("Quote")
+                AzCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
+                    AzListRow(
+                        title = "Show a wake-up quote",
+                        subtitle = "A new one each time an alarm rings",
+                        icon = R.drawable.ic_info,
+                        onClick = { onIntent(AlarmScreenCustomizeIntent.SetShowQuote(!uiState.showQuote)) },
+                        trailing = {
+                            AlarmzySwitch(
+                                checked = uiState.showQuote,
+                                onCheckedChange = { onIntent(AlarmScreenCustomizeIntent.SetShowQuote(it)) },
+                                size = SwitchSize.Medium
+                            )
+                        }
+                    )
+                }
+            }
         }
 
         DetailHeader(title = "Alarm Screen", onBack = onNavigateBack, modifier = Modifier.align(Alignment.TopCenter))
@@ -142,9 +170,11 @@ private fun AlarmScreenPreview(
     backgroundImagePath: String?,
     buttonLayout: AlarmButtonLayout,
     clockPosition: AlarmClockPosition,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showQuote: Boolean = true,
 ) {
     val configuration = LocalConfiguration.current
+    val previewQuote = remember { Quotes.random() }
     val realWidthDp = configuration.screenWidthDp.dp
     val realHeightDp = configuration.screenHeightDp.dp
 
@@ -179,6 +209,8 @@ private fun AlarmScreenPreview(
                 clockPosition = clockPosition,
                 onSnooze = {},
                 onDismiss = {},
+                quote = if (showQuote) previewQuote else null,
+                liveBlur = false,
                 modifier = Modifier.scaledMockup(realWidthDp, realHeightDp, scale)
             )
         }

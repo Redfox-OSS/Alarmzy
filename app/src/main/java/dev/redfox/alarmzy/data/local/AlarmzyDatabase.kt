@@ -13,7 +13,7 @@ import dev.redfox.alarmzy.data.local.entity.GroupEntity
 
 @Database(
     entities = [AlarmEntity::class, GroupEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -31,6 +31,14 @@ abstract class AlarmzyDatabase : RoomDatabase() {
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `groups` ADD COLUMN `icon` TEXT DEFAULT NULL")
+            }
+        }
+
+        /** Group-specific ringtone. Existing groups get NULL = keep following Settings. */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `groups` ADD COLUMN `ringtoneUri` TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE `groups` ADD COLUMN `ringtoneName` TEXT DEFAULT NULL")
             }
         }
     }

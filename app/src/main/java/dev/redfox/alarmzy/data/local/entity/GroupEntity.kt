@@ -12,5 +12,8 @@ data class GroupEntity(
     val color: String? = null,
     /** [dev.redfox.alarmzy.domain.model.GroupIcon.key]; null = generic folder icon. */
     val icon: String? = null,
+    /** Group-specific alarm sound; null = follow the Settings ringtone. */
+    val ringtoneUri: String? = null,
+    val ringtoneName: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

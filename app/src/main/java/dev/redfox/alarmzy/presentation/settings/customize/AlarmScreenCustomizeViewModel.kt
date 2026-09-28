@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
+import androidx.datastore.preferences.core.booleanPreferencesKey
 
 @HiltViewModel
 class AlarmScreenCustomizeViewModel @Inject constructor(
@@ -39,7 +40,8 @@ class AlarmScreenCustomizeViewModel @Inject constructor(
                     }.getOrDefault(AlarmButtonLayout.BOTH),
                     clockPosition = runCatching {
                         AlarmClockPosition.valueOf(prefs[KEY_CLOCK_POSITION] ?: AlarmClockPosition.MIDDLE.name)
-                    }.getOrDefault(AlarmClockPosition.MIDDLE)
+                    }.getOrDefault(AlarmClockPosition.MIDDLE),
+                    showQuote = prefs[KEY_SHOW_QUOTE] ?: true
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -58,6 +60,9 @@ class AlarmScreenCustomizeViewModel @Inject constructor(
             }
             is AlarmScreenCustomizeIntent.SetButtonLayout -> save { prefs ->
                 prefs[KEY_BUTTON_LAYOUT] = intent.layout.name
+            }
+            is AlarmScreenCustomizeIntent.SetShowQuote -> save { prefs ->
+                prefs[KEY_SHOW_QUOTE] = intent.show
             }
             is AlarmScreenCustomizeIntent.SetClockPosition -> save { prefs ->
                 prefs[KEY_CLOCK_POSITION] = intent.position.name
@@ -93,5 +98,6 @@ class AlarmScreenCustomizeViewModel @Inject constructor(
         val KEY_BG_IMAGE_PATH = stringPreferencesKey("alarm_bg_image_path")
         val KEY_BUTTON_LAYOUT = stringPreferencesKey("alarm_button_layout")
         val KEY_CLOCK_POSITION = stringPreferencesKey("alarm_clock_position")
+        val KEY_SHOW_QUOTE = booleanPreferencesKey("alarm_show_quote")
     }
 }

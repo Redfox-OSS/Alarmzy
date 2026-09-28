@@ -59,7 +59,8 @@ object TimerNotifications {
                 .setChronometerCountDown(true)
                 .setWhen(state.endAtMillis)
                 .setShowWhen(true)
-                .setShortCriticalText(LiveUpdates.chipText(remaining))
+                // No short critical text while running: it would replace the live, ticking
+                // countdown in the status chip / Live Alerts pill with static text.
                 .addAction(R.drawable.ic_notif_pause, "Pause", action(context, TimerReceiver.ACTION_PAUSE))
                 .addAction(R.drawable.ic_notif_close, "Cancel", action(context, TimerReceiver.ACTION_CANCEL))
         } else {
@@ -68,7 +69,7 @@ object TimerNotifications {
                 .setContentText("${formatDuration(state.durationMs)} timer")
                 .setUsesChronometer(false)
                 .setShowWhen(false)
-                .setShortCriticalText("Paused")
+                .setShortCriticalText(LiveUpdates.frozenChipText(remaining, roundUp = true))
                 .addAction(R.drawable.ic_notif_play, "Resume", action(context, TimerReceiver.ACTION_RESUME))
                 .addAction(R.drawable.ic_notif_close, "Cancel", action(context, TimerReceiver.ACTION_CANCEL))
         }

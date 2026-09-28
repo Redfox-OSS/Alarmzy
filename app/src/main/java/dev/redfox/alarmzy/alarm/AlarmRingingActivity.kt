@@ -29,6 +29,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import dev.redfox.alarmzy.domain.model.Quotes
 
 @AndroidEntryPoint
 class AlarmRingingActivity : ComponentActivity() {
@@ -81,6 +82,7 @@ class AlarmRingingActivity : ComponentActivity() {
             }
         }
 
+        val ringQuote = Quotes.random()
         setContent {
             val prefs by dataStore.data.collectAsState(initial = null)
 
@@ -111,6 +113,8 @@ class AlarmRingingActivity : ComponentActivity() {
                     buttonLayout = if (isTimer) AlarmButtonLayout.DISMISS_ONLY else buttonLayout,
                     clockPosition = clockPosition,
                     onSnooze = { snooze() },
+                    // A random wake-up quote per ring (unless turned off in Alarm Screen settings).
+                    quote = if (!isTimer && prefs?.get(AlarmScreenCustomizeViewModel.KEY_SHOW_QUOTE) != false) ringQuote else null,
                     onDismiss = { if (isTimer) stopTimer() else dismiss() },
                     dismissLabel = if (isTimer) "Stop" else "Dismiss"
                 )

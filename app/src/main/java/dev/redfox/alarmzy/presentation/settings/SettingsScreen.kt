@@ -153,7 +153,7 @@ fun SettingsScreen(
                 }
             }
 
-            SettingsSection("Default alarm settings") {
+            SettingsSection("Alarm settings") {
                 SettingsCard {
                     AzListRow(
                         title = "Customize alarm screen",
@@ -178,7 +178,7 @@ fun SettingsScreen(
                     AzDivider()
                     AzListRow(
                         title = "Vibration",
-                        subtitle = "Enable vibration for new alarms",
+                        subtitle = "Vibrate when an alarm rings",
                         icon = R.drawable.ic_vibration,
                         onClick = { onIntent(SettingsIntent.SetDefaultVibration(!uiState.defaultVibration)) },
                         trailing = {
@@ -192,7 +192,7 @@ fun SettingsScreen(
                     AzDivider()
                     AzListRow(
                         title = "Gradual volume increase",
-                        subtitle = "Gradually increase volume for new alarms",
+                        subtitle = "Start quiet and get louder",
                         icon = R.drawable.ic_volume,
                         onClick = { onIntent(SettingsIntent.SetDefaultGradualVolume(!uiState.defaultGradualVolume)) },
                         trailing = {
@@ -426,7 +426,7 @@ private fun SnoozeRow(selectedMinutes: Int, onSelect: (Int) -> Unit) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     Column {
         AzListRow(
-            title = "Default snooze duration",
+            title = "Snooze duration",
             subtitle = "$selectedMinutes minutes",
             icon = R.drawable.ic_snooze,
             onClick = { expanded = !expanded },

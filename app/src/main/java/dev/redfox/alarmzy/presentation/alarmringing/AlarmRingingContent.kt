@@ -60,6 +60,15 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import dev.redfox.alarmzy.ui.components.revealOnEnter
+import dev.redfox.alarmzy.domain.model.Quote
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import dev.redfox.alarmzy.ui.components.AzShapes
+import androidx.compose.ui.text.style.TextOverflow
 
 private val CLOCK_TEXT_SIZE = 84.sp
 
@@ -78,6 +87,14 @@ fun AlarmRingingContent(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     dismissLabel: String = "Dismiss",
+    /** Wake-up quote shown in a frosted card above the buttons; null hides it. */
+    quote: Quote? = null,
+    /**
+     * Live-blur the quote card. Off for the scaled-down Settings preview: Haze samples in
+     * unscaled window coordinates, so inside a scaled mockup the blur layer misaligns and leaves
+     * an unblurred strip. The preview uses the settled frosted tint instead.
+     */
+    liveBlur: Boolean = true,
 ) {
     val colors = AlarmzyTheme.colors
     val type = AlarmzyTheme.typography
@@ -109,7 +126,11 @@ fun AlarmRingingContent(
     )
     val ringColor = if (hasImage) Color.White else colors.accent
 
+    // Own blur source: the quote card frosts whatever is behind it (photo or accent bloom).
+    val ringHaze = rememberHazeState()
+
     Box(modifier = modifier.fillMaxSize().background(colors.background)) {
+      Box(Modifier.fillMaxSize().hazeSource(ringHaze)) {
         if (backgroundImagePath != null) {
             AsyncImage(
                 model = File(backgroundImagePath),
@@ -144,6 +165,7 @@ fun AlarmRingingContent(
                     )
             )
         }
+      }
 
         // Independent of clockPosition — always pinned near the top.
         if (label.isNotBlank()) {
@@ -231,6 +253,10 @@ fun AlarmRingingContent(
                 .padding(horizontal = 28.dp, vertical = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            if (quote != null) {
+                QuoteCard(quote = quote, haze = ringHaze.takeIf { liveBlur }, onPhoto = hasImage, glow = breathe)
+                Spacer(Modifier.height(22.dp))
+            }
             when (buttonLayout) {
                 AlarmButtonLayout.BOTH -> Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -289,5 +315,59 @@ private fun RingButton(
         }
         Spacer(Modifier.width(10.dp))
         Text(text, style = AlarmzyTheme.typography.button, color = content)
+    }
+}
+
+/**
+ * Frosted-glass quote card: blurs the alarm background like the app's top/nav bars, with the
+ * accent glow gently breathing in time with the Dismiss button.
+ */
+@Composable
+private fun QuoteCard(quote: Quote, haze: HazeState?, onPhoto: Boolean, glow: Float) {
+    val colors = AlarmzyTheme.colors
+    val type = AlarmzyTheme.typography
+    val shape = AzShapes.CardLarge
+    val tint = if (onPhoto) Color.Black.copy(alpha = 0.35f) else colors.navScrim
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glow(colors.accent.copy(alpha = 0.14f + 0.12f * glow), shape, radius = 26.dp)
+            .clip(shape)
+            .then(
+                if (haze != null) Modifier.hazeEffect(
+                    haze,
+                    HazeStyle(
+                        backgroundColor = colors.background,
+                        tints = listOf(HazeTint(tint)),
+                        blurRadius = 22.dp,
+                        noiseFactor = 0f,
+                    )
+                )
+                // No live blur: the frosted look it settles to (dark base + the same tint).
+                else Modifier.background(if (onPhoto) Color.Black.copy(alpha = 0.45f) else colors.background.copy(alpha = 0.55f)).background(tint)
+            )
+            .border(1.dp, colors.accentLight.copy(alpha = 0.22f + 0.12f * glow), shape)
+            .padding(horizontal = 22.dp, vertical = 18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            "\u201C",
+            style = TextStyle(fontFamily = InterFontFamily, fontSize = 34.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp),
+            color = colors.accent
+        )
+        Text(
+            quote.text,
+            style = type.body.copy(fontSize = 16.sp, lineHeight = 23.sp, fontWeight = FontWeight.Medium),
+            color = if (onPhoto) Color.White else colors.textPrimary,
+            textAlign = TextAlign.Center,
+            maxLines = 4,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "\u2014 ${quote.author}",
+            style = type.label.copy(letterSpacing = 0.04.em),
+            color = if (onPhoto) Color.White.copy(alpha = 0.75f) else colors.accentLight
+        )
     }
 }

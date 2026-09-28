@@ -23,7 +23,7 @@ object DatabaseModule {
             context,
             AlarmzyDatabase::class.java,
             "alarmzy.db"
-        ).addMigrations(AlarmzyDatabase.MIGRATION_1_2, AlarmzyDatabase.MIGRATION_2_3).build()
+        ).addMigrations(AlarmzyDatabase.MIGRATION_1_2, AlarmzyDatabase.MIGRATION_2_3, AlarmzyDatabase.MIGRATION_3_4).build()
 
     @Provides
     fun provideAlarmDao(database: AlarmzyDatabase): AlarmDao = database.alarmDao()

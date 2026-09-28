@@ -30,6 +30,8 @@ class GroupRepositoryImpl @Inject constructor(
                     isEnabled = gwa.group.isEnabled,
                     color = gwa.group.color,
                     icon = GroupIcon.fromKey(gwa.group.icon),
+                    ringtoneUri = gwa.group.ringtoneUri,
+                    ringtoneName = gwa.group.ringtoneName,
                     alarms = gwa.alarms.map { entity ->
                         val days = AlarmRepositoryImpl.parseDays(entity.repeatDays)
                         Alarm(
@@ -68,7 +70,9 @@ class GroupRepositoryImpl @Inject constructor(
             name = group.name,
             isEnabled = group.isEnabled,
             color = group.color,
-            icon = group.icon?.key
+            icon = group.icon?.key,
+            ringtoneUri = group.ringtoneUri,
+            ringtoneName = group.ringtoneName
         )
         return if (group.id == 0L) {
             groupDao.insertGroup(entity)
@@ -85,7 +89,9 @@ class GroupRepositoryImpl @Inject constructor(
                 name = group.name,
                 isEnabled = group.isEnabled,
                 color = group.color,
-                icon = group.icon?.key
+                icon = group.icon?.key,
+                ringtoneUri = group.ringtoneUri,
+                ringtoneName = group.ringtoneName
             )
         )
     }
@@ -116,6 +122,8 @@ class GroupRepositoryImpl @Inject constructor(
         name = name,
         isEnabled = isEnabled,
         color = color,
-        icon = GroupIcon.fromKey(icon)
+        icon = GroupIcon.fromKey(icon),
+        ringtoneUri = ringtoneUri,
+        ringtoneName = ringtoneName
     )
 }

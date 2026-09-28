@@ -22,6 +22,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
+import kotlinx.coroutines.flow.first
+import dev.redfox.alarmzy.data.local.dao.GroupDao
 
 @AndroidEntryPoint
 class AlarmService : Service() {
@@ -34,6 +39,12 @@ class AlarmService : Service() {
 
     @Inject
     lateinit var ringingTracker: RingingAlarmTracker
+
+    @Inject
+    lateinit var dataStore: DataStore<Preferences>
+
+    @Inject
+    lateinit var groupDao: GroupDao
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var alarmPlayer: AlarmPlayer? = null
@@ -160,12 +171,23 @@ class AlarmService : Service() {
             startActivity(ringingIntent)
         }
 
+        // Sound, vibration, gradual volume and snooze come from Settings *at ring time*: the
+        // alarm editor has no per-alarm controls for them, and the copies stored on each alarm
+        // row are only snapshots from when it was created (changing Settings later would
+        // otherwise never reach existing alarms).
+        val sound = currentSettings()
+        // A group can override the sound for all its alarms; null means "use Settings".
+        val groupRingtone = alarm.groupId?.let { runBlocking { groupDao.getGroupById(it) } }?.ringtoneUri
         alarmPlayer?.stop()
         alarmPlayer = AlarmPlayer(this).apply {
             play(
-                ringtoneUri = alarm.ringtoneUri,
-                vibrate = alarm.vibrationEnabled,
-                gradualVolume = alarm.gradualVolumeIncrease,
+                ringtoneUri = when {
+                    groupRingtone == null -> sound.ringtoneUri // follow Settings
+                    groupRingtone.isBlank() -> null             // group chose the phone's default
+                    else -> groupRingtone
+                },
+                vibrate = sound.vibrate,
+                gradualVolume = sound.gradualVolume,
                 scope = serviceScope
             )
         }
@@ -183,8 +205,7 @@ class AlarmService : Service() {
         ringingNotification = null
 
         serviceScope.launch {
-            val alarm = alarmDao.getAlarmById(currentAlarmId)
-            val snoozeDuration = alarm?.snoozeDurationMinutes ?: 5
+            val snoozeDuration = dataStore.data.first()[SettingsViewModel.KEY_DEFAULT_SNOOZE] ?: 5
             alarmScheduler.snooze(currentAlarmId, snoozeDuration)
             ringingTracker.set(null)
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -225,6 +246,23 @@ class AlarmService : Service() {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
+    }
+
+    private data class RingSettings(
+        val ringtoneUri: String?,
+        val vibrate: Boolean,
+        val gradualVolume: Boolean,
+        val snoozeMinutes: Int,
+    )
+
+    private fun currentSettings(): RingSettings {
+        val prefs = runBlocking { dataStore.data.first() }
+        return RingSettings(
+            ringtoneUri = prefs[SettingsViewModel.KEY_DEFAULT_RINGTONE_URI],
+            vibrate = prefs[SettingsViewModel.KEY_DEFAULT_VIBRATION] ?: true,
+            gradualVolume = prefs[SettingsViewModel.KEY_DEFAULT_GRADUAL_VOLUME] ?: false,
+            snoozeMinutes = prefs[SettingsViewModel.KEY_DEFAULT_SNOOZE] ?: 5,
+        )
     }
 
     private fun formatTime12h(hour: Int, minute: Int): String {

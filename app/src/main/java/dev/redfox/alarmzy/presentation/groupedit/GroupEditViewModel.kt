@@ -17,13 +17,17 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
 
 @HiltViewModel
 class GroupEditViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val groupRepository: GroupRepository,
     private val alarmRepository: AlarmRepository,
-    private val billingRepository: BillingRepository
+    private val billingRepository: BillingRepository,
+    private val dataStore: DataStore<Preferences>
 ) : ViewModel() {
 
     private val groupId: Long? = savedStateHandle.get<Long>("groupId")
@@ -39,6 +43,9 @@ class GroupEditViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             val allAlarms = alarmRepository.getAllAlarms().first()
+            val prefs = dataStore.data.first()
+            val settingsRingtoneUri = prefs[SettingsViewModel.KEY_DEFAULT_RINGTONE_URI]
+            val settingsRingtoneName = prefs[SettingsViewModel.KEY_DEFAULT_RINGTONE_NAME] ?: "Default"
 
             if (groupId != null) {
                 val group = groupRepository.getGroupById(groupId)
@@ -53,13 +60,20 @@ class GroupEditViewModel @Inject constructor(
                     isEnabled = group?.isEnabled ?: true,
                     color = group?.color,
                     icon = group?.icon,
+                    ringtoneUri = group?.ringtoneUri,
+                    ringtoneName = group?.ringtoneName,
+                    settingsRingtoneName = settingsRingtoneName,
+                    settingsRingtoneUri = settingsRingtoneUri,
                     allAlarms = allAlarms,
                     selectedAlarmIds = memberAlarmIds,
                     groupId = groupId
                 )
             } else {
+                // New groups start on the Settings sound; the user can override it.
                 _uiState.value = GroupEditUiState(
-                    allAlarms = allAlarms
+                    allAlarms = allAlarms,
+                    settingsRingtoneName = settingsRingtoneName,
+                    settingsRingtoneUri = settingsRingtoneUri
                 )
             }
         }
@@ -70,6 +84,12 @@ class GroupEditViewModel @Inject constructor(
             is GroupEditIntent.SetName -> _uiState.value = _uiState.value.copy(name = intent.name)
             is GroupEditIntent.SetColor -> _uiState.value = _uiState.value.copy(color = intent.color)
             is GroupEditIntent.SetIcon -> _uiState.value = _uiState.value.copy(icon = intent.icon)
+            is GroupEditIntent.SetRingtone -> _uiState.value = _uiState.value.copy(
+                ringtoneUri = intent.uri, ringtoneName = intent.name
+            )
+            is GroupEditIntent.UseSettingsRingtone -> _uiState.value = _uiState.value.copy(
+                ringtoneUri = null, ringtoneName = null
+            )
             is GroupEditIntent.ToggleAlarmSelection -> {
                 val current = _uiState.value.selectedAlarmIds
                 _uiState.value = _uiState.value.copy(
@@ -109,7 +129,9 @@ class GroupEditViewModel @Inject constructor(
                 name = state.name,
                 isEnabled = state.isEnabled,
                 color = state.color,
-                icon = state.icon
+                icon = state.icon,
+                ringtoneUri = state.ringtoneUri,
+                ringtoneName = state.ringtoneName
             )
             val savedGroupId = groupRepository.saveGroup(group)
 

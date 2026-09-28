@@ -25,6 +25,7 @@ import dev.redfox.alarmzy.domain.repository.BillingRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,6 +53,10 @@ class BillingRepositoryImpl @Inject constructor(
         .build()
 
     init {
+        connect()
+    }
+
+    private fun connect() {
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(result: BillingResult) {
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) {
@@ -62,7 +67,13 @@ class BillingRepositoryImpl @Inject constructor(
                 }
             }
 
-            override fun onBillingServiceDisconnected() = Unit
+            // Play Store updated/killed: reconnect so a later restore or refund check still works.
+            override fun onBillingServiceDisconnected() {
+                scope.launch {
+                    delay(RECONNECT_DELAY_MILLIS)
+                    connect()
+                }
+            }
         })
     }
 
@@ -91,7 +102,8 @@ class BillingRepositoryImpl @Inject constructor(
 
     override fun onPurchasesUpdated(result: BillingResult, purchases: List<Purchase>?) {
         if (result.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
-            scope.launch { handlePurchases(purchases) }
+            // Only the purchases that just changed: can grant Pro, never revoke it.
+            scope.launch { handlePurchases(purchases, authoritative = false) }
         }
     }
 
@@ -115,15 +127,23 @@ class BillingRepositoryImpl @Inject constructor(
             .setProductType(BillingClient.ProductType.INAPP)
             .build()
         val result = billingClient.queryPurchasesAsync(params)
-        handlePurchases(result.purchasesList)
+        // Only trust a successful answer: an error must never lock out someone who paid.
+        if (result.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            handlePurchases(result.purchasesList, authoritative = true)
+        }
     }
 
-    private suspend fun handlePurchases(purchases: List<Purchase>) {
+    /**
+     * Grants Pro when a completed `pro_unlock` purchase is present. With [authoritative] (the full
+     * owned-purchases list from Play), a missing purchase *revokes* Pro — that is how refunds and
+     * chargebacks take effect, since Play drops refunded purchases from the owned list.
+     */
+    private suspend fun handlePurchases(purchases: List<Purchase>, authoritative: Boolean) {
         val hasPro = purchases.any {
             PRO_PRODUCT_ID in it.products && it.purchaseState == Purchase.PurchaseState.PURCHASED
         }
-        if (hasPro) {
-            dataStore.edit { prefs -> prefs[KEY_IS_PRO] = true }
+        if (hasPro || authoritative) {
+            dataStore.edit { prefs -> prefs[KEY_IS_PRO] = hasPro }
         }
         purchases
             .filter { it.purchaseState == Purchase.PurchaseState.PURCHASED && !it.isAcknowledged }
@@ -137,6 +157,7 @@ class BillingRepositoryImpl @Inject constructor(
 
     companion object {
         const val PRO_PRODUCT_ID = "pro_unlock"
+        private const val RECONNECT_DELAY_MILLIS = 3_000L
         val KEY_IS_PRO = booleanPreferencesKey("is_pro_unlocked")
 
         /**

@@ -9,6 +9,15 @@ data class GroupEditUiState(
     val isEnabled: Boolean = true,
     val color: String? = null,
     val icon: GroupIcon? = null,
+    /**
+     * Group-specific alarm sound: null = follow Settings, "" = the phone's default alarm sound,
+     * otherwise a ringtone/file URI.
+     */
+    val ringtoneUri: String? = null,
+    val ringtoneName: String? = null,
+    /** Name of the Settings ringtone, shown while the group follows it. */
+    val settingsRingtoneName: String = "Default",
+    val settingsRingtoneUri: String? = null,
     val allAlarms: List<Alarm> = emptyList(),
     val selectedAlarmIds: Set<Long> = emptySet(),
     val isSaving: Boolean = false,

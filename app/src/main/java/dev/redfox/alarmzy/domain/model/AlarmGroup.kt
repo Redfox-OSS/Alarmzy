@@ -6,6 +6,9 @@ data class AlarmGroup(
     val isEnabled: Boolean = true,
     val color: String? = null,
     val icon: GroupIcon? = null,
+    /** Alarm sound for every alarm in the group; null = follow the Settings ringtone. */
+    val ringtoneUri: String? = null,
+    val ringtoneName: String? = null,
     val alarms: List<Alarm> = emptyList()
 ) {
     val alarmCount: Int get() = alarms.size

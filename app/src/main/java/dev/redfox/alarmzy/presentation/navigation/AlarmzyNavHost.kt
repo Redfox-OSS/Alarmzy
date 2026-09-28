@@ -54,6 +54,7 @@ import dev.redfox.alarmzy.presentation.settings.SettingsScreen
 import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
 import dev.redfox.alarmzy.presentation.settings.customize.AlarmScreenCustomizeScreen
 import dev.redfox.alarmzy.presentation.settings.customize.AlarmScreenCustomizeViewModel
+import dev.redfox.alarmzy.presentation.groupedit.GroupEditIntent
 
 @Composable
 fun AlarmzyNavHost(
@@ -209,14 +210,14 @@ fun AlarmzyNavHost(
         }
 
         screen(Routes.GROUP_EDIT) {
-            GroupEditDestination(navController)
+            GroupEditDestination(navController, it)
         }
 
         screen(
             route = Routes.GROUP_EDIT_WITH_ID,
             arguments = listOf(navArgument("groupId") { type = NavType.LongType })
         ) {
-            GroupEditDestination(navController)
+            GroupEditDestination(navController, it)
         }
 
         screen(
@@ -324,10 +325,23 @@ private fun AlarmEditDestination(navController: NavHostController) {
 }
 
 @Composable
-private fun GroupEditDestination(navController: NavHostController) {
+private fun GroupEditDestination(navController: NavHostController, entry: NavBackStackEntry) {
     val viewModel: GroupEditViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showPaywall by remember { mutableStateOf(false) }
+
+    // Result from the ringtone picker (it writes onto this entry's savedStateHandle).
+    val pickedUri by entry.savedStateHandle.getStateFlow<String?>("ringtone_uri", null).collectAsStateWithLifecycle()
+    val pickedName by entry.savedStateHandle.getStateFlow<String?>("ringtone_name", null).collectAsStateWithLifecycle()
+    LaunchedEffect(pickedUri, pickedName) {
+        val uri = pickedUri
+        val name = pickedName
+        if (uri != null && name != null) {
+            viewModel.onIntent(GroupEditIntent.SetRingtone(uri = uri, name = name))
+            entry.savedStateHandle.remove<String>("ringtone_uri")
+            entry.savedStateHandle.remove<String>("ringtone_name")
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.sideEffect.collect { effect ->
@@ -342,7 +356,13 @@ private fun GroupEditDestination(navController: NavHostController) {
     GroupEditScreen(
         uiState = uiState,
         onIntent = viewModel::onIntent,
-        onNavigateBack = { navController.popBackStack() }
+        onNavigateBack = { navController.popBackStack() },
+        onPickRingtone = {
+            // Pre-select the sound the group currently plays.
+            val (uri, name) = if (uiState.ringtoneUri != null) uiState.ringtoneUri to uiState.ringtoneName
+            else uiState.settingsRingtoneUri to uiState.settingsRingtoneName
+            navController.navigate(Routes.ringtonePicker(uri, name))
+        }
     )
 
     if (showPaywall) {

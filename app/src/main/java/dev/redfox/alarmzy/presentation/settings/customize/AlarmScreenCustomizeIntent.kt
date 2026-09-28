@@ -9,4 +9,5 @@ sealed interface AlarmScreenCustomizeIntent {
     data object RemoveBackgroundImage : AlarmScreenCustomizeIntent
     data class SetButtonLayout(val layout: AlarmButtonLayout) : AlarmScreenCustomizeIntent
     data class SetClockPosition(val position: AlarmClockPosition) : AlarmScreenCustomizeIntent
+    data class SetShowQuote(val show: Boolean) : AlarmScreenCustomizeIntent
 }

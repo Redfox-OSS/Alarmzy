@@ -64,21 +64,23 @@ object LiveUpdates {
     }
 
     /**
-     * ≤ 7 characters for the status chip / Live Alert pill, which shows this *instead of* the
-     * ticking chronometer on some OEMs: "<1 min", "12 min", "1h 05m".
+     * Status chip / Live Alerts pill text while *paused* (≤ 7 chars), since a chronometer can't be
+     * frozen: "0:07", "12:54", "1:02:03". While running, no short text is set at all, so the chip
+     * shows the notification's own ticking chronometer (count-up or countdown) like the system
+     * clock app does.
      */
-    fun chipText(ms: Long): String {
-        val totalMin = ms / 60_000L
-        return when {
-            totalMin < 1 -> "<1 min"
-            totalMin < 60 -> "$totalMin min"
-            else -> "%dh %02dm".format(totalMin / 60, totalMin % 60)
-        }
+    fun frozenChipText(ms: Long, roundUp: Boolean = false): String {
+        // A countdown rounds up (0.4 s left still reads 0:01); a count-up rounds down.
+        val totalSec = (ms.coerceAtLeast(0) + if (roundUp) 999 else 0) / 1000
+        val h = totalSec / 3600
+        val m = (totalSec % 3600) / 60
+        val s = totalSec % 60
+        return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
     }
 
     /**
-     * Re-arms a one-shot TICK so the static text stays current. Plain exact-while-idle is fine:
-     * a late tick only leaves the chip text up to a minute stale.
+     * Re-arms a one-shot TICK so the progress bar stays current (the chip ticks by itself via the
+     * chronometer). Plain exact-while-idle is fine: a late tick only leaves the bar a minute stale.
      */
     fun scheduleTick(context: Context, pendingIntent: PendingIntent) {
         val am = context.getSystemService(AlarmManager::class.java)

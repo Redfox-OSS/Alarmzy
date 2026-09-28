@@ -42,7 +42,8 @@ object StopwatchNotifications {
                 .setChronometerCountDown(false)
                 .setWhen(System.currentTimeMillis() - elapsed)
                 .setShowWhen(true)
-                .setShortCriticalText(LiveUpdates.chipText(elapsed))
+                // No short critical text while running: it would replace the live, ticking
+                // chronometer in the status chip / Live Alerts pill with static text.
                 .addAction(R.drawable.ic_notif_lap, "Lap", action(context, StopwatchReceiver.ACTION_LAP))
                 .addAction(R.drawable.ic_notif_pause, "Pause", action(context, StopwatchReceiver.ACTION_PAUSE))
         } else {
@@ -50,7 +51,7 @@ object StopwatchNotifications {
                 .setContentText(lapLabel ?: "Stopwatch")
                 .setUsesChronometer(false)
                 .setShowWhen(false)
-                .setShortCriticalText("Paused")
+                .setShortCriticalText(LiveUpdates.frozenChipText(elapsed))
                 .addAction(R.drawable.ic_notif_play, "Resume", action(context, StopwatchReceiver.ACTION_RESUME))
                 .addAction(R.drawable.ic_notif_reset, "Reset", action(context, StopwatchReceiver.ACTION_RESET))
         }

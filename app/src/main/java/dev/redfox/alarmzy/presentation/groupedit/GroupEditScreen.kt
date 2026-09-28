@@ -80,13 +80,20 @@ import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
 import dev.redfox.alarmzy.ui.components.RevealColumn
 import dev.redfox.alarmzy.ui.components.popOnSelect
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import dev.redfox.alarmzy.ui.components.AzCard
+import dev.redfox.alarmzy.ui.components.AzListRow
+import dev.redfox.alarmzy.ui.components.PillButton
+import dev.redfox.alarmzy.ui.components.ExpandEnter
+import dev.redfox.alarmzy.ui.components.CollapseExit
+import androidx.compose.foundation.layout.PaddingValues
 
 @Composable
 fun GroupEditScreen(
     uiState: GroupEditUiState,
     onIntent: (GroupEditIntent) -> Unit,
     onNavigateBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onPickRingtone: () -> Unit = {},
 ) {
     val colors = AlarmzyTheme.colors
     val type = AlarmzyTheme.typography
@@ -134,6 +141,15 @@ fun GroupEditScreen(
             SectionLabel("Group color", color = colors.textSecondary.copy(alpha = 0.7f))
             Spacer(Modifier.height(14.dp))
             ColorGrid(selected = uiState.color, onSelect = { onIntent(GroupEditIntent.SetColor(it)) })
+
+            Spacer(Modifier.height(24.dp))
+            SectionLabel("Alarm sound", color = colors.textSecondary.copy(alpha = 0.7f))
+            Spacer(Modifier.height(12.dp))
+            GroupRingtoneCard(
+                uiState = uiState,
+                onPick = onPickRingtone,
+                onUseSettings = { onIntent(GroupEditIntent.UseSettingsRingtone) }
+            )
 
             Spacer(Modifier.height(32.dp))
             Row(
@@ -435,5 +451,32 @@ private fun AlarmSelectionItem(
             contentDescription = null,
             tint = colors.textDisabled
         )
+    }
+}
+
+/**
+ * The group's alarm sound. Starts on "Same as Settings"; picking a sound overrides it for every
+ * alarm in the group, and "Use Settings sound" reverts to following Settings.
+ */
+@Composable
+private fun GroupRingtoneCard(uiState: GroupEditUiState, onPick: () -> Unit, onUseSettings: () -> Unit) {
+    val colors = AlarmzyTheme.colors
+    val custom = uiState.ringtoneUri != null
+    AzCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
+        AzListRow(
+            title = if (custom) uiState.ringtoneName ?: "Default" else uiState.settingsRingtoneName,
+            subtitle = if (custom) "Only for this group" else "Same as Settings",
+            icon = R.drawable.ic_bell,
+            iconTint = if (custom) colors.accentLight else colors.textSecondary,
+            onClick = onPick,
+            trailing = {
+                Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = colors.textSecondary)
+            }
+        )
+        AnimatedVisibility(visible = custom, enter = ExpandEnter, exit = CollapseExit) {
+            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.End) {
+                PillButton(text = "Use Settings sound", onClick = onUseSettings)
+            }
+        }
     }
 }
