@@ -46,9 +46,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.redfox.alarmzy.ui.components.glow
-import dev.redfox.alarmzy.ui.components.pressable
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.obsidian.effects.glow
+import dev.redfox.obsidian.effects.pressable
+import dev.redfox.obsidian.theme.ObsidianTheme
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -59,9 +59,9 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.graphicsLayer
-import dev.redfox.alarmzy.ui.components.AzMotion
-import dev.redfox.alarmzy.ui.components.RollingText
-import dev.redfox.alarmzy.ui.components.popOnSelect
+import dev.redfox.obsidian.motion.ObMotion
+import dev.redfox.obsidian.motion.RollingText
+import dev.redfox.obsidian.motion.popOnSelect
 
 private enum class TimeField { HOUR, MINUTE }
 
@@ -92,8 +92,8 @@ fun TimeDialPicker(
             )
             Text(
                 ":",
-                style = AlarmzyTheme.typography.timeTile.copy(fontSize = 32.sp),
-                color = AlarmzyTheme.colors.textSecondary,
+                style = ObsidianTheme.typography.timeTile.copy(fontSize = 32.sp),
+                color = ObsidianTheme.colors.textSecondary,
                 modifier = Modifier.padding(horizontal = 10.dp)
             )
             TimeTile(
@@ -123,7 +123,7 @@ fun TimeDialPicker(
 
 @Composable
 private fun TimeTile(text: String, active: Boolean, description: String, onClick: () -> Unit) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val shape = RoundedCornerShape(24.dp)
     val bg by animateColorAsState(if (active) colors.accentContainer else colors.tile, label = "tileBg")
     val fg by animateColorAsState(if (active) colors.accentLight else colors.textPrimary, label = "tileFg")
@@ -139,13 +139,13 @@ private fun TimeTile(text: String, active: Boolean, description: String, onClick
             .border(1.dp, if (active) colors.accentLight.copy(alpha = 0.4f) else colors.border, shape),
         contentAlignment = Alignment.Center
     ) {
-        RollingText(text, style = AlarmzyTheme.typography.timeTile, color = fg)
+        RollingText(text, style = ObsidianTheme.typography.timeTile, color = fg)
     }
 }
 
 @Composable
 private fun MeridiemToggle(isPm: Boolean, onChange: (Boolean) -> Unit) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
@@ -168,7 +168,7 @@ private fun MeridiemToggle(isPm: Boolean, onChange: (Boolean) -> Unit) {
             ) {
                 Text(
                     label,
-                    style = AlarmzyTheme.typography.label.copy(
+                    style = ObsidianTheme.typography.label.copy(
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                         letterSpacing = 0.sp
                     ),
@@ -189,8 +189,8 @@ private fun ClockDial(
     onMinutePicked: (Int) -> Unit,
     onGestureEnd: () -> Unit,
 ) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     val haptics = LocalHapticFeedback.current
     val nodeSize = 34.dp
     val numberInset = 24.dp
@@ -297,7 +297,7 @@ private fun ClockDial(
                 color = colors.textSecondary,
                 modifier = Modifier.graphicsLayer {
                     val t = ((deal.value * DealMillis - i * 22f) / 300f).coerceIn(0f, 1f)
-                    val e = AzMotion.EaseOutEmphasized.transform(t)
+                    val e = ObMotion.EaseOutEmphasized.transform(t)
                     alpha = t
                     scaleX = 0.5f + 0.5f * e
                     scaleY = scaleX
@@ -330,6 +330,6 @@ private const val DealMillis = 560
 @Composable
 private fun DialLabel(text: String, x: Dp, y: Dp, color: Color, modifier: Modifier = Modifier) {
     Box(Modifier.offset(x, y).size(28.dp).then(modifier), contentAlignment = Alignment.Center) {
-        Text(text, style = AlarmzyTheme.typography.label.copy(letterSpacing = 0.sp), color = color)
+        Text(text, style = ObsidianTheme.typography.label.copy(letterSpacing = 0.sp), color = color)
     }
 }

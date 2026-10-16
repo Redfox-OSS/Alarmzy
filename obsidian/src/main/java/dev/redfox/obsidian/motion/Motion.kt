@@ -1,4 +1,4 @@
-package dev.redfox.alarmzy.ui.components
+package dev.redfox.obsidian.motion
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
@@ -46,7 +46,7 @@ import androidx.compose.ui.layout.AlignmentLine
  * Motion vocabulary for the whole app. Everything interactive uses physics (springs) so it can be
  * interrupted mid-flight; only choreographed entrances use time-based easing.
  */
-object AzMotion {
+object ObMotion {
     /** Playful overshoot: nav indicator, pops, check marks. */
     fun <T> bouncy() = spring<T>(dampingRatio = 0.55f, stiffness = 380f)
     /** Quick and settled: toggles, pills, colour changes. */
@@ -102,7 +102,7 @@ fun Modifier.revealOnEnter(index: Int = 0, offsetY: Dp = 22.dp): Modifier {
     val progress = remember { Animatable(if (animate) 0f else 1f) }
     LaunchedEffect(Unit) {
         if (progress.value < 1f) {
-            delay(min(index, AzMotion.MaxStaggerIndex) * AzMotion.StaggerMillis)
+            delay(min(index, ObMotion.MaxStaggerIndex) * ObMotion.StaggerMillis)
             progress.animateTo(1f, spring(dampingRatio = 0.86f, stiffness = 210f))
         }
     }
@@ -149,9 +149,9 @@ fun RevealColumn(
 ) {
     val gate = LocalRevealGate.current
     val animate = remember { gate?.isFresh() ?: true }
-    val stepMs = AzMotion.StaggerMillis * 1.4f
+    val stepMs = ObMotion.StaggerMillis * 1.4f
     val itemMs = 520f
-    val totalMs = stepMs * AzMotion.MaxStaggerIndex + itemMs
+    val totalMs = stepMs * ObMotion.MaxStaggerIndex + itemMs
     val clock = remember { Animatable(if (animate) 0f else totalMs) }
     LaunchedEffect(Unit) {
         if (clock.value < totalMs) clock.animateTo(totalMs, tween(totalMs.toInt(), easing = LinearEasing))
@@ -176,9 +176,9 @@ fun RevealColumn(
             placeables.forEachIndexed { i, placeable ->
                 val x = horizontalAlignment.align(placeable.width, width, layoutDirection)
                 placeable.placeWithLayer(x, positions[i]) {
-                    val start = min(i, AzMotion.MaxStaggerIndex) * stepMs
+                    val start = min(i, ObMotion.MaxStaggerIndex) * stepMs
                     val linear = ((clock.value - start) / itemMs).coerceIn(0f, 1f)
-                    val p = AzMotion.EaseOutEmphasized.transform(linear)
+                    val p = ObMotion.EaseOutEmphasized.transform(linear)
                     alpha = min(1f, linear * 2.2f)
                     translationY = (1f - p) * distance
                     compositingStrategy = CompositingStrategy.ModulateAlpha
@@ -298,7 +298,7 @@ fun HorizontalReveal(visible: Boolean, content: @Composable () -> Unit) {
             spring(dampingRatio = 0.85f, stiffness = 500f, visibilityThreshold = androidx.compose.ui.unit.IntSize.VisibilityThreshold),
             expandFrom = Alignment.Start
         ) + fadeIn(tween(160, delayMillis = 60)) +
-            androidx.compose.animation.scaleIn(AzMotion.bouncy(), initialScale = 0.6f),
+            androidx.compose.animation.scaleIn(ObMotion.bouncy(), initialScale = 0.6f),
         exit = androidx.compose.animation.shrinkHorizontally(
             spring(dampingRatio = 1f, stiffness = 600f, visibilityThreshold = androidx.compose.ui.unit.IntSize.VisibilityThreshold),
             shrinkTowards = Alignment.Start
@@ -318,7 +318,7 @@ val CollapseExit = androidx.compose.animation.shrinkVertically(
 val HeaderActionsSwap: ContentTransform
     get() = ContentTransform(
         targetContentEnter = fadeIn(tween(200, delayMillis = 60)) +
-            androidx.compose.animation.scaleIn(AzMotion.bouncy(), initialScale = 0.7f),
+            androidx.compose.animation.scaleIn(ObMotion.bouncy(), initialScale = 0.7f),
         initialContentExit = fadeOut(tween(100)) + androidx.compose.animation.scaleOut(targetScale = 0.7f),
         sizeTransform = SizeTransform(clip = false)
     )

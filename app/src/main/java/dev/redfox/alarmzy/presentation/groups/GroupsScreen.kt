@@ -55,39 +55,39 @@ import dev.redfox.alarmzy.R
 import dev.redfox.alarmzy.domain.model.Alarm
 import dev.redfox.alarmzy.domain.model.AlarmGroup
 import dev.redfox.alarmzy.presentation.common.clockTime
-import dev.redfox.alarmzy.presentation.navigation.floatingNavClearance
-import dev.redfox.alarmzy.ui.components.AlarmzySwitch
-import dev.redfox.alarmzy.ui.components.AzAlertDialog
-import dev.redfox.alarmzy.ui.components.AzCheckbox
-import dev.redfox.alarmzy.ui.components.AzDropdownMenu
-import dev.redfox.alarmzy.ui.components.AzFab
-import dev.redfox.alarmzy.ui.components.AzMenuItem
-import dev.redfox.alarmzy.ui.components.AzShapes
-import dev.redfox.alarmzy.ui.components.EmptyState
-import dev.redfox.alarmzy.ui.components.HeaderIconButton
-import dev.redfox.alarmzy.ui.components.IconTile
-import dev.redfox.alarmzy.ui.components.LargeHeader
-import dev.redfox.alarmzy.ui.components.LargeHeaderHeight
-import dev.redfox.alarmzy.ui.components.ScreenGutter
-import dev.redfox.alarmzy.ui.components.SwitchSize
+import dev.redfox.obsidian.navigation.floatingNavClearance
+import dev.redfox.obsidian.components.ObSwitch
+import dev.redfox.obsidian.components.ObAlertDialog
+import dev.redfox.obsidian.components.ObCheckbox
+import dev.redfox.obsidian.components.ObDropdownMenu
+import dev.redfox.obsidian.components.ObFab
+import dev.redfox.obsidian.components.ObMenuItem
+import dev.redfox.obsidian.theme.ObShapes
+import dev.redfox.obsidian.components.EmptyState
+import dev.redfox.obsidian.components.HeaderIconButton
+import dev.redfox.obsidian.components.IconTile
+import dev.redfox.obsidian.components.LargeHeader
+import dev.redfox.obsidian.components.LargeHeaderHeight
+import dev.redfox.obsidian.theme.ScreenGutter
+import dev.redfox.obsidian.components.SwitchSize
 import dev.redfox.alarmzy.ui.components.drawableRes
-import dev.redfox.alarmzy.ui.components.glassSource
-import dev.redfox.alarmzy.ui.components.glow
+import dev.redfox.obsidian.effects.glassSource
+import dev.redfox.obsidian.effects.glow
 import dev.redfox.alarmzy.ui.components.parseGroupColor
-import dev.redfox.alarmzy.ui.components.pressable
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.obsidian.effects.pressable
+import dev.redfox.obsidian.theme.ObsidianTheme
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.spring
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.CompositingStrategy
-import dev.redfox.alarmzy.ui.components.AzMotion
-import dev.redfox.alarmzy.ui.components.HorizontalReveal
-import dev.redfox.alarmzy.ui.components.ExpandEnter
-import dev.redfox.alarmzy.ui.components.CollapseExit
-import dev.redfox.alarmzy.ui.components.RevealScope
-import dev.redfox.alarmzy.ui.components.revealOnEnter
-import dev.redfox.alarmzy.ui.components.HeaderActionsSwap
+import dev.redfox.obsidian.motion.ObMotion
+import dev.redfox.obsidian.motion.HorizontalReveal
+import dev.redfox.obsidian.motion.ExpandEnter
+import dev.redfox.obsidian.motion.CollapseExit
+import dev.redfox.obsidian.motion.RevealScope
+import dev.redfox.obsidian.motion.revealOnEnter
+import dev.redfox.obsidian.motion.HeaderActionsSwap
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 
@@ -106,7 +106,7 @@ fun GroupsScreen(
     val navClearance = floatingNavClearance()
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + LargeHeaderHeight
 
-    Box(modifier.fillMaxSize().background(AlarmzyTheme.colors.background)) {
+    Box(modifier.fillMaxSize().background(ObsidianTheme.colors.background)) {
         when {
             uiState.isLoading -> Unit
             uiState.groups.isEmpty() -> EmptyState(
@@ -168,15 +168,15 @@ fun GroupsScreen(
                             "Delete selected",
                             onClick = { showDeleteDialog = true },
                             enabled = uiState.selectedCount > 0,
-                            tint = AlarmzyTheme.colors.accentLight
+                            tint = ObsidianTheme.colors.accentLight
                         )
                         HeaderIconButton(Icons.Rounded.Close, "Exit selection", onClick = { onIntent(GroupsIntent.ClearSelection) })
                     } else {
                         var menuOpen by remember { mutableStateOf(false) }
                         Box {
                             HeaderIconButton(R.drawable.ic_more_vert, "More options", onClick = { menuOpen = true })
-                            AzDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                                AzMenuItem(
+                            ObDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                ObMenuItem(
                                     text = "Select groups",
                                     onClick = {
                                         menuOpen = false
@@ -192,19 +192,19 @@ fun GroupsScreen(
 
         AnimatedVisibility(
             visible = !uiState.selectionMode,
-            enter = scaleIn(AzMotion.bouncy()) + fadeIn(),
-            exit = scaleOut(AzMotion.snappy()) + fadeOut(),
+            enter = scaleIn(ObMotion.bouncy()) + fadeIn(),
+            exit = scaleOut(ObMotion.snappy()) + fadeOut(),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = ScreenGutter, bottom = navClearance + 16.dp)
         ) {
-            AzFab(icon = R.drawable.ic_add, contentDescription = "Create group", onClick = onAddGroup)
+            ObFab(icon = R.drawable.ic_add, contentDescription = "Create group", onClick = onAddGroup)
         }
     }
 
     if (showDeleteDialog) {
         val count = uiState.selectedCount
-        AzAlertDialog(
+        ObAlertDialog(
             title = if (count == 1) "Delete group?" else "Delete $count groups?",
             text = if (count == 1) "The group will be deleted. Its alarms will be kept and ungrouped."
             else "These $count groups will be deleted. Their alarms will be kept and ungrouped.",
@@ -232,8 +232,8 @@ private fun GroupCard(
     onToggleAlarm: (Long, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     val enabled = group.isEnabled
     val groupColor = parseGroupColor(group.color)
     val chevronRotation by animateFloatAsState(
@@ -241,8 +241,8 @@ private fun GroupCard(
         spring(dampingRatio = 0.55f, stiffness = 400f),
         label = "chevron"
     )
-    val dim by animateFloatAsState(if (enabled || isSelected) 1f else 0.8f, AzMotion.gentle(), label = "groupDim")
-    val cardColor by animateColorAsState(if (enabled) colors.card else colors.cardInner, AzMotion.gentle(), label = "groupBg")
+    val dim by animateFloatAsState(if (enabled || isSelected) 1f else 0.8f, ObMotion.gentle(), label = "groupDim")
+    val cardColor by animateColorAsState(if (enabled) colors.card else colors.cardInner, ObMotion.gentle(), label = "groupBg")
     val border by animateColorAsState(
         if (isSelected) colors.accentBorder else colors.border.copy(alpha = 0f),
         label = "groupBorder"
@@ -251,11 +251,11 @@ private fun GroupCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (enabled) Modifier.glow(colors.background.copy(alpha = 0.6f), AzShapes.Card, radius = 6.dp, offsetY = 4.dp) else Modifier)
+            .then(if (enabled) Modifier.glow(colors.background.copy(alpha = 0.6f), ObShapes.Card, radius = 6.dp, offsetY = 4.dp) else Modifier)
             .graphicsLayer { alpha = dim; compositingStrategy = CompositingStrategy.ModulateAlpha }
-            .clip(AzShapes.Card)
+            .clip(ObShapes.Card)
             .background(cardColor)
-            .border(1.dp, border, AzShapes.Card)
+            .border(1.dp, border, ObShapes.Card)
             .padding(16.dp)
     ) {
         Row(
@@ -266,7 +266,7 @@ private fun GroupCard(
         ) {
             HorizontalReveal(visible = selectionMode) {
                 Row {
-                    AzCheckbox(checked = isSelected, onCheckedChange = { onCardClick() })
+                    ObCheckbox(checked = isSelected, onCheckedChange = { onCardClick() })
                     Spacer(Modifier.width(12.dp))
                 }
             }
@@ -316,7 +316,7 @@ private fun GroupCard(
             HorizontalReveal(visible = !selectionMode) {
               Row(verticalAlignment = Alignment.CenterVertically) {
                 Spacer(Modifier.width(8.dp))
-                AlarmzySwitch(checked = enabled, onCheckedChange = onToggleGroup, size = SwitchSize.Large)
+                ObSwitch(checked = enabled, onCheckedChange = onToggleGroup, size = SwitchSize.Large)
                 Spacer(Modifier.width(4.dp))
                 Box(
                     modifier = Modifier
@@ -352,7 +352,7 @@ private fun GroupCard(
                             .fillMaxWidth()
                             .revealOnEnter(1, offsetY = 12.dp)
                             .pressable(pressedScale = 0.98f, onClick = onEditGroup)
-                            .clip(AzShapes.Card)
+                            .clip(ObShapes.Card)
                             .background(colors.cardInner.copy(alpha = 0.8f))
                             .padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -385,13 +385,13 @@ private fun GroupCard(
 
 @Composable
 private fun GroupAlarmRow(alarm: Alarm, onToggle: (Boolean) -> Unit, modifier: Modifier = Modifier) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     val time = alarm.clockTime
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(AzShapes.Card)
+            .clip(ObShapes.Card)
             .background(colors.cardInner.copy(alpha = 0.8f))
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -422,6 +422,6 @@ private fun GroupAlarmRow(alarm: Alarm, onToggle: (Boolean) -> Unit, modifier: M
                 )
             }
         }
-        AlarmzySwitch(checked = alarm.isEnabled, onCheckedChange = onToggle, size = SwitchSize.Small)
+        ObSwitch(checked = alarm.isEnabled, onCheckedChange = onToggle, size = SwitchSize.Small)
     }
 }

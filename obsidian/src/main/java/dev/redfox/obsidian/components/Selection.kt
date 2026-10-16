@@ -1,4 +1,4 @@
-package dev.redfox.alarmzy.ui.components
+package dev.redfox.obsidian.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -32,7 +32,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,8 +46,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import dev.redfox.alarmzy.R
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.obsidian.R
+import dev.redfox.obsidian.theme.ObsidianTheme
+import dev.redfox.obsidian.effects.ObGlows
+import dev.redfox.obsidian.effects.glow
+import dev.redfox.obsidian.effects.pressable
+import dev.redfox.obsidian.motion.ObMotion
+import dev.redfox.obsidian.motion.popOnSelect
+import dev.redfox.obsidian.theme.ObShapes
 
 /** Rounded choice pill (repeat frequency, snooze duration…). */
 @Composable
@@ -58,7 +63,7 @@ fun ChoicePill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val bg by animateColorAsState(if (selected) colors.accentContainerStrong else colors.cardInner, label = "pillBg")
     val border by animateColorAsState(if (selected) colors.accentBorder else colors.border, label = "pillBorder")
     Box(
@@ -73,9 +78,9 @@ fun ChoicePill(
     ) {
         Text(
             text,
-            style = AlarmzyTheme.typography.label.copy(
+            style = ObsidianTheme.typography.label.copy(
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                letterSpacing = AlarmzyTheme.typography.body.letterSpacing
+                letterSpacing = ObsidianTheme.typography.body.letterSpacing
             ),
             color = if (selected) colors.accentLight else colors.textSecondary
         )
@@ -90,7 +95,7 @@ fun DayChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val bg by animateColorAsState(if (selected) colors.accentContainerStrong else colors.cardInner, label = "dayBg")
     Box(
         modifier = modifier
@@ -104,7 +109,7 @@ fun DayChip(
     ) {
         Text(
             letter,
-            style = AlarmzyTheme.typography.labelStrong,
+            style = ObsidianTheme.typography.labelStrong,
             color = if (selected) colors.accentLight else colors.textSecondary
         )
     }
@@ -123,7 +128,7 @@ fun SegmentedPill(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
@@ -178,12 +183,12 @@ fun SegmentedPill(
                 ) {
                     AnimatedVisibility(
                         visible = selected,
-                        enter = scaleIn(AzMotion.bouncy()) + fadeIn() + expandHorizontally(AzMotion.snappy()),
-                        exit = scaleOut() + fadeOut() + shrinkHorizontally(AzMotion.snappy())
+                        enter = scaleIn(ObMotion.bouncy()) + fadeIn() + expandHorizontally(ObMotion.snappy()),
+                        exit = scaleOut() + fadeOut() + shrinkHorizontally(ObMotion.snappy())
                     ) {
                         Row {
                             Icon(
-                                painterResource(R.drawable.ic_check),
+                                painterResource(R.drawable.ob_ic_check),
                                 contentDescription = null,
                                 tint = colors.accentLight
                             )
@@ -192,7 +197,7 @@ fun SegmentedPill(
                     }
                     Text(
                         option.label,
-                        style = AlarmzyTheme.typography.bodyLarge.copy(
+                        style = ObsidianTheme.typography.bodyLarge.copy(
                             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
                         ),
                         color = if (selected) colors.accentLight else colors.textSecondary
@@ -214,19 +219,19 @@ fun SegmentedPill(
 
 /** Squircle checkbox from the group editor. */
 @Composable
-fun AzCheckbox(
+fun ObCheckbox(
     checked: Boolean,
     onCheckedChange: ((Boolean) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    val colors = AlarmzyTheme.colors
-    val shape = RoundedCornerShape(8.dp)
-    val bg by animateColorAsState(if (checked) colors.accent else Color.Transparent, AzMotion.snappy(), label = "checkBg")
+    val colors = ObsidianTheme.colors
+    val shape = ObShapes.Checkbox
+    val bg by animateColorAsState(if (checked) colors.accent else Color.Transparent, ObMotion.snappy(), label = "checkBg")
     val haptics = LocalHapticFeedback.current
     Box(
         modifier = modifier
             .popOnSelect(checked, amount = 0.14f)
-            .then(if (checked) Modifier.glow(colors.accent.copy(alpha = 0.25f), shape, radius = 6.dp, offsetY = 2.dp) else Modifier)
+            .then(if (checked) Modifier.glow(colors.accent, shape, ObGlows.Checkbox) else Modifier)
             .size(24.dp)
             .clip(shape)
             .background(bg)
@@ -247,10 +252,10 @@ fun AzCheckbox(
     ) {
         AnimatedVisibility(
             visible = checked,
-            enter = scaleIn(AzMotion.bouncy(), initialScale = 0.3f) + fadeIn(),
+            enter = scaleIn(ObMotion.bouncy(), initialScale = 0.3f) + fadeIn(),
             exit = scaleOut(targetScale = 0.5f) + fadeOut()
         ) {
-            Icon(painterResource(R.drawable.ic_check_bold), contentDescription = null, tint = colors.onAccent)
+            Icon(painterResource(R.drawable.ob_ic_check_bold), contentDescription = null, tint = colors.onAccent)
         }
     }
 }

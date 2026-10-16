@@ -33,14 +33,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.redfox.alarmzy.R
-import dev.redfox.alarmzy.ui.components.AzShapes
-import dev.redfox.alarmzy.ui.components.PillButton
-import dev.redfox.alarmzy.ui.components.PrimaryButton
-import dev.redfox.alarmzy.ui.components.glow
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
-import dev.redfox.alarmzy.ui.components.RevealScope
-import dev.redfox.alarmzy.ui.components.revealOnEnter
-import dev.redfox.alarmzy.ui.components.popIn
+import dev.redfox.obsidian.theme.ObShapes
+import dev.redfox.obsidian.components.PillButton
+import dev.redfox.obsidian.components.PrimaryButton
+import dev.redfox.obsidian.effects.glow
+import dev.redfox.obsidian.theme.ObsidianTheme
+import dev.redfox.obsidian.motion.RevealScope
+import dev.redfox.obsidian.motion.revealOnEnter
+import dev.redfox.obsidian.motion.popIn
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 
@@ -55,8 +55,8 @@ fun PaywallBottomSheet(
     // Always open fully: the paywall is short enough that a half-height peek just clips it.
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val activity = LocalContext.current as? Activity
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
 
     LaunchedEffect(uiState.isPro) {
         if (uiState.isPro) onDismiss()
@@ -93,11 +93,11 @@ fun PaywallBottomSheet(
             Box(
                 modifier = Modifier
                     .popIn(from = 0.4f)
-                    .glow(colors.accent.copy(alpha = 0.35f), AzShapes.CardLarge, radius = 28.dp)
+                    .glow(colors.accent.copy(alpha = 0.35f), ObShapes.CardLarge, radius = 28.dp)
                     .size(72.dp)
-                    .clip(AzShapes.CardLarge)
+                    .clip(ObShapes.CardLarge)
                     .background(colors.accentContainer)
-                    .border(1.dp, colors.accentBorder, AzShapes.CardLarge),
+                    .border(1.dp, colors.accentBorder, ObShapes.CardLarge),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -128,9 +128,9 @@ fun PaywallBottomSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .revealOnEnter(3)
-                    .clip(AzShapes.Card)
+                    .clip(ObShapes.Card)
                     .background(colors.cardInner)
-                    .border(1.dp, colors.border, AzShapes.Card)
+                    .border(1.dp, colors.border, ObShapes.Card)
                     .padding(horizontal = 17.dp, vertical = 8.dp)
             ) {
                 PerkRow("Unlimited groups", Modifier.revealOnEnter(4, offsetY = 10.dp))
@@ -175,7 +175,7 @@ fun PaywallBottomSheet(
 
 @Composable
 private fun PerkRow(text: String, modifier: Modifier = Modifier) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -190,6 +190,6 @@ private fun PerkRow(text: String, modifier: Modifier = Modifier) {
             Icon(painterResource(R.drawable.ic_check), contentDescription = null, tint = colors.accentLight)
         }
         Spacer(Modifier.width(14.dp))
-        Text(text, style = AlarmzyTheme.typography.bodyLarge, color = colors.textPrimary)
+        Text(text, style = ObsidianTheme.typography.bodyLarge, color = colors.textPrimary)
     }
 }

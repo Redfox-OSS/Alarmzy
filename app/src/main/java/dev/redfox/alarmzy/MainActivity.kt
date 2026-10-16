@@ -39,15 +39,16 @@ import dev.redfox.alarmzy.presentation.navigation.AlarmzyNavHost
 import dev.redfox.alarmzy.presentation.navigation.BottomNavBar
 import dev.redfox.alarmzy.presentation.navigation.BottomNavScreen
 import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
-import dev.redfox.alarmzy.ui.components.LocalHazeState
+import dev.redfox.obsidian.effects.LocalHazeState
 import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.obsidian.theme.ObsidianTheme
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.ui.unit.IntOffset
 import dev.redfox.alarmzy.presentation.update.InAppUpdater
 import dev.redfox.alarmzy.presentation.update.UpdateReadyBanner
-import dev.redfox.alarmzy.presentation.navigation.floatingNavClearance
+import dev.redfox.obsidian.navigation.floatingNavClearance
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -115,7 +116,7 @@ class MainActivity : ComponentActivity() {
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .background(AlarmzyTheme.colors.background)
+                            .background(ObsidianTheme.colors.background)
                     ) {
                         AlarmzyNavHost(
                             navController = navController,

@@ -67,39 +67,39 @@ import dev.redfox.alarmzy.R
 import dev.redfox.alarmzy.domain.model.AlarmGroup
 import dev.redfox.alarmzy.domain.model.RepeatMode
 import dev.redfox.alarmzy.presentation.common.shortTime
-import dev.redfox.alarmzy.ui.components.AzAlertDialog
-import dev.redfox.alarmzy.ui.components.AzDropdownMenu
-import dev.redfox.alarmzy.ui.components.AzMenuItem
-import dev.redfox.alarmzy.ui.components.AzShapes
-import dev.redfox.alarmzy.ui.components.ChoicePill
-import dev.redfox.alarmzy.ui.components.DayChip
-import dev.redfox.alarmzy.ui.components.DetailHeader
-import dev.redfox.alarmzy.ui.components.DetailHeaderHeight
-import dev.redfox.alarmzy.ui.components.HeaderIconButton
-import dev.redfox.alarmzy.ui.components.IconTile
-import dev.redfox.alarmzy.ui.components.PillButton
-import dev.redfox.alarmzy.ui.components.PrimaryButton
-import dev.redfox.alarmzy.ui.components.ScreenGutter
-import dev.redfox.alarmzy.ui.components.SectionLabel
-import dev.redfox.alarmzy.ui.components.SegmentOption
-import dev.redfox.alarmzy.ui.components.SegmentedPill
-import dev.redfox.alarmzy.ui.components.glassSource
+import dev.redfox.obsidian.components.ObAlertDialog
+import dev.redfox.obsidian.components.ObDropdownMenu
+import dev.redfox.obsidian.components.ObMenuItem
+import dev.redfox.obsidian.theme.ObShapes
+import dev.redfox.obsidian.components.ChoicePill
+import dev.redfox.obsidian.components.DayChip
+import dev.redfox.obsidian.components.DetailHeader
+import dev.redfox.obsidian.components.DetailHeaderHeight
+import dev.redfox.obsidian.components.HeaderIconButton
+import dev.redfox.obsidian.components.IconTile
+import dev.redfox.obsidian.components.PillButton
+import dev.redfox.obsidian.components.PrimaryButton
+import dev.redfox.obsidian.theme.ScreenGutter
+import dev.redfox.obsidian.components.SectionLabel
+import dev.redfox.obsidian.components.SegmentOption
+import dev.redfox.obsidian.components.SegmentedPill
+import dev.redfox.obsidian.effects.glassSource
 import dev.redfox.alarmzy.ui.components.parseGroupColor
-import dev.redfox.alarmzy.ui.components.pressable
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.obsidian.effects.pressable
+import dev.redfox.obsidian.theme.ObsidianTheme
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
-import dev.redfox.alarmzy.ui.components.popIn
-import dev.redfox.alarmzy.ui.components.RevealColumn
-import dev.redfox.alarmzy.ui.components.ExpandEnter
-import dev.redfox.alarmzy.ui.components.CollapseExit
+import dev.redfox.obsidian.motion.popIn
+import dev.redfox.obsidian.motion.RevealColumn
+import dev.redfox.obsidian.motion.ExpandEnter
+import dev.redfox.obsidian.motion.CollapseExit
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.ui.unit.IntOffset
-import dev.redfox.alarmzy.ui.components.RevealScope
-import dev.redfox.alarmzy.ui.components.revealOnEnter
-import dev.redfox.alarmzy.ui.components.AzMotion
+import dev.redfox.obsidian.motion.RevealScope
+import dev.redfox.obsidian.motion.revealOnEnter
+import dev.redfox.obsidian.motion.ObMotion
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 
@@ -112,7 +112,7 @@ fun AlarmEditScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     var showEndTimePicker by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + DetailHeaderHeight
@@ -148,7 +148,7 @@ fun AlarmEditScreen(
                 Box(Modifier.fillMaxWidth().padding(bottom = 12.dp), contentAlignment = Alignment.Center) {
                     Text(
                         "START TIME",
-                        style = AlarmzyTheme.typography.sectionLabel,
+                        style = ObsidianTheme.typography.sectionLabel,
                         color = colors.textSecondary.copy(alpha = 0.7f)
                     )
                 }
@@ -204,8 +204,8 @@ fun AlarmEditScreen(
                 var menuOpen by remember { mutableStateOf(false) }
                 Box {
                     HeaderIconButton(R.drawable.ic_more_vert, "Alarm options", onClick = { menuOpen = true })
-                    AzDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        AzMenuItem(
+                    ObDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        ObMenuItem(
                             text = "Delete alarm",
                             color = colors.accentLight,
                             onClick = {
@@ -246,7 +246,7 @@ fun AlarmEditScreen(
     }
 
     if (uiState.showDuplicateDialog) {
-        AzAlertDialog(
+        ObAlertDialog(
             title = "Duplicate alarms",
             text = "Alarms already exist at ${uiState.duplicateTimes.joinToString(", ")}. Create the series anyway?",
             confirmLabel = "Create",
@@ -256,7 +256,7 @@ fun AlarmEditScreen(
     }
 
     if (showDeleteDialog) {
-        AzAlertDialog(
+        ObAlertDialog(
             title = "Delete alarm?",
             text = "This alarm will be permanently deleted.",
             confirmLabel = "Delete",
@@ -277,7 +277,7 @@ fun AlarmEditScreen(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun BottomActionBar(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    val bg = AlarmzyTheme.colors.background
+    val bg = ObsidianTheme.colors.background
     AnimatedVisibility(
         visible = !WindowInsets.isImeVisible,
         enter = slideInVertically(spring(dampingRatio = 0.75f, stiffness = 360f, visibilityThreshold = IntOffset.VisibilityThreshold)) { it } + fadeIn(),
@@ -307,7 +307,7 @@ private fun SeriesSection(
     onEditEnd: () -> Unit,
     onIntervalSelected: (Int) -> Unit,
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     Column(Modifier.padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         FormRow(
             icon = R.drawable.ic_ends_at,
@@ -326,14 +326,14 @@ private fun SeriesSection(
             ) {
                 RowValue("${uiState.seriesIntervalMinutes} min")
             }
-            AzDropdownMenu(
+            ObDropdownMenu(
                 expanded = intervalMenuOpen,
                 onDismissRequest = { intervalMenuOpen = false },
                 modifier = Modifier.width(160.dp)
             ) {
                 SeriesIntervals.forEach { minutes ->
                     val selected = minutes == uiState.seriesIntervalMinutes
-                    AzMenuItem(
+                    ObMenuItem(
                         text = "Every $minutes min",
                         selected = selected,
                         trailingIcon = if (selected) R.drawable.ic_check else null,
@@ -352,18 +352,18 @@ private fun SeriesSection(
 
 @Composable
 private fun SeriesSummary(uiState: AlarmEditUiState) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     val valid = uiState.seriesRangeValid && uiState.seriesWithinCap
-    val tone by animateColorAsState(if (valid) colors.accentLight else colors.error, AzMotion.gentle(), label = "summaryTone")
+    val tone by animateColorAsState(if (valid) colors.accentLight else colors.error, ObMotion.gentle(), label = "summaryTone")
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize(AzMotion.snappy())
-            .clip(AzShapes.Card)
+            .animateContentSize(ObMotion.snappy())
+            .clip(ObShapes.Card)
             .background(colors.cardInner.copy(alpha = 0.8f))
             .background(Brush.horizontalGradient(listOf(colors.accent.copy(alpha = 0.1f), colors.accent.copy(alpha = 0f))))
-            .border(1.dp, tone.copy(alpha = 0.2f), AzShapes.Card)
+            .border(1.dp, tone.copy(alpha = 0.2f), ObShapes.Card)
             .padding(horizontal = 17.dp, vertical = 15.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -457,15 +457,15 @@ private fun RepeatSection(repeatMode: RepeatMode, onRepeatChange: (RepeatMode) -
 
 @Composable
 private fun GroupRow(selectedGroupId: Long?, groups: List<AlarmGroup>, onSelect: (Long?) -> Unit) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     var open by remember { mutableStateOf(false) }
     val selected = groups.firstOrNull { it.id == selectedGroupId }
     Box {
         FormRow(icon = R.drawable.ic_folder, title = "Group", onClick = { open = true }) {
             RowValue(selected?.name ?: "None", muted = selected == null)
         }
-        AzDropdownMenu(expanded = open, onDismissRequest = { open = false }, modifier = Modifier.width(220.dp)) {
-            AzMenuItem(
+        ObDropdownMenu(expanded = open, onDismissRequest = { open = false }, modifier = Modifier.width(220.dp)) {
+            ObMenuItem(
                 text = "None",
                 selected = selectedGroupId == null,
                 trailingIcon = if (selectedGroupId == null) R.drawable.ic_check else null,
@@ -473,7 +473,7 @@ private fun GroupRow(selectedGroupId: Long?, groups: List<AlarmGroup>, onSelect:
             )
             groups.forEach { group ->
                 val isSel = group.id == selectedGroupId
-                AzMenuItem(
+                ObMenuItem(
                     text = group.name,
                     selected = isSel,
                     leading = {
@@ -495,8 +495,8 @@ private fun GroupRow(selectedGroupId: Long?, groups: List<AlarmGroup>, onSelect:
 @Composable
 private fun LabelRow(label: String, onLabelChange: (String) -> Unit) {
     val focusManager = LocalFocusManager.current
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     FormRowContainer {
         IconTile(icon = R.drawable.ic_label, size = 36.dp, shape = CircleShape)
         Spacer(Modifier.width(12.dp))
@@ -526,14 +526,14 @@ private fun FormRowContainer(
     onClick: (() -> Unit)? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.pressable(pressedScale = 0.985f, onClick = onClick) else Modifier)
-            .clip(AzShapes.Card)
+            .clip(ObShapes.Card)
             .background(colors.cardInner)
-            .border(1.dp, colors.border, AzShapes.Card)
+            .border(1.dp, colors.border, ObShapes.Card)
             .padding(horizontal = 17.dp, vertical = 15.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content
@@ -553,8 +553,8 @@ private fun FormRow(
         Spacer(Modifier.width(12.dp))
         Text(
             title,
-            style = AlarmzyTheme.typography.bodyLarge,
-            color = AlarmzyTheme.colors.textPrimary,
+            style = ObsidianTheme.typography.bodyLarge,
+            color = ObsidianTheme.colors.textPrimary,
             modifier = Modifier.weight(1f)
         )
         trailing()
@@ -563,10 +563,10 @@ private fun FormRow(
 
 @Composable
 private fun RowValue(text: String, muted: Boolean = false) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     Text(
         text,
-        style = AlarmzyTheme.typography.bodyLarge.copy(fontWeight = if (muted) FontWeight.Normal else FontWeight.Medium),
+        style = ObsidianTheme.typography.bodyLarge.copy(fontWeight = if (muted) FontWeight.Normal else FontWeight.Medium),
         color = if (muted) colors.textSecondary.copy(alpha = 0.8f) else colors.textPrimary,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis
@@ -587,7 +587,7 @@ private fun TimePickerDialog(
     onConfirm: (Int, Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     var hour by remember { mutableStateOf(initialHour) }
     var minute by remember { mutableStateOf(initialMinute) }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -596,13 +596,13 @@ private fun TimePickerDialog(
                 .popIn()
                 .padding(horizontal = 16.dp)
                 .fillMaxWidth()
-                .clip(AzShapes.CardLarge)
+                .clip(ObShapes.CardLarge)
                 .background(colors.card)
-                .border(1.dp, colors.border, AzShapes.CardLarge)
+                .border(1.dp, colors.border, ObShapes.CardLarge)
                 .padding(PaddingValues(top = 24.dp, bottom = 20.dp, start = 16.dp, end = 16.dp)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(title, style = AlarmzyTheme.typography.title, color = colors.textPrimary)
+            Text(title, style = ObsidianTheme.typography.title, color = colors.textPrimary)
             Spacer(Modifier.height(20.dp))
             TimeDialPicker(
                 hour = hour,

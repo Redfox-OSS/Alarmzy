@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Alarmzy is a standalone Android alarm app whose differentiating feature is **alarm grouping**: users create named groups (Work, Gym, etc.) and a master toggle on each group enables/disables all member alarms at once — cascading the schedule/cancel down to every alarm in the group. Google Clock lacks this; Samsung's clock has it but is device-locked.
 
-Single-module app (`:app`), package `dev.redfox.alarmzy`, min SDK 31 / target/compile SDK 36.
+Two modules: `:app` (package `dev.redfox.alarmzy`, min SDK 31 / target/compile SDK 36) and the reusable `:obsidian` design-system library.
 
 ## Commands
 
@@ -44,16 +44,18 @@ Every screen has four files: `XUiState` (immutable data class), `XIntent` (seale
 
 Navigation lives entirely in `presentation/navigation/AlarmzyNavHost.kt` + `Screen.kt` (routes). `MainActivity` hosts the `NavHost` in a `Box` with a floating frosted-glass pill nav (`BottomNavBar`) overlaid at the bottom, shown only on the five `BottomNavScreen` tabs (Alarms, Timer, Stopwatch, Groups, Settings). Tab screens pad their scrolling content by `floatingNavClearance()`. Theme (accent + dark variant) is driven reactively from `SettingsViewModel` at the `MainActivity` level.
 
-### Design system (Alarmzy Obsidian — from the Stitch/Figma redesign)
+### Design system (Obsidian — the `:obsidian` library module, from the Stitch/Figma redesign)
 
-- **Always dark.** There is no light/system theme; `DarkVariant` (Dark `#131316` / Darker `#0E0E11` / AMOLED) sets the neutrals, `AccentColor` (Crimson, Electric, Solar, Emerald, Luminous) the accent roles.
-- Read tokens via `AlarmzyTheme.colors` / `AlarmzyTheme.typography` (`ui/theme/AlarmzyColors.kt`, `AppTypography.kt`), **not** `MaterialTheme`. A matching M3 scheme is still installed only so the few stock M3 pieces (dialogs, `DropdownMenu`, `ModalBottomSheet`) blend in. Font is Inter (single variable TTF, `res/font/inter_variable.ttf`, OFL license in `assets/licenses`).
-- Reusable components live in `ui/components/` (`AzCard`, `AlarmzySwitch`, `ChoicePill`, `SegmentedPill`, `AzCheckbox`, `PrimaryButton`, `AzFab`, `LargeHeader`/`DetailHeader`, `AzDropdownMenu`, `AzAlertDialog`…). Prefer these over stock M3 components.
+The design system is a standalone, app-agnostic Compose library in `obsidian/` (package `dev.redfox.obsidian`, full spec in `obsidian/README.md`) so other apps can reuse it. **Keep it free of Alarmzy imports** — app-specific visuals (group icons/swatches in `ui/components/GroupVisuals.kt`) stay in `:app`. Library resources use the `ob_` prefix.
+
+- **Always dark.** There is no light/system theme. `ui/theme/Theme.kt`'s `AlarmzyTheme(accentColor, darkVariant)` is a thin adapter mapping the persisted domain `AccentColor` / `DarkVariant` onto `ObsidianTheme(ObsidianAccent, ObsidianNeutrals)` — a new accent/ramp needs an entry in both.
+- Read tokens via `ObsidianTheme.colors` / `ObsidianTheme.typography` (`theme/`), **not** `MaterialTheme`. A matching M3 scheme is still installed only so the few stock M3 pieces (dialogs, `DropdownMenu`, `ModalBottomSheet`) blend in. Font is Inter (bundled in the library, `ob_inter_variable.ttf`, OFL license in its `assets/licenses`). Shapes/spacing: `ObShapes`, `ObSpacing`, `ScreenGutter`.
+- Reusable components live in `components/` (`ObCard`, `ObSwitch`, `ChoicePill`, `SegmentedPill`, `ObCheckbox`, `PrimaryButton`, `ActionPillButton`, `ObFab`, `LargeHeader`/`DetailHeader`, `ObDropdownMenu`, `ObAlertDialog`…). Prefer these over stock M3 components. `ObsidianShowcase()` renders every token/component.
 - Icons are vector drawables `res/drawable/ic_*.xml` converted from the Figma (Material Symbols Rounded) and tinted at use. A few glyphs not in the Figma set (delete, select-all, close, lock, play/stop, alarm-off, warning, music library) temporarily use `Icons.Rounded.*`.
-- **Blur/glow:** Haze 1.7.x (not 2.x — that needs Compose 1.12/Kotlin 2.4). One `HazeState` is provided via `LocalHazeState`; screens mark scrolling content with `Modifier.glassSource()` and headers/nav use `Modifier.glassEffect(tint)` as *siblings* (never inside the source). Glows use the native `Modifier.glow(...)` wrapper over Compose's `dropShadow`.
+- **Blur/glow** (`effects/`): Haze 1.7.x (not 2.x — that needs Compose 1.12/Kotlin 2.4). One `HazeState` is provided via `LocalHazeState`; screens mark scrolling content with `Modifier.glassSource()` and headers/nav use `Modifier.glassEffect(tint)` as *siblings* (never inside the source). Glows use `Modifier.glow(...)` over Compose's `dropShadow`; prefer the named `ObGlows` presets (`Switch`, `Checkbox`, `Action`, `Fab`, `Cta`, `Halo`, `Ambient`, `Elevation`) and `breathingGlow`/`ambientFloat` for idle heroes.
 - Tactile clicks use `Modifier.pressable { }` (scale-on-press with a bouncy release, no ripple; optional `haptic`).
-- **Motion** lives in `ui/components/Motion.kt`: `AzMotion` springs (`bouncy`/`snappy`/`gentle`), `revealOnEnter(index)` / `RevealColumn` staggered entrances, `popOnSelect`, `popIn` (dialogs), `RollingText` (odometer digits), `HorizontalReveal`, `ExpandEnter`/`CollapseExit`, `HeaderActionsSwap`. Every nav destination is wrapped in a `RevealScope` by the `screen(...)` helper in `AlarmzyNavHost`; entrances replay on arrival but not when popping back from a detail screen (`RevealPolicy`). Nested sections that should re-animate on expand (group members, custom days, paywall) get their own `RevealScope`. Prefer springs for anything interruptible, and keep per-frame work in `graphicsLayer`/`placeWithLayer` lambdas.
-- `BottomNavBar` has one shared "liquid" indicator (spring position, stretch from velocity) and per-tab icon animations in `IconMotion.play`.
+- **Motion** lives in `motion/Motion.kt`: `ObMotion` springs (`bouncy`/`snappy`/`gentle`), `revealOnEnter(index)` / `RevealColumn` staggered entrances, `popOnSelect`, `popIn` (dialogs), `RollingText` (odometer digits), `HorizontalReveal`, `ExpandEnter`/`CollapseExit`, `HeaderActionsSwap`. Every nav destination is wrapped in a `RevealScope` by the `screen(...)` helper in `AlarmzyNavHost`; entrances replay on arrival but not when popping back from a detail screen (`RevealPolicy`). Nested sections that should re-animate on expand (group members, custom days, paywall) get their own `RevealScope`. Prefer springs for anything interruptible, and keep per-frame work in `graphicsLayer`/`placeWithLayer` lambdas.
+- `BottomNavBar` wraps the library's `FloatingNavBar` (`navigation/`): one shared "liquid" indicator (spring position, stretch from velocity) and a per-tab `NavIconMotion` (`Shake`/`Flip`/`Press`/`Jelly`/`Turn`). `floatingNavClearance()` comes from the library too.
 
 ### Alarm scheduling & playback engine (`alarm/`)
 

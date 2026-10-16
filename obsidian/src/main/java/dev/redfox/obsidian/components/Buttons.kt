@@ -1,4 +1,4 @@
-package dev.redfox.alarmzy.ui.components
+package dev.redfox.obsidian.components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedContent
@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,7 +34,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.obsidian.theme.ObsidianTheme
+import dev.redfox.obsidian.effects.ObGlows
+import dev.redfox.obsidian.effects.glow
+import dev.redfox.obsidian.effects.pressable
+import dev.redfox.obsidian.motion.RollSwap
+import dev.redfox.obsidian.motion.RollingText
+import dev.redfox.obsidian.motion.popIn
+import dev.redfox.obsidian.theme.ObShapes
 
 /** Full-width signature pill CTA ("Create 7 alarms", "Create Group"). */
 @Composable
@@ -46,13 +52,13 @@ fun PrimaryButton(
     @DrawableRes icon: Int? = null,
     enabled: Boolean = true,
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     Row(
         modifier = modifier
             .fillMaxWidth()
             .alpha(if (enabled) 1f else 0.4f)
             .then(
-                if (enabled) Modifier.glow(colors.accent.copy(alpha = 0.3f), CircleShape, radius = 18.dp, offsetY = 8.dp)
+                if (enabled) Modifier.glow(colors.accent, CircleShape, ObGlows.Cta)
                 else Modifier
             )
             .pressable(enabled = enabled, pressedScale = 0.96f, haptic = HapticFeedbackType.Confirm, onClick = onClick)
@@ -67,7 +73,7 @@ fun PrimaryButton(
             Box(Modifier.size(8.dp))
         }
         // Counts in the label ("Create 7 alarms") roll as they change.
-        RollingText(text, style = AlarmzyTheme.typography.button, color = colors.onAccent)
+        RollingText(text, style = ObsidianTheme.typography.button, color = colors.onAccent)
     }
 }
 
@@ -76,7 +82,7 @@ fun PrimaryButton(
  * (Pause, Resume, Start), dark neutral otherwise (Lap, Reset, Cancel).
  */
 @Composable
-fun ClockActionButton(
+fun ActionPillButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -84,7 +90,7 @@ fun ClockActionButton(
     primary: Boolean = false,
     enabled: Boolean = true,
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val content = if (primary) {
         if (colors.accent.luminance() > 0.6f) colors.onAccent else Color.White
     } else colors.textPrimary
@@ -93,7 +99,7 @@ fun ClockActionButton(
             .height(56.dp)
             .alpha(if (enabled) 1f else 0.4f)
             .then(
-                if (primary && enabled) Modifier.glow(colors.accent.copy(alpha = 0.45f), CircleShape, radius = 12.dp)
+                if (primary && enabled) Modifier.glow(colors.accent, CircleShape, ObGlows.Action)
                 else Modifier
             )
             .pressable(enabled = enabled, pressedScale = 0.93f, haptic = HapticFeedbackType.ContextClick, onClick = onClick)
@@ -118,7 +124,7 @@ fun ClockActionButton(
                 }
                 Text(
                     label,
-                    style = AlarmzyTheme.typography.bodyLarge.copy(
+                    style = ObsidianTheme.typography.bodyLarge.copy(
                         fontWeight = if (primary) FontWeight.SemiBold else FontWeight.Medium
                     ),
                     color = content
@@ -135,8 +141,8 @@ fun PillButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     @DrawableRes icon: Int? = null,
-    contentColor: Color = AlarmzyTheme.colors.textPrimary,
-    containerColor: Color = AlarmzyTheme.colors.tile,
+    contentColor: Color = ObsidianTheme.colors.textPrimary,
+    containerColor: Color = ObsidianTheme.colors.tile,
 ) {
     Row(
         modifier = modifier
@@ -150,27 +156,27 @@ fun PillButton(
             Icon(painterResource(icon), contentDescription = null, tint = contentColor, modifier = Modifier.size(12.dp))
             Box(Modifier.size(6.dp))
         }
-        Text(text, style = AlarmzyTheme.typography.label, color = contentColor)
+        Text(text, style = ObsidianTheme.typography.label, color = contentColor)
     }
 }
 
 /** OxygenOS-style squircle FAB with the accent gradient and glow. */
 @Composable
-fun AzFab(
+fun ObFab(
     @DrawableRes icon: Int,
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = AlarmzyTheme.colors
-    val shape = RoundedCornerShape(18.dp)
+    val colors = ObsidianTheme.colors
+    val shape = ObShapes.Fab
     // Arrives with a pop while the glyph twists into place.
     val spin = remember { Animatable(-135f) }
     LaunchedEffect(Unit) { spin.animateTo(0f, spring(dampingRatio = 0.55f, stiffness = 220f)) }
     Box(
         modifier = modifier
             .popIn(from = 0.5f)
-            .glow(colors.accent.copy(alpha = 0.45f), shape, radius = 14.dp, offsetY = 8.dp)
+            .glow(colors.accent, shape, ObGlows.Fab)
             .pressable(pressedScale = 0.88f, haptic = HapticFeedbackType.ContextClick, onClick = onClick)
             .size(56.dp)
             .clip(shape)
@@ -196,7 +202,7 @@ fun HeaderIconButton(
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    tint: Color = AlarmzyTheme.colors.textPrimary,
+    tint: Color = ObsidianTheme.colors.textPrimary,
 ) {
     Box(
         modifier = modifier
@@ -219,7 +225,7 @@ fun HeaderIconButton(
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    tint: Color = AlarmzyTheme.colors.textPrimary,
+    tint: Color = ObsidianTheme.colors.textPrimary,
     enabled: Boolean = true,
 ) {
     Box(

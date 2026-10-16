@@ -57,27 +57,27 @@ import dev.redfox.alarmzy.domain.model.AccentColor
 import dev.redfox.alarmzy.domain.model.DarkVariant
 import dev.redfox.alarmzy.presentation.livealerts.LiveAlertsSettingsFooter
 import dev.redfox.alarmzy.presentation.livealerts.LiveAlertsSettingsRows
-import dev.redfox.alarmzy.presentation.navigation.floatingNavClearance
+import dev.redfox.obsidian.navigation.floatingNavClearance
 import dev.redfox.alarmzy.presentation.paywall.PaywallBottomSheet
-import dev.redfox.alarmzy.ui.components.AlarmzySwitch
-import dev.redfox.alarmzy.ui.components.AzDivider
-import dev.redfox.alarmzy.ui.components.AzListRow
-import dev.redfox.alarmzy.ui.components.AzShapes
-import dev.redfox.alarmzy.ui.components.ChoicePill
-import dev.redfox.alarmzy.ui.components.IconTile
-import dev.redfox.alarmzy.ui.components.LargeHeader
-import dev.redfox.alarmzy.ui.components.LargeHeaderHeight
-import dev.redfox.alarmzy.ui.components.ScreenGutter
-import dev.redfox.alarmzy.ui.components.SwitchSize
-import dev.redfox.alarmzy.ui.components.glassSource
-import dev.redfox.alarmzy.ui.components.glow
-import dev.redfox.alarmzy.ui.components.pressable
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
-import dev.redfox.alarmzy.ui.components.RevealColumn
-import dev.redfox.alarmzy.ui.components.popOnSelect
+import dev.redfox.obsidian.components.ObSwitch
+import dev.redfox.obsidian.components.ObDivider
+import dev.redfox.obsidian.components.ObListRow
+import dev.redfox.obsidian.theme.ObShapes
+import dev.redfox.obsidian.components.ChoicePill
+import dev.redfox.obsidian.components.IconTile
+import dev.redfox.obsidian.components.LargeHeader
+import dev.redfox.obsidian.components.LargeHeaderHeight
+import dev.redfox.obsidian.theme.ScreenGutter
+import dev.redfox.obsidian.components.SwitchSize
+import dev.redfox.obsidian.effects.glassSource
+import dev.redfox.obsidian.effects.glow
+import dev.redfox.obsidian.effects.pressable
+import dev.redfox.obsidian.theme.ObsidianTheme
+import dev.redfox.obsidian.motion.RevealColumn
+import dev.redfox.obsidian.motion.popOnSelect
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import dev.redfox.alarmzy.ui.components.ExpandEnter
-import dev.redfox.alarmzy.ui.components.CollapseExit
+import dev.redfox.obsidian.motion.ExpandEnter
+import dev.redfox.obsidian.motion.CollapseExit
 
 private val SnoozeOptions = listOf(5, 10, 15, 20, 30)
 
@@ -91,7 +91,7 @@ fun SettingsScreen(
     onCustomizeAlarmScreen: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     var showPaywall by remember { mutableStateOf(false) }
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + LargeHeaderHeight
 
@@ -118,17 +118,17 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
-                                Modifier.size(40.dp).clip(AzShapes.Tile).background(colors.warning.copy(alpha = 0.15f)),
+                                Modifier.size(40.dp).clip(ObShapes.Tile).background(colors.warning.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(Icons.Rounded.WarningAmber, contentDescription = null, tint = colors.warning, modifier = Modifier.size(20.dp))
                             }
                             Spacer(Modifier.width(16.dp))
                             Column(Modifier.weight(1f)) {
-                                Text("Display over other apps", style = AlarmzyTheme.typography.labelStrong, color = colors.textPrimary)
+                                Text("Display over other apps", style = ObsidianTheme.typography.labelStrong, color = colors.textPrimary)
                                 Text(
                                     "Required for the fullscreen alarm screen. Tap to grant.",
-                                    style = AlarmzyTheme.typography.body,
+                                    style = ObsidianTheme.typography.body,
                                     color = colors.textSecondary
                                 )
                             }
@@ -145,7 +145,7 @@ fun SettingsScreen(
                         selected = uiState.darkVariant,
                         onSelect = { onIntent(SettingsIntent.SetDarkVariant(it)) }
                     )
-                    AzDivider()
+                    ObDivider()
                     AccentColorPicker(
                         selected = uiState.accentColor,
                         onSelect = { onIntent(SettingsIntent.SetAccentColor(it)) }
@@ -155,48 +155,48 @@ fun SettingsScreen(
 
             SettingsSection("Alarm settings") {
                 SettingsCard {
-                    AzListRow(
+                    ObListRow(
                         title = "Customize alarm screen",
                         subtitle = "Background, buttons, clock position and size",
                         icon = R.drawable.ic_tune,
                         onClick = onCustomizeAlarmScreen,
                         trailing = { ChevronRight() }
                     )
-                    AzDivider()
-                    AzListRow(
+                    ObDivider()
+                    ObListRow(
                         title = "Ringtone",
                         subtitle = uiState.defaultRingtoneName,
                         icon = R.drawable.ic_bell,
                         onClick = onPickRingtone,
                         trailing = { ChevronRight() }
                     )
-                    AzDivider()
+                    ObDivider()
                     SnoozeRow(
                         selectedMinutes = uiState.defaultSnoozeDuration,
                         onSelect = { onIntent(SettingsIntent.SetDefaultSnoozeDuration(it)) }
                     )
-                    AzDivider()
-                    AzListRow(
+                    ObDivider()
+                    ObListRow(
                         title = "Vibration",
                         subtitle = "Vibrate when an alarm rings",
                         icon = R.drawable.ic_vibration,
                         onClick = { onIntent(SettingsIntent.SetDefaultVibration(!uiState.defaultVibration)) },
                         trailing = {
-                            AlarmzySwitch(
+                            ObSwitch(
                                 checked = uiState.defaultVibration,
                                 onCheckedChange = { onIntent(SettingsIntent.SetDefaultVibration(it)) },
                                 size = SwitchSize.Medium
                             )
                         }
                     )
-                    AzDivider()
-                    AzListRow(
+                    ObDivider()
+                    ObListRow(
                         title = "Gradual volume increase",
                         subtitle = "Start quiet and get louder",
                         icon = R.drawable.ic_volume,
                         onClick = { onIntent(SettingsIntent.SetDefaultGradualVolume(!uiState.defaultGradualVolume)) },
                         trailing = {
-                            AlarmzySwitch(
+                            ObSwitch(
                                 checked = uiState.defaultGradualVolume,
                                 onCheckedChange = { onIntent(SettingsIntent.SetDefaultGradualVolume(it)) },
                                 size = SwitchSize.Medium
@@ -215,7 +215,7 @@ fun SettingsScreen(
 
             SettingsSection("About") {
                 SettingsCard {
-                    AzListRow(title = "Alarmzy", subtitle = "Version ${appVersionName()}", icon = R.drawable.ic_info)
+                    ObListRow(title = "Alarmzy", subtitle = "Version ${appVersionName()}", icon = R.drawable.ic_info)
                 }
             }
         }
@@ -242,8 +242,8 @@ private fun SettingsSection(title: String, content: @Composable ColumnScope.() -
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             title.uppercase(),
-            style = AlarmzyTheme.typography.caption,
-            color = AlarmzyTheme.colors.textSecondary,
+            style = ObsidianTheme.typography.caption,
+            color = ObsidianTheme.colors.textSecondary,
             modifier = Modifier.padding(horizontal = 4.dp)
         )
         content()
@@ -252,14 +252,14 @@ private fun SettingsSection(title: String, content: @Composable ColumnScope.() -
 
 @Composable
 private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .glow(Color.Black.copy(alpha = 0.25f), AzShapes.CardLarge, radius = 6.dp, offsetY = 4.dp)
-            .clip(AzShapes.CardLarge)
+            .glow(Color.Black.copy(alpha = 0.25f), ObShapes.CardLarge, radius = 6.dp, offsetY = 4.dp)
+            .clip(ObShapes.CardLarge)
             .background(colors.card)
-            .border(1.dp, colors.border, AzShapes.CardLarge)
+            .border(1.dp, colors.border, ObShapes.CardLarge)
             .padding(17.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         content = content
@@ -271,7 +271,7 @@ private fun ChevronRight() {
     Icon(
         painterResource(R.drawable.ic_chevron_right),
         contentDescription = null,
-        tint = AlarmzyTheme.colors.textSecondary
+        tint = ObsidianTheme.colors.textSecondary
     )
 }
 
@@ -281,22 +281,22 @@ private fun ExpandChevron(expanded: Boolean) {
     Icon(
         painterResource(R.drawable.ic_chevron_down),
         contentDescription = null,
-        tint = AlarmzyTheme.colors.textSecondary,
+        tint = ObsidianTheme.colors.textSecondary,
         modifier = Modifier.rotate(rotation)
     )
 }
 
 @Composable
 private fun ProCard(isPro: Boolean, onUpgrade: () -> Unit) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (!isPro) Modifier.pressable(onClick = onUpgrade) else Modifier)
-            .clip(AzShapes.CardLarge)
+            .clip(ObShapes.CardLarge)
             .background(colors.card)
-            .border(1.dp, if (isPro) colors.border else colors.accentBorder, AzShapes.CardLarge)
+            .border(1.dp, if (isPro) colors.border else colors.accentBorder, ObShapes.CardLarge)
             .padding(17.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -332,7 +332,7 @@ private fun ProCard(isPro: Boolean, onUpgrade: () -> Unit) {
 private fun ThemeVariantRow(selected: DarkVariant, onSelect: (DarkVariant) -> Unit) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     Column {
-        AzListRow(
+        ObListRow(
             title = "Theme",
             subtitle = if (selected == DarkVariant.DARK) "Dark" else "Dark · ${selected.displayName}",
             icon = R.drawable.ic_palette,
@@ -354,10 +354,10 @@ private fun ThemeVariantRow(selected: DarkVariant, onSelect: (DarkVariant) -> Un
 
 @Composable
 private fun AccentColorPicker(selected: AccentColor, onSelect: (AccentColor) -> Unit) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        AzListRow(
+        ObListRow(
             title = "Accent color",
             subtitle = selected.displayName,
             icon = R.drawable.ic_format_paint,
@@ -389,12 +389,12 @@ private fun AccentColorPicker(selected: AccentColor, onSelect: (AccentColor) -> 
                 ) {
                     Box(
                         modifier = Modifier
-                            .then(if (isSel) Modifier.glow(swatch.copy(alpha = 0.35f), AzShapes.Tile, radius = 12.dp, offsetY = 6.dp) else Modifier)
+                            .then(if (isSel) Modifier.glow(swatch.copy(alpha = 0.35f), ObShapes.Tile, radius = 12.dp, offsetY = 6.dp) else Modifier)
                             .size(48.dp)
                             .alpha(if (isSel) 1f else 0.8f)
-                            .clip(AzShapes.Tile)
+                            .clip(ObShapes.Tile)
                             .background(swatch)
-                            .then(if (isSel) Modifier.border(2.dp, colors.accentLight.copy(alpha = 0.4f), AzShapes.Tile) else Modifier),
+                            .then(if (isSel) Modifier.border(2.dp, colors.accentLight.copy(alpha = 0.4f), ObShapes.Tile) else Modifier),
                         contentAlignment = Alignment.Center
                     ) {
                         if (isSel) {
@@ -425,7 +425,7 @@ private fun AccentColorPicker(selected: AccentColor, onSelect: (AccentColor) -> 
 private fun SnoozeRow(selectedMinutes: Int, onSelect: (Int) -> Unit) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     Column {
-        AzListRow(
+        ObListRow(
             title = "Snooze duration",
             subtitle = "$selectedMinutes minutes",
             icon = R.drawable.ic_snooze,

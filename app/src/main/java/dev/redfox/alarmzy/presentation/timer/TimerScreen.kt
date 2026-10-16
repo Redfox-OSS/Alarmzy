@@ -83,17 +83,17 @@ import dev.redfox.alarmzy.presentation.common.durationPill
 import dev.redfox.alarmzy.presentation.common.hmsToMillis
 import dev.redfox.alarmzy.presentation.common.millisToHms
 import dev.redfox.alarmzy.presentation.common.rememberTicker
-import dev.redfox.alarmzy.presentation.navigation.floatingNavClearance
-import dev.redfox.alarmzy.ui.components.AzShapes
-import dev.redfox.alarmzy.ui.components.ClockActionButton
-import dev.redfox.alarmzy.ui.components.LargeHeader
-import dev.redfox.alarmzy.ui.components.LargeHeaderHeight
-import dev.redfox.alarmzy.ui.components.ScreenGutter
-import dev.redfox.alarmzy.ui.components.glassSource
-import dev.redfox.alarmzy.ui.components.glow
-import dev.redfox.alarmzy.ui.components.pressable
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
-import dev.redfox.alarmzy.ui.theme.InterFontFamily
+import dev.redfox.obsidian.navigation.floatingNavClearance
+import dev.redfox.obsidian.theme.ObShapes
+import dev.redfox.obsidian.components.ActionPillButton
+import dev.redfox.obsidian.components.LargeHeader
+import dev.redfox.obsidian.components.LargeHeaderHeight
+import dev.redfox.obsidian.theme.ScreenGutter
+import dev.redfox.obsidian.effects.glassSource
+import dev.redfox.obsidian.effects.glow
+import dev.redfox.obsidian.effects.pressable
+import dev.redfox.obsidian.theme.ObsidianTheme
+import dev.redfox.obsidian.theme.InterFontFamily
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
@@ -108,10 +108,10 @@ import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.animateContentSize
 import androidx.compose.ui.graphics.graphicsLayer
-import dev.redfox.alarmzy.ui.components.AzMotion
-import dev.redfox.alarmzy.ui.components.RollingText
-import dev.redfox.alarmzy.ui.components.revealOnEnter
-import dev.redfox.alarmzy.ui.components.popOnSelect
+import dev.redfox.obsidian.motion.ObMotion
+import dev.redfox.obsidian.motion.RollingText
+import dev.redfox.obsidian.motion.revealOnEnter
+import dev.redfox.obsidian.motion.popOnSelect
 
 private const val Tnum = "tnum"
 
@@ -124,13 +124,13 @@ fun TimerScreen(
     val timer = uiState.timer
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + LargeHeaderHeight
 
-    Box(modifier.fillMaxSize().background(AlarmzyTheme.colors.background)) {
+    Box(modifier.fillMaxSize().background(ObsidianTheme.colors.background)) {
         AnimatedContent(
             targetState = timer.status == TimerStatus.IDLE,
             transitionSpec = {
                 if (targetState) {
                     // Back to the picker: it settles in as the ring shrinks away.
-                    (fadeIn(tween(260, delayMillis = 60)) + scaleIn(AzMotion.gentle(), initialScale = 1.06f)) togetherWith
+                    (fadeIn(tween(260, delayMillis = 60)) + scaleIn(ObMotion.gentle(), initialScale = 1.06f)) togetherWith
                         (fadeOut(tween(160)) + scaleOut(tween(220), targetScale = 0.86f))
                 } else {
                     // Start: the picker lifts away and the ring blooms in with a bounce.
@@ -160,7 +160,7 @@ private val ColonWidth = 20.dp
 
 @Composable
 private fun TimerSetup(timer: TimerState, onIntent: (TimerIntent) -> Unit) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val (h, m, s) = millisToHms(timer.pickerMs)
     val set = { hh: Int, mm: Int, ss: Int -> onIntent(TimerIntent.SetDuration(hmsToMillis(hh, mm, ss))) }
 
@@ -169,7 +169,7 @@ private fun TimerSetup(timer: TimerState, onIntent: (TimerIntent) -> Unit) {
 
         // Column headers aligned with the wheels below.
         Row(Modifier.fillMaxWidth().padding(bottom = 12.dp).revealOnEnter(0)) {
-            val label = AlarmzyTheme.typography.label.copy(letterSpacing = 0.025.em)
+            val label = ObsidianTheme.typography.label.copy(letterSpacing = 0.025.em)
             listOf("HOURS", "MINUTES", "SECONDS").forEachIndexed { i, text ->
                 if (i > 0) Spacer(Modifier.width(ColonWidth))
                 Text(text, style = label, color = colors.textTertiary, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
@@ -209,7 +209,7 @@ private fun TimerSetup(timer: TimerState, onIntent: (TimerIntent) -> Unit) {
             }
         }
         Spacer(Modifier.height(28.dp))
-        ClockActionButton(
+        ActionPillButton(
             text = "Start",
             primary = true,
             enabled = timer.pickerMs > 0,
@@ -226,7 +226,7 @@ private fun WheelColon() {
         Text(
             ":",
             style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 36.sp),
-            color = AlarmzyTheme.colors.accent,
+            color = ObsidianTheme.colors.accent,
             modifier = Modifier.padding(bottom = 6.dp)
         )
     }
@@ -249,7 +249,7 @@ private fun NumberWheel(
     description: String,
     modifier: Modifier = Modifier,
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val haptics = LocalHapticFeedback.current
     val count = range * WheelLoops
     val middle = remember(range) { (count / 2) - (count / 2) % range }
@@ -338,7 +338,7 @@ private fun NumberWheel(
 
 @Composable
 private fun PresetPill(durationMs: Long, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val (h, m, s) = millisToHms(durationMs)
     Box(
         modifier = modifier
@@ -353,7 +353,7 @@ private fun PresetPill(durationMs: Long, selected: Boolean, onClick: () -> Unit,
     ) {
         Text(
             "%02d:%02d:%02d".format(h, m, s),
-            style = AlarmzyTheme.typography.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium, fontFeatureSettings = Tnum, letterSpacing = (-0.3).sp),
+            style = ObsidianTheme.typography.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium, fontFeatureSettings = Tnum, letterSpacing = (-0.3).sp),
             color = if (selected) Color.White else Color.White.copy(alpha = 0.8f)
         )
     }
@@ -365,8 +365,8 @@ private fun PresetPill(durationMs: Long, selected: Boolean, onClick: () -> Unit,
 
 @Composable
 private fun TimerRunning(timer: TimerState, onIntent: (TimerIntent) -> Unit) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     val running = timer.status == TimerStatus.RUNNING
     val finished = timer.status == TimerStatus.FINISHED
     val now = rememberTicker(active = running) { System.currentTimeMillis() }
@@ -396,7 +396,7 @@ private fun TimerRunning(timer: TimerState, onIntent: (TimerIntent) -> Unit) {
     )
     // The ring draws itself in when the countdown screen appears.
     val intro = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { intro.animateTo(1f, tween(1100, easing = AzMotion.EaseOutEmphasized)) }
+    LaunchedEffect(Unit) { intro.animateTo(1f, tween(1100, easing = ObMotion.EaseOutEmphasized)) }
 
     Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.weight(1f))
@@ -436,7 +436,7 @@ private fun TimerRunning(timer: TimerState, onIntent: (TimerIntent) -> Unit) {
                     modifier = Modifier.alpha(if (running) 1f else pulse)
                 )
                 Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.animateContentSize(AzMotion.snappy())) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.animateContentSize(ObMotion.snappy())) {
                     when {
                         running -> {
                             Icon(painterResource(R.drawable.ic_bell_ring), contentDescription = null, tint = colors.accent)
@@ -474,25 +474,25 @@ private fun TimerRunning(timer: TimerState, onIntent: (TimerIntent) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
         ) {
             if (finished) {
-                ClockActionButton(
+                ActionPillButton(
                     text = "+1 min",
                     onClick = { onIntent(TimerIntent.AddMinute) },
                     modifier = Modifier.weight(1f)
                 )
-                ClockActionButton(
+                ActionPillButton(
                     text = "Stop",
                     primary = true,
                     onClick = { onIntent(TimerIntent.Cancel) },
                     modifier = Modifier.weight(1f)
                 )
             } else {
-                ClockActionButton(
+                ActionPillButton(
                     text = "Cancel",
                     icon = painterResource(R.drawable.ic_cancel),
                     onClick = { onIntent(TimerIntent.Cancel) },
                     modifier = Modifier.weight(1f)
                 )
-                ClockActionButton(
+                ActionPillButton(
                     text = if (running) "Pause" else "Resume",
                     icon = if (running) painterResource(R.drawable.ic_pause)
                     else rememberVectorPainter(Icons.Rounded.PlayArrow),

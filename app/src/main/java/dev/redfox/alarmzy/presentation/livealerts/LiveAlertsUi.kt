@@ -52,14 +52,14 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.redfox.alarmzy.R
 import dev.redfox.alarmzy.clock.LiveAlertPermissions
 import dev.redfox.alarmzy.clock.LiveAlertStatus
-import dev.redfox.alarmzy.ui.components.AzDivider
-import dev.redfox.alarmzy.ui.components.AzListRow
-import dev.redfox.alarmzy.ui.components.AzShapes
-import dev.redfox.alarmzy.ui.components.PillButton
-import dev.redfox.alarmzy.ui.components.glow
-import dev.redfox.alarmzy.ui.components.popIn
-import dev.redfox.alarmzy.ui.components.pressable
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.obsidian.components.ObDivider
+import dev.redfox.obsidian.components.ObListRow
+import dev.redfox.obsidian.theme.ObShapes
+import dev.redfox.obsidian.components.PillButton
+import dev.redfox.obsidian.effects.glow
+import dev.redfox.obsidian.motion.popIn
+import dev.redfox.obsidian.effects.pressable
+import dev.redfox.obsidian.theme.ObsidianTheme
 import androidx.compose.material.icons.rounded.WarningAmber
 
 /** Live permission status plus the actions to fix each piece. Shared by the home prompt and Settings. */
@@ -153,8 +153,8 @@ fun LiveAlertsHomePrompt(
         visible = false
         onMarkAsked()
     }
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
 
     Dialog(onDismissRequest = dismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(
@@ -162,19 +162,19 @@ fun LiveAlertsHomePrompt(
                 .popIn()
                 .padding(horizontal = 20.dp)
                 .fillMaxWidth()
-                .clip(AzShapes.CardLarge)
+                .clip(ObShapes.CardLarge)
                 .background(colors.card)
-                .border(1.dp, colors.border, AzShapes.CardLarge)
+                .border(1.dp, colors.border, ObShapes.CardLarge)
                 .padding(horizontal = 20.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 Modifier
-                    .glow(colors.accent.copy(alpha = 0.3f), AzShapes.Tile, radius = 20.dp)
+                    .glow(colors.accent.copy(alpha = 0.3f), ObShapes.Tile, radius = 20.dp)
                     .size(56.dp)
-                    .clip(AzShapes.Tile)
+                    .clip(ObShapes.Tile)
                     .background(colors.accentContainer)
-                    .border(1.dp, colors.accentBorder, AzShapes.Tile),
+                    .border(1.dp, colors.accentBorder, ObShapes.Tile),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(painterResource(R.drawable.ic_nav_timer), contentDescription = null, tint = colors.accentLight)
@@ -255,14 +255,14 @@ private fun PromptStep(
     onClick: () -> Unit,
     subtitle: String? = null,
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .pressable(enabled = done != true, pressedScale = 0.98f, onClick = onClick)
-            .clip(AzShapes.Card)
+            .clip(ObShapes.Card)
             .background(colors.cardInner)
-            .border(1.dp, colors.border, AzShapes.Card)
+            .border(1.dp, colors.border, ObShapes.Card)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -274,9 +274,9 @@ private fun PromptStep(
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = AlarmzyTheme.typography.labelStrong, color = colors.textPrimary)
+            Text(title, style = ObsidianTheme.typography.labelStrong, color = colors.textPrimary)
             if (subtitle != null) {
-                Text(subtitle, style = AlarmzyTheme.typography.label.copy(fontWeight = FontWeight.Normal), color = colors.textSecondary)
+                Text(subtitle, style = ObsidianTheme.typography.label.copy(fontWeight = FontWeight.Normal), color = colors.textSecondary)
             }
         }
         Spacer(Modifier.width(10.dp))
@@ -295,7 +295,7 @@ private fun PromptStep(
 
 @Composable
 private fun StepPill(text: String, filled: Boolean) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     Box(
         Modifier
             .clip(CircleShape)
@@ -304,7 +304,7 @@ private fun StepPill(text: String, filled: Boolean) {
     ) {
         Text(
             text,
-            style = AlarmzyTheme.typography.labelStrong,
+            style = ObsidianTheme.typography.labelStrong,
             color = if (filled) colors.onAccent else colors.accentLight
         )
     }
@@ -322,16 +322,16 @@ fun LiveAlertsSettingsRows(onPermissionsChanged: () -> Unit) {
     val status = controller.status
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (Build.VERSION.SDK_INT >= 34) {
-            AzListRow(
+            ObListRow(
                 title = "Full-screen alarms",
                 subtitle = "Ringing alarm over the lock screen",
                 icon = R.drawable.ic_alarm,
                 onClick = controller::fixFullScreen,
                 trailing = { StatusLabel(if (status.fullScreenAllowed) RowStatus.Allowed else RowStatus.Off) }
             )
-            AzDivider()
+            ObDivider()
         }
-        AzListRow(
+        ObListRow(
             title = "Notifications",
             subtitle = "Timer and stopwatch notifications",
             icon = R.drawable.ic_bell,
@@ -339,8 +339,8 @@ fun LiveAlertsSettingsRows(onPermissionsChanged: () -> Unit) {
             trailing = { StatusLabel(if (status.notificationsAllowed && status.channelEnabled) RowStatus.Allowed else RowStatus.Off) }
         )
         status.liveUpdatesAllowed?.let { allowed ->
-            AzDivider()
-            AzListRow(
+            ObDivider()
+            ObListRow(
                 title = "Live Updates",
                 subtitle = "Lock screen, status bar and Now Bar",
                 icon = R.drawable.ic_bell_ring,
@@ -349,8 +349,8 @@ fun LiveAlertsSettingsRows(onPermissionsChanged: () -> Unit) {
             )
         }
         if (status.showBbkStep) {
-            AzDivider()
-            AzListRow(
+            ObDivider()
+            ObListRow(
                 title = "Show on Live Alerts",
                 subtitle = "\"Show Live Updates on Live Alerts\" toggle",
                 icon = R.drawable.ic_nav_timer,
@@ -367,22 +367,22 @@ fun LiveAlertsSettingsFooter() {
     Text(
         "Running timers and the stopwatch show on your lock screen and status bar." +
             if (LiveAlertPermissions.isBbkDevice()) " $BbkCopy" else "",
-        style = AlarmzyTheme.typography.label.copy(fontWeight = FontWeight.Normal),
-        color = AlarmzyTheme.colors.textTertiary,
+        style = ObsidianTheme.typography.label.copy(fontWeight = FontWeight.Normal),
+        color = ObsidianTheme.colors.textTertiary,
         modifier = Modifier.padding(horizontal = 4.dp)
     )
 }
 
 @Composable
 private fun StatusLabel(status: RowStatus) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val (text, color) = when (status) {
         RowStatus.Allowed -> "Allowed" to colors.textSecondary
         RowStatus.Off -> "Off" to colors.warning // warning, not grey, so it stands out
         RowStatus.Check -> "Check" to colors.accentLight // unknowable — never "Enabled"
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(text, style = AlarmzyTheme.typography.labelStrong, color = color)
+        Text(text, style = ObsidianTheme.typography.labelStrong, color = color)
         Spacer(Modifier.width(6.dp))
         Icon(
             painterResource(R.drawable.ic_chevron_right),
@@ -400,15 +400,15 @@ private fun StatusLabel(status: RowStatus) {
 @Composable
 fun FullScreenAlarmWarning(modifier: Modifier = Modifier) {
     val controller = rememberLiveAlertsController(onPermissionsChanged = {})
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     Row(
         modifier = modifier
             .fillMaxWidth()
             .pressable(pressedScale = 0.98f, onClick = controller::fixFullScreen)
-            .clip(AzShapes.Card)
+            .clip(ObShapes.Card)
             .background(colors.warning.copy(alpha = 0.12f))
-            .border(1.dp, colors.warning.copy(alpha = 0.35f), AzShapes.Card)
+            .border(1.dp, colors.warning.copy(alpha = 0.35f), ObShapes.Card)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

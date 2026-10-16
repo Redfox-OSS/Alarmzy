@@ -1,15 +1,7 @@
-package dev.redfox.alarmzy.ui.components
+package dev.redfox.obsidian.components
 
 import androidx.annotation.DrawableRes
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,28 +30,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
-
-/** Squircle radii from DESIGN.md. */
-object AzShapes {
-    val Card = RoundedCornerShape(16.dp)
-    val CardLarge = RoundedCornerShape(24.dp)
-    val Tile = RoundedCornerShape(16.dp)
-    val Small = RoundedCornerShape(12.dp)
-    val Pill = CircleShape
-}
-
-/** Screen horizontal gutter used by every page in the design. */
-val ScreenGutter = 20.dp
+import dev.redfox.obsidian.theme.ObsidianTheme
+import dev.redfox.obsidian.effects.ambientFloat
+import dev.redfox.obsidian.effects.breathingGlow
+import dev.redfox.obsidian.effects.pressable
+import dev.redfox.obsidian.motion.revealOnEnter
+import dev.redfox.obsidian.theme.ObShapes
 
 /**
  * Base card. [onClick]/[onLongClick] make it tactile via [pressable].
  */
 @Composable
-fun AzCard(
+fun ObCard(
     modifier: Modifier = Modifier,
-    shape: Shape = AzShapes.Card,
-    color: Color = AlarmzyTheme.colors.card,
+    shape: Shape = ObShapes.Card,
+    color: Color = ObsidianTheme.colors.card,
     borderColor: Color? = null,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     onClick: (() -> Unit)? = null,
@@ -87,9 +71,9 @@ fun IconTile(
     @DrawableRes icon: Int,
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
-    shape: Shape = AzShapes.Tile,
-    background: Color = AlarmzyTheme.colors.tile,
-    tint: Color = AlarmzyTheme.colors.textSecondary,
+    shape: Shape = ObShapes.Tile,
+    background: Color = ObsidianTheme.colors.tile,
+    tint: Color = ObsidianTheme.colors.textSecondary,
     contentDescription: String? = null,
 ) {
     Box(
@@ -105,7 +89,7 @@ fun IconTile(
 fun SectionLabel(
     text: String,
     modifier: Modifier = Modifier,
-    color: Color = AlarmzyTheme.colors.textSecondary.copy(alpha = 0.8f),
+    color: Color = ObsidianTheme.colors.textSecondary.copy(alpha = 0.8f),
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     Row(
@@ -113,34 +97,34 @@ fun SectionLabel(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text.uppercase(), style = AlarmzyTheme.typography.sectionLabel, color = color)
+        Text(text.uppercase(), style = ObsidianTheme.typography.sectionLabel, color = color)
         trailing?.invoke(this)
     }
 }
 
 @Composable
-fun AzDivider(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().height(1.dp).background(AlarmzyTheme.colors.divider))
+fun ObDivider(modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth().height(1.dp).background(ObsidianTheme.colors.divider))
 }
 
 /**
  * Standard row used in form and settings cards: icon tile, title/subtitle, trailing slot.
  */
 @Composable
-fun AzListRow(
+fun ObListRow(
     title: String,
     modifier: Modifier = Modifier,
     @DrawableRes icon: Int? = null,
     subtitle: String? = null,
     iconTileSize: Dp = 40.dp,
-    iconTileShape: Shape = AzShapes.Tile,
-    iconTint: Color = AlarmzyTheme.colors.textSecondary,
+    iconTileShape: Shape = ObShapes.Tile,
+    iconTint: Color = ObsidianTheme.colors.textSecondary,
     titleStyleLarge: Boolean = false,
     onClick: (() -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -184,21 +168,8 @@ fun EmptyState(
     subtitle: String,
     modifier: Modifier = Modifier,
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     // The badge floats and its halo breathes, so an empty screen still feels alive.
-    val ambient = rememberInfiniteTransition(label = "emptyAmbient")
-    val float by ambient.animateFloat(
-        initialValue = -4f,
-        targetValue = 4f,
-        animationSpec = infiniteRepeatable(tween(2600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "float"
-    )
-    val breathe by ambient.animateFloat(
-        initialValue = 0.16f,
-        targetValue = 0.34f,
-        animationSpec = infiniteRepeatable(tween(2600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "breathe"
-    )
     Column(
         modifier = modifier.fillMaxSize().padding(horizontal = 40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -207,8 +178,8 @@ fun EmptyState(
         Box(
             modifier = Modifier
                 .revealOnEnter(0)
-                .graphicsLayer { translationY = float * density }
-                .glow(colors.accentGlow.copy(alpha = breathe), CircleShape, radius = 32.dp)
+                .ambientFloat()
+                .breathingGlow(colors.accent, CircleShape)
                 .size(88.dp)
                 .clip(CircleShape)
                 .background(colors.accentContainer)
@@ -225,7 +196,7 @@ fun EmptyState(
         Spacer(Modifier.height(20.dp))
         Text(
             title,
-            style = AlarmzyTheme.typography.title,
+            style = ObsidianTheme.typography.title,
             color = colors.textPrimary,
             textAlign = TextAlign.Center,
             modifier = Modifier.revealOnEnter(1)
@@ -233,7 +204,7 @@ fun EmptyState(
         Spacer(Modifier.height(6.dp))
         Text(
             subtitle,
-            style = AlarmzyTheme.typography.body,
+            style = ObsidianTheme.typography.body,
             color = colors.textSecondary,
             textAlign = TextAlign.Center,
             modifier = Modifier.revealOnEnter(2)

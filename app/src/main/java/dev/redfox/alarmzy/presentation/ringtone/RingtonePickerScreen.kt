@@ -43,15 +43,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.redfox.alarmzy.presentation.alarmedit.BottomActionBar
-import dev.redfox.alarmzy.ui.components.AzShapes
-import dev.redfox.alarmzy.ui.components.DetailHeader
-import dev.redfox.alarmzy.ui.components.DetailHeaderHeight
-import dev.redfox.alarmzy.ui.components.PrimaryButton
-import dev.redfox.alarmzy.ui.components.ScreenGutter
-import dev.redfox.alarmzy.ui.components.SectionLabel
-import dev.redfox.alarmzy.ui.components.glassSource
-import dev.redfox.alarmzy.ui.components.pressable
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.obsidian.theme.ObShapes
+import dev.redfox.obsidian.components.DetailHeader
+import dev.redfox.obsidian.components.DetailHeaderHeight
+import dev.redfox.obsidian.components.PrimaryButton
+import dev.redfox.obsidian.theme.ScreenGutter
+import dev.redfox.obsidian.components.SectionLabel
+import dev.redfox.obsidian.effects.glassSource
+import dev.redfox.obsidian.effects.pressable
+import dev.redfox.obsidian.theme.ObsidianTheme
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.animateFloat
@@ -61,8 +61,8 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import dev.redfox.alarmzy.ui.components.AzMotion
-import dev.redfox.alarmzy.ui.components.revealOnEnter
+import dev.redfox.obsidian.motion.ObMotion
+import dev.redfox.obsidian.motion.revealOnEnter
 
 @Composable
 fun RingtonePickerScreen(
@@ -72,7 +72,7 @@ fun RingtonePickerScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val pickAudioLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -101,22 +101,22 @@ fun RingtonePickerScreen(
                         .revealOnEnter(0)
                         .fillMaxWidth()
                         .pressable(pressedScale = 0.985f) { pickAudioLauncher.launch(arrayOf("audio/*")) }
-                        .clip(AzShapes.CardLarge)
+                        .clip(ObShapes.CardLarge)
                         .background(colors.card)
-                        .border(1.dp, colors.accentBorder, AzShapes.CardLarge)
+                        .border(1.dp, colors.accentBorder, ObShapes.CardLarge)
                         .padding(17.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
-                        Modifier.size(40.dp).clip(AzShapes.Tile).background(colors.accentContainer),
+                        Modifier.size(40.dp).clip(ObShapes.Tile).background(colors.accentContainer),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(Icons.Rounded.LibraryMusic, contentDescription = null, tint = colors.accentLight, modifier = Modifier.size(20.dp))
                     }
                     Spacer(Modifier.width(16.dp))
                     Column {
-                        Text("Choose from device", style = AlarmzyTheme.typography.labelStrong, color = colors.textPrimary)
-                        Text("Pick any audio file from your device", style = AlarmzyTheme.typography.body, color = colors.textSecondary)
+                        Text("Choose from device", style = ObsidianTheme.typography.labelStrong, color = colors.textPrimary)
+                        Text("Pick any audio file from your device", style = ObsidianTheme.typography.body, color = colors.textSecondary)
                     }
                 }
                 Spacer(Modifier.height(24.dp))
@@ -127,7 +127,7 @@ fun RingtonePickerScreen(
             itemsIndexed(uiState.ringtones, key = { _, it -> it.uri }) { index, ringtone ->
                 // Rows render as one continuous card: round only the outer corners.
                 val shape: Shape = when {
-                    count == 1 -> AzShapes.CardLarge
+                    count == 1 -> ObShapes.CardLarge
                     index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                     index == count - 1 -> RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
                     else -> RoundedCornerShape(0.dp)
@@ -167,8 +167,8 @@ private fun RingtoneRow(
     onTogglePreview: (playing: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     val ring by animateColorAsState(if (isSelected) colors.accent else colors.textDisabled, label = "radioRing")
     Column(
         modifier
@@ -185,7 +185,7 @@ private fun RingtoneRow(
                 Modifier.size(22.dp).clip(CircleShape).border(2.dp, ring, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                val dot by animateFloatAsState(if (isSelected) 1f else 0f, AzMotion.bouncy(), label = "radioDot")
+                val dot by animateFloatAsState(if (isSelected) 1f else 0f, ObMotion.bouncy(), label = "radioDot")
                 if (dot > 0.01f) {
                     Box(
                         Modifier

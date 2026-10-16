@@ -13,7 +13,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavGraphBuilder
-import dev.redfox.alarmzy.ui.components.RevealScope
+import dev.redfox.obsidian.motion.RevealScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect

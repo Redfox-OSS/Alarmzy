@@ -1,21 +1,16 @@
 package dev.redfox.alarmzy.ui.theme
 
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Shapes
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.unit.dp
 import dev.redfox.alarmzy.domain.model.AccentColor
 import dev.redfox.alarmzy.domain.model.DarkVariant
+import dev.redfox.obsidian.theme.ObsidianAccent
+import dev.redfox.obsidian.theme.ObsidianNeutrals
+import dev.redfox.obsidian.theme.ObsidianTheme
 
 /**
- * Root theme. Screens read tokens from [AlarmzyTheme.colors] / [AlarmzyTheme.typography];
- * a matching Material 3 scheme is also installed so the few stock M3 components left
- * (dialogs, dropdown menus, text fields, bottom sheets) blend in.
+ * Alarmzy's root theme: the Obsidian design system (`:obsidian` module) driven by the persisted
+ * [AccentColor] / [DarkVariant] settings. Screens read tokens from `ObsidianTheme.colors` /
+ * `ObsidianTheme.typography`.
  */
 @Composable
 fun AlarmzyTheme(
@@ -23,59 +18,23 @@ fun AlarmzyTheme(
     darkVariant: DarkVariant = DarkVariant.DARK,
     content: @Composable () -> Unit
 ) {
-    val colors = remember(accentColor, darkVariant) { alarmzyColors(accentColor, darkVariant) }
-    val colorScheme = remember(colors) {
-        darkColorScheme(
-            primary = colors.accent,
-            onPrimary = colors.onAccent,
-            primaryContainer = colors.accentContainer,
-            onPrimaryContainer = colors.accentLight,
-            secondary = colors.accentLight,
-            onSecondary = colors.onAccentLight,
-            secondaryContainer = colors.tileHigh,
-            onSecondaryContainer = colors.textPrimary,
-            background = colors.background,
-            onBackground = colors.textPrimary,
-            surface = colors.background,
-            onSurface = colors.textPrimary,
-            surfaceVariant = colors.tile,
-            onSurfaceVariant = colors.textSecondary,
-            surfaceContainerLowest = colors.background,
-            surfaceContainerLow = colors.cardInner,
-            surfaceContainer = colors.card,
-            surfaceContainerHigh = colors.card,
-            surfaceContainerHighest = colors.tile,
-            outline = colors.borderStrong,
-            outlineVariant = colors.border,
-            error = colors.error,
-        )
-    }
-
-    CompositionLocalProvider(
-        LocalAlarmzyColors provides colors,
-        LocalAlarmzyTypography provides DefaultAlarmzyTypography,
-    ) {
-        MaterialTheme(
-            colorScheme = colorScheme,
-            typography = MaterialTypography,
-            shapes = AlarmzyMaterialShapes,
-            content = content
-        )
-    }
+    ObsidianTheme(
+        accent = accentColor.toObsidian(),
+        neutrals = darkVariant.toObsidian(),
+        content = content
+    )
 }
 
-object AlarmzyTheme {
-    val colors: AlarmzyColors
-        @Composable @ReadOnlyComposable get() = LocalAlarmzyColors.current
-
-    val typography: AlarmzyTypography
-        @Composable @ReadOnlyComposable get() = LocalAlarmzyTypography.current
+fun AccentColor.toObsidian(): ObsidianAccent = when (this) {
+    AccentColor.CRIMSON -> ObsidianAccent.Crimson
+    AccentColor.ELECTRIC -> ObsidianAccent.Electric
+    AccentColor.SOLAR -> ObsidianAccent.Solar
+    AccentColor.EMERALD -> ObsidianAccent.Emerald
+    AccentColor.LUMINOUS -> ObsidianAccent.Luminous
 }
 
-private val AlarmzyMaterialShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(24.dp),
-    extraLarge = RoundedCornerShape(28.dp),
-)
+fun DarkVariant.toObsidian(): ObsidianNeutrals = when (this) {
+    DarkVariant.DARK -> ObsidianNeutrals.Dark
+    DarkVariant.DARKER -> ObsidianNeutrals.Darker
+    DarkVariant.DARKEST -> ObsidianNeutrals.Amoled
+}

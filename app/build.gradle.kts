@@ -111,6 +111,9 @@ dependencies {
     // Coil
     implementation(libs.coil.compose)
 
+    // Obsidian design system (theme, components, motion, glows)
+    implementation(project(":obsidian"))
+
     // Haze (glass blur behind the header + floating nav bar)
     implementation(libs.haze)
 

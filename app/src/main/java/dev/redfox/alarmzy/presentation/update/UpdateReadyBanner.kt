@@ -18,15 +18,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import dev.redfox.alarmzy.R
-import dev.redfox.alarmzy.ui.components.PillButton
-import dev.redfox.alarmzy.ui.components.glassEffect
-import dev.redfox.alarmzy.ui.components.glow
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.obsidian.components.PillButton
+import dev.redfox.obsidian.effects.glassEffect
+import dev.redfox.obsidian.effects.glow
+import dev.redfox.obsidian.theme.ObsidianTheme
 
 /** Floating glass pill shown once a flexible update has downloaded. */
 @Composable
 fun UpdateReadyBanner(onRestart: () -> Unit, modifier: Modifier = Modifier) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     Row(
         modifier = modifier
             .glow(Color.Black.copy(alpha = 0.35f), CircleShape, radius = 20.dp, offsetY = 8.dp)
@@ -43,7 +43,7 @@ fun UpdateReadyBanner(onRestart: () -> Unit, modifier: Modifier = Modifier) {
             modifier = Modifier.size(18.dp)
         )
         Spacer(Modifier.width(8.dp))
-        Text("Update ready", style = AlarmzyTheme.typography.labelStrong, color = colors.textPrimary)
+        Text("Update ready", style = ObsidianTheme.typography.labelStrong, color = colors.textPrimary)
         Spacer(Modifier.width(12.dp))
         PillButton(
             text = "Restart",

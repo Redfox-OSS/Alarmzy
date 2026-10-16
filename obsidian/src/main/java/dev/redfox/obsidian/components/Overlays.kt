@@ -1,4 +1,4 @@
-package dev.redfox.alarmzy.ui.components
+package dev.redfox.obsidian.components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
@@ -16,11 +16,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.obsidian.theme.ObsidianTheme
+import dev.redfox.obsidian.motion.popIn
+import dev.redfox.obsidian.theme.ObShapes
 
 /** Dropdown menu styled as a floating squircle card. */
 @Composable
-fun AzDropdownMenu(
+fun ObDropdownMenu(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
@@ -32,36 +34,36 @@ fun AzDropdownMenu(
         onDismissRequest = onDismissRequest,
         modifier = modifier,
         offset = offset,
-        shape = AzShapes.Card,
-        containerColor = AlarmzyTheme.colors.tile,
-        border = BorderStroke(1.dp, AlarmzyTheme.colors.borderStrong),
+        shape = ObShapes.Card,
+        containerColor = ObsidianTheme.colors.tile,
+        border = BorderStroke(1.dp, ObsidianTheme.colors.borderStrong),
         shadowElevation = 12.dp,
         content = content
     )
 }
 
 @Composable
-fun AzMenuItem(
+fun ObMenuItem(
     text: String,
     onClick: () -> Unit,
     selected: Boolean = false,
-    color: Color = if (selected) AlarmzyTheme.colors.accentLight else AlarmzyTheme.colors.textPrimary,
+    color: Color = if (selected) ObsidianTheme.colors.accentLight else ObsidianTheme.colors.textPrimary,
     leading: (@Composable () -> Unit)? = null,
     @DrawableRes trailingIcon: Int? = null,
 ) {
     DropdownMenuItem(
-        text = { Text(text, style = AlarmzyTheme.typography.body, color = color) },
+        text = { Text(text, style = ObsidianTheme.typography.body, color = color) },
         onClick = onClick,
         leadingIcon = leading,
         trailingIcon = trailingIcon?.let {
-            { Icon(painterResource(it), contentDescription = null, tint = AlarmzyTheme.colors.accentLight) }
+            { Icon(painterResource(it), contentDescription = null, tint = ObsidianTheme.colors.accentLight) }
         }
     )
 }
 
 /** Confirmation dialog on the card surface. */
 @Composable
-fun AzAlertDialog(
+fun ObAlertDialog(
     title: String,
     text: String,
     confirmLabel: String,
@@ -70,14 +72,14 @@ fun AzAlertDialog(
     dismissLabel: String = "Cancel",
     destructive: Boolean = false,
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.popIn(),
         containerColor = colors.card,
-        shape = AzShapes.CardLarge,
-        title = { Text(title, style = AlarmzyTheme.typography.title, color = colors.textPrimary) },
-        text = { Text(text, style = AlarmzyTheme.typography.body, color = colors.textSecondary) },
+        shape = ObShapes.CardLarge,
+        title = { Text(title, style = ObsidianTheme.typography.title, color = colors.textPrimary) },
+        text = { Text(text, style = ObsidianTheme.typography.body, color = colors.textSecondary) },
         confirmButton = {
             Box(Modifier.padding(start = 8.dp)) {
                 PillButton(

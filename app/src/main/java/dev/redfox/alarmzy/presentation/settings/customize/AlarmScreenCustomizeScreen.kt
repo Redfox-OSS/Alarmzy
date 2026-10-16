@@ -36,21 +36,21 @@ import androidx.compose.ui.unit.dp
 import dev.redfox.alarmzy.domain.model.AlarmButtonLayout
 import dev.redfox.alarmzy.domain.model.AlarmClockPosition
 import dev.redfox.alarmzy.presentation.alarmringing.AlarmRingingContent
-import dev.redfox.alarmzy.ui.components.ChoicePill
-import dev.redfox.alarmzy.ui.components.DetailHeader
-import dev.redfox.alarmzy.ui.components.DetailHeaderHeight
-import dev.redfox.alarmzy.ui.components.PillButton
-import dev.redfox.alarmzy.ui.components.ScreenGutter
-import dev.redfox.alarmzy.ui.components.SectionLabel
-import dev.redfox.alarmzy.ui.components.glassSource
-import dev.redfox.alarmzy.ui.components.glow
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.obsidian.components.ChoicePill
+import dev.redfox.obsidian.components.DetailHeader
+import dev.redfox.obsidian.components.DetailHeaderHeight
+import dev.redfox.obsidian.components.PillButton
+import dev.redfox.obsidian.theme.ScreenGutter
+import dev.redfox.obsidian.components.SectionLabel
+import dev.redfox.obsidian.effects.glassSource
+import dev.redfox.obsidian.effects.glow
+import dev.redfox.obsidian.theme.ObsidianTheme
 import kotlin.math.roundToInt
-import dev.redfox.alarmzy.ui.components.RevealColumn
-import dev.redfox.alarmzy.ui.components.AzCard
-import dev.redfox.alarmzy.ui.components.AzListRow
-import dev.redfox.alarmzy.ui.components.AlarmzySwitch
-import dev.redfox.alarmzy.ui.components.SwitchSize
+import dev.redfox.obsidian.motion.RevealColumn
+import dev.redfox.obsidian.components.ObCard
+import dev.redfox.obsidian.components.ObListRow
+import dev.redfox.obsidian.components.ObSwitch
+import dev.redfox.obsidian.components.SwitchSize
 import androidx.compose.foundation.layout.PaddingValues
 import dev.redfox.alarmzy.R
 import androidx.compose.runtime.remember
@@ -63,7 +63,7 @@ fun AlarmScreenCustomizeScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val pickImageLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
     ) { uri ->
@@ -143,14 +143,14 @@ fun AlarmScreenCustomizeScreen(
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionLabel("Quote")
-                AzCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
-                    AzListRow(
+                ObCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
+                    ObListRow(
                         title = "Show a wake-up quote",
                         subtitle = "A new one each time an alarm rings",
                         icon = R.drawable.ic_info,
                         onClick = { onIntent(AlarmScreenCustomizeIntent.SetShowQuote(!uiState.showQuote)) },
                         trailing = {
-                            AlarmzySwitch(
+                            ObSwitch(
                                 checked = uiState.showQuote,
                                 onCheckedChange = { onIntent(AlarmScreenCustomizeIntent.SetShowQuote(it)) },
                                 size = SwitchSize.Medium
@@ -199,7 +199,7 @@ private fun AlarmScreenPreview(
                 .width(previewWidth)
                 .height(previewHeight)
                 .clip(RoundedCornerShape(28.dp))
-                .border(1.dp, AlarmzyTheme.colors.borderStrong, RoundedCornerShape(28.dp))
+                .border(1.dp, ObsidianTheme.colors.borderStrong, RoundedCornerShape(28.dp))
         ) {
             AlarmRingingContent(
                 time = "7:00 AM",

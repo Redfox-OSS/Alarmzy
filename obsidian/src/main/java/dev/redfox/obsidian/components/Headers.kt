@@ -1,4 +1,4 @@
-package dev.redfox.alarmzy.ui.components
+package dev.redfox.obsidian.components
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
@@ -28,8 +28,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import dev.redfox.alarmzy.R
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.obsidian.R
+import dev.redfox.obsidian.theme.ObsidianTheme
+import dev.redfox.obsidian.effects.glassEffect
+import dev.redfox.obsidian.motion.revealOnEnter
+import dev.redfox.obsidian.theme.ScreenGutter
 
 /** Height of the header bar below the status bar, for content top padding. */
 val LargeHeaderHeight = 64.dp
@@ -48,7 +51,7 @@ fun LargeHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .glassEffect(AlarmzyTheme.colors.headerScrim)
+            .glassEffect(ObsidianTheme.colors.headerScrim)
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         Row(
@@ -76,7 +79,7 @@ fun DetailHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .glassEffect(AlarmzyTheme.colors.headerScrim.copy(alpha = 0.9f))
+            .glassEffect(ObsidianTheme.colors.headerScrim.copy(alpha = 0.9f))
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         Row(
@@ -86,7 +89,7 @@ fun DetailHeader(
                 .padding(start = ScreenGutter - 12.dp, end = ScreenGutter - 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            HeaderIconButton(icon = R.drawable.ic_back, contentDescription = "Back", onClick = onBack)
+            HeaderIconButton(icon = R.drawable.ob_ic_back, contentDescription = "Back", onClick = onBack)
             Spacer(Modifier.width(4.dp))
             HeaderTitle(title, Modifier.weight(1f))
             Row(verticalAlignment = Alignment.CenterVertically, content = actions)
@@ -113,8 +116,8 @@ private fun HeaderTitle(title: String, modifier: Modifier = Modifier) {
     ) { text ->
         Text(
             text,
-            style = AlarmzyTheme.typography.screenTitle,
-            color = AlarmzyTheme.colors.textPrimary,
+            style = ObsidianTheme.typography.screenTitle,
+            color = ObsidianTheme.colors.textPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )

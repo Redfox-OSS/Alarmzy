@@ -39,10 +39,10 @@ import coil3.compose.AsyncImage
 import dev.redfox.alarmzy.R
 import dev.redfox.alarmzy.domain.model.AlarmButtonLayout
 import dev.redfox.alarmzy.domain.model.AlarmClockPosition
-import dev.redfox.alarmzy.ui.components.glow
-import dev.redfox.alarmzy.ui.components.pressable
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
-import dev.redfox.alarmzy.ui.theme.InterFontFamily
+import dev.redfox.obsidian.effects.glow
+import dev.redfox.obsidian.effects.pressable
+import dev.redfox.obsidian.theme.ObsidianTheme
+import dev.redfox.obsidian.theme.InterFontFamily
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalTime
@@ -59,7 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import dev.redfox.alarmzy.ui.components.revealOnEnter
+import dev.redfox.obsidian.motion.revealOnEnter
 import dev.redfox.alarmzy.domain.model.Quote
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -67,7 +67,7 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import dev.redfox.alarmzy.ui.components.AzShapes
+import dev.redfox.obsidian.theme.ObShapes
 import androidx.compose.ui.text.style.TextOverflow
 
 private val CLOCK_TEXT_SIZE = 84.sp
@@ -96,8 +96,8 @@ fun AlarmRingingContent(
      */
     liveBlur: Boolean = true,
 ) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     val hasImage = backgroundImagePath != null
     val textColor = if (hasImage) Color.White else colors.textPrimary
     val currentDate = remember {
@@ -292,7 +292,7 @@ private fun RingButton(
     /** 0..1 breathing phase for the primary glow. */
     glow: Float = 0.5f,
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val content = if (primary) colors.onAccent else colors.textPrimary
     Row(
         modifier = modifier
@@ -314,7 +314,7 @@ private fun RingButton(
             Icon(Icons.Rounded.AlarmOff, contentDescription = null, tint = content, modifier = Modifier.size(22.dp))
         }
         Spacer(Modifier.width(10.dp))
-        Text(text, style = AlarmzyTheme.typography.button, color = content)
+        Text(text, style = ObsidianTheme.typography.button, color = content)
     }
 }
 
@@ -324,9 +324,9 @@ private fun RingButton(
  */
 @Composable
 private fun QuoteCard(quote: Quote, haze: HazeState?, onPhoto: Boolean, glow: Float) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
-    val shape = AzShapes.CardLarge
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
+    val shape = ObShapes.CardLarge
     val tint = if (onPhoto) Color.Black.copy(alpha = 0.35f) else colors.navScrim
     Column(
         modifier = Modifier

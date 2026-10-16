@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Alarmzy"
 include(":app")
+include(":obsidian")

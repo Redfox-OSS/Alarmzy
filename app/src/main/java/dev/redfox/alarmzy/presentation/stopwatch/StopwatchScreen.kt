@@ -66,15 +66,15 @@ import dev.redfox.alarmzy.domain.model.StopwatchState
 import dev.redfox.alarmzy.presentation.common.lapTime
 import dev.redfox.alarmzy.presentation.common.rememberTicker
 import dev.redfox.alarmzy.presentation.common.stopwatchReadout
-import dev.redfox.alarmzy.presentation.navigation.floatingNavClearance
-import dev.redfox.alarmzy.ui.components.ClockActionButton
-import dev.redfox.alarmzy.ui.components.LargeHeader
-import dev.redfox.alarmzy.ui.components.LargeHeaderHeight
-import dev.redfox.alarmzy.ui.components.ScreenGutter
-import dev.redfox.alarmzy.ui.components.glassSource
-import dev.redfox.alarmzy.ui.components.glow
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
-import dev.redfox.alarmzy.ui.theme.InterFontFamily
+import dev.redfox.obsidian.navigation.floatingNavClearance
+import dev.redfox.obsidian.components.ActionPillButton
+import dev.redfox.obsidian.components.LargeHeader
+import dev.redfox.obsidian.components.LargeHeaderHeight
+import dev.redfox.obsidian.theme.ScreenGutter
+import dev.redfox.obsidian.effects.glassSource
+import dev.redfox.obsidian.effects.glow
+import dev.redfox.obsidian.theme.ObsidianTheme
+import dev.redfox.obsidian.theme.InterFontFamily
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.core.spring
@@ -89,9 +89,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.graphics.graphicsLayer
-import dev.redfox.alarmzy.ui.components.AzMotion
-import dev.redfox.alarmzy.ui.components.RollingText
-import dev.redfox.alarmzy.ui.components.revealOnEnter
+import dev.redfox.obsidian.motion.ObMotion
+import dev.redfox.obsidian.motion.RollingText
+import dev.redfox.obsidian.motion.revealOnEnter
 
 /** Tabular (fixed-width) digits so the running readout doesn't jitter. */
 private const val Tnum = "tnum"
@@ -108,7 +108,7 @@ fun StopwatchScreen(
     val elapsed = sw.elapsedAt(now)
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + LargeHeaderHeight
 
-    Box(modifier.fillMaxSize().background(AlarmzyTheme.colors.background)) {
+    Box(modifier.fillMaxSize().background(ObsidianTheme.colors.background)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().glassSource(),
             contentPadding = PaddingValues(
@@ -136,7 +136,7 @@ fun StopwatchScreen(
                         split = elapsed - sw.laps.last(),
                         overall = elapsed,
                         current = true,
-                        splitColor = AlarmzyTheme.colors.accent,
+                        splitColor = ObsidianTheme.colors.accent,
                         modifier = Modifier.animateItem().revealOnEnter(3)
                     )
                 }
@@ -151,8 +151,8 @@ fun StopwatchScreen(
                         current = false,
                         splitColor = when (splits[i]) {
                             fastest -> FastestColor
-                            slowest -> AlarmzyTheme.colors.warning
-                            else -> AlarmzyTheme.colors.textPrimary
+                            slowest -> ObsidianTheme.colors.warning
+                            else -> ObsidianTheme.colors.textPrimary
                         },
                         modifier = Modifier.animateItem().revealOnEnter(4 + (splits.size - 1 - i))
                     )
@@ -166,7 +166,7 @@ fun StopwatchScreen(
 
 @Composable
 private fun StopwatchDial(state: StopwatchState, elapsedMs: Long, modifier: Modifier = Modifier) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val active = !state.isIdle
     val readout = stopwatchReadout(elapsedMs)
     val colonColor by animateColorAsState(
@@ -193,7 +193,7 @@ private fun StopwatchDial(state: StopwatchState, elapsedMs: Long, modifier: Modi
         }
         if (state.running) {
             ripple.snapTo(0f)
-            ripple.animateTo(1f, tween(900, easing = AzMotion.EaseOutEmphasized))
+            ripple.animateTo(1f, tween(900, easing = ObMotion.EaseOutEmphasized))
         }
     }
     LaunchedEffect(state.laps.size) { rippleStrength.floatValue = if (state.laps.isEmpty()) 1f else 0.6f }
@@ -230,7 +230,7 @@ private fun StopwatchDial(state: StopwatchState, elapsedMs: Long, modifier: Modi
             }
             Row(Modifier.height(22.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (caption != null) {
-                    val style = AlarmzyTheme.typography.label.copy(letterSpacing = 0.1.em)
+                    val style = ObsidianTheme.typography.label.copy(letterSpacing = 0.1.em)
                     Text(caption.first, style = style, color = colors.textSecondary.copy(alpha = 0.7f))
                     Text("  •  ", style = style, color = colors.textSecondary.copy(alpha = 0.7f))
                     Text(
@@ -347,7 +347,7 @@ private fun Controls(state: StopwatchState, onIntent: (StopwatchIntent) -> Unit,
         ) {
             val play = rememberVectorPainter(Icons.Rounded.PlayArrow)
             when (mode) {
-                0 -> ClockActionButton(
+                0 -> ActionPillButton(
                     text = "Start",
                     icon = play,
                     primary = true,
@@ -355,13 +355,13 @@ private fun Controls(state: StopwatchState, onIntent: (StopwatchIntent) -> Unit,
                     modifier = Modifier.width(192.dp)
                 )
                 1 -> {
-                    ClockActionButton(
+                    ActionPillButton(
                         text = "Lap",
                         icon = painterResource(R.drawable.ic_lap),
                         onClick = { onIntent(StopwatchIntent.Lap) },
                         modifier = Modifier.weight(1f)
                     )
-                    ClockActionButton(
+                    ActionPillButton(
                         text = "Pause",
                         icon = painterResource(R.drawable.ic_pause),
                         primary = true,
@@ -370,13 +370,13 @@ private fun Controls(state: StopwatchState, onIntent: (StopwatchIntent) -> Unit,
                     )
                 }
                 else -> {
-                    ClockActionButton(
+                    ActionPillButton(
                         text = "Reset",
                         icon = rememberVectorPainter(Icons.Rounded.Replay),
                         onClick = { onIntent(StopwatchIntent.Reset) },
                         modifier = Modifier.weight(1f)
                     )
-                    ClockActionButton(
+                    ActionPillButton(
                         text = "Resume",
                         icon = play,
                         primary = true,
@@ -391,7 +391,7 @@ private fun Controls(state: StopwatchState, onIntent: (StopwatchIntent) -> Unit,
 
 @Composable
 private fun EmptyLaps(running: Boolean, modifier: Modifier = Modifier) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     Column(
         modifier.fillMaxWidth().padding(top = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -409,13 +409,13 @@ private fun EmptyLaps(running: Boolean, modifier: Modifier = Modifier) {
         Spacer(Modifier.height(12.dp))
         Text(
             "No laps recorded",
-            style = AlarmzyTheme.typography.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium),
+            style = ObsidianTheme.typography.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium),
             color = colors.textSecondary
         )
         Spacer(Modifier.height(4.dp))
         Text(
             if (running) "Tap Lap to record a split" else "Press Start to begin timing",
-            style = AlarmzyTheme.typography.label.copy(fontSize = 11.sp, fontWeight = FontWeight.Normal, letterSpacing = 0.sp),
+            style = ObsidianTheme.typography.label.copy(fontSize = 11.sp, fontWeight = FontWeight.Normal, letterSpacing = 0.sp),
             color = colors.textTertiary
         )
     }
@@ -426,8 +426,8 @@ private val LapOverallWidth: Dp = 80.dp
 
 @Composable
 private fun LapsHeader(modifier: Modifier = Modifier) {
-    val style = AlarmzyTheme.typography.caption.copy(fontSize = 11.sp, letterSpacing = 0.05.em)
-    val color = AlarmzyTheme.colors.textTertiary
+    val style = ObsidianTheme.typography.caption.copy(fontSize = 11.sp, letterSpacing = 0.05.em)
+    val color = ObsidianTheme.colors.textTertiary
     Row(modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 6.dp)) {
         Text("LAP", style = style, color = color, modifier = Modifier.width(LapNumberWidth))
         Text("LAP SPLIT", style = style, color = color, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
@@ -444,9 +444,9 @@ private fun LapRow(
     splitColor: Color,
     modifier: Modifier = Modifier,
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val shape = RoundedCornerShape(12.dp)
-    val base = AlarmzyTheme.typography.body.copy(fontSize = 13.sp, fontFeatureSettings = Tnum, letterSpacing = (-0.3).sp)
+    val base = ObsidianTheme.typography.body.copy(fontSize = 13.sp, fontFeatureSettings = Tnum, letterSpacing = (-0.3).sp)
     Row(
         modifier = modifier
             .fillMaxWidth()

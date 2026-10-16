@@ -59,32 +59,32 @@ import dev.redfox.alarmzy.domain.model.Alarm
 import dev.redfox.alarmzy.domain.model.GroupIcon
 import dev.redfox.alarmzy.presentation.alarmedit.BottomActionBar
 import dev.redfox.alarmzy.presentation.common.clockTime
-import dev.redfox.alarmzy.ui.components.AzAlertDialog
-import dev.redfox.alarmzy.ui.components.AzCheckbox
-import dev.redfox.alarmzy.ui.components.AzDropdownMenu
-import dev.redfox.alarmzy.ui.components.AzMenuItem
-import dev.redfox.alarmzy.ui.components.AzShapes
-import dev.redfox.alarmzy.ui.components.DetailHeader
-import dev.redfox.alarmzy.ui.components.DetailHeaderHeight
+import dev.redfox.obsidian.components.ObAlertDialog
+import dev.redfox.obsidian.components.ObCheckbox
+import dev.redfox.obsidian.components.ObDropdownMenu
+import dev.redfox.obsidian.components.ObMenuItem
+import dev.redfox.obsidian.theme.ObShapes
+import dev.redfox.obsidian.components.DetailHeader
+import dev.redfox.obsidian.components.DetailHeaderHeight
 import dev.redfox.alarmzy.ui.components.GroupColorSwatches
-import dev.redfox.alarmzy.ui.components.HeaderIconButton
-import dev.redfox.alarmzy.ui.components.PrimaryButton
-import dev.redfox.alarmzy.ui.components.ScreenGutter
-import dev.redfox.alarmzy.ui.components.SectionLabel
+import dev.redfox.obsidian.components.HeaderIconButton
+import dev.redfox.obsidian.components.PrimaryButton
+import dev.redfox.obsidian.theme.ScreenGutter
+import dev.redfox.obsidian.components.SectionLabel
 import dev.redfox.alarmzy.ui.components.drawableRes
-import dev.redfox.alarmzy.ui.components.glassSource
-import dev.redfox.alarmzy.ui.components.glow
+import dev.redfox.obsidian.effects.glassSource
+import dev.redfox.obsidian.effects.glow
 import dev.redfox.alarmzy.ui.components.parseGroupColor
-import dev.redfox.alarmzy.ui.components.pressable
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
-import dev.redfox.alarmzy.ui.components.RevealColumn
-import dev.redfox.alarmzy.ui.components.popOnSelect
+import dev.redfox.obsidian.effects.pressable
+import dev.redfox.obsidian.theme.ObsidianTheme
+import dev.redfox.obsidian.motion.RevealColumn
+import dev.redfox.obsidian.motion.popOnSelect
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import dev.redfox.alarmzy.ui.components.AzCard
-import dev.redfox.alarmzy.ui.components.AzListRow
-import dev.redfox.alarmzy.ui.components.PillButton
-import dev.redfox.alarmzy.ui.components.ExpandEnter
-import dev.redfox.alarmzy.ui.components.CollapseExit
+import dev.redfox.obsidian.components.ObCard
+import dev.redfox.obsidian.components.ObListRow
+import dev.redfox.obsidian.components.PillButton
+import dev.redfox.obsidian.motion.ExpandEnter
+import dev.redfox.obsidian.motion.CollapseExit
 import androidx.compose.foundation.layout.PaddingValues
 
 @Composable
@@ -95,8 +95,8 @@ fun GroupEditScreen(
     modifier: Modifier = Modifier,
     onPickRingtone: () -> Unit = {},
 ) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     var showDeleteDialog by remember { mutableStateOf(false) }
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + DetailHeaderHeight
 
@@ -197,8 +197,8 @@ fun GroupEditScreen(
                 var menuOpen by remember { mutableStateOf(false) }
                 Box {
                     HeaderIconButton(R.drawable.ic_more_vert, "Group options", onClick = { menuOpen = true })
-                    AzDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        AzMenuItem(
+                    ObDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        ObMenuItem(
                             text = "Delete group",
                             color = colors.accentLight,
                             onClick = {
@@ -222,7 +222,7 @@ fun GroupEditScreen(
     }
 
     if (showDeleteDialog) {
-        AzAlertDialog(
+        ObAlertDialog(
             title = "Delete group?",
             text = "The group will be deleted. Its alarms will be kept and ungrouped.",
             confirmLabel = "Delete",
@@ -239,15 +239,15 @@ fun GroupEditScreen(
 @Composable
 private fun NameField(name: String, onNameChange: (String) -> Unit) {
     val focusManager = LocalFocusManager.current
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp)
-            .clip(AzShapes.Card)
+            .clip(ObShapes.Card)
             .background(colors.cardInner)
-            .border(1.dp, colors.borderStrong, AzShapes.Card)
+            .border(1.dp, colors.borderStrong, ObShapes.Card)
             .padding(start = 17.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -287,7 +287,7 @@ private const val GridColumns = 6
 
 @Composable
 private fun IconGrid(selected: GroupIcon?, tint: Color, onSelect: (GroupIcon?) -> Unit) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val gap = 10.dp
         val cell = (maxWidth - gap * (GridColumns - 1)) / GridColumns
@@ -302,12 +302,12 @@ private fun IconGrid(selected: GroupIcon?, tint: Color, onSelect: (GroupIcon?) -
                                 modifier = Modifier
                                     .semantics { contentDescription = icon.label }
                                     .popOnSelect(isSel, amount = 0.12f)
-                                    .then(if (isSel) Modifier.glow(tint.copy(alpha = 0.25f), AzShapes.Tile, radius = 12.dp, offsetY = 6.dp) else Modifier)
+                                    .then(if (isSel) Modifier.glow(tint.copy(alpha = 0.25f), ObShapes.Tile, radius = 12.dp, offsetY = 6.dp) else Modifier)
                                     .pressable(pressedScale = 0.88f, role = Role.RadioButton, haptic = HapticFeedbackType.SegmentTick) { onSelect(if (isSel) null else icon) }
                                     .size(cell)
-                                    .clip(AzShapes.Tile)
+                                    .clip(ObShapes.Tile)
                                     .background(if (isSel) colors.tile else colors.cardInner)
-                                    .border(if (isSel) 2.dp else 1.dp, border, AzShapes.Tile),
+                                    .border(if (isSel) 2.dp else 1.dp, border, ObShapes.Tile),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -384,8 +384,8 @@ private fun AlarmSelectionItem(
     isSelected: Boolean,
     onToggle: () -> Unit
 ) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     val time = alarm.clockTime
     val inOtherGroup = alarm.groupId != null && alarm.groupId != editingGroupId
     val membership = when {
@@ -398,13 +398,13 @@ private fun AlarmSelectionItem(
         modifier = Modifier
             .fillMaxWidth()
             .pressable(pressedScale = 0.985f, role = Role.Checkbox, onClick = onToggle)
-            .clip(AzShapes.Card)
+            .clip(ObShapes.Card)
             .background(if (isSelected) colors.cardInner else colors.cardInner.copy(alpha = 0.7f))
-            .border(1.dp, if (isSelected) colors.borderStrong else colors.border, AzShapes.Card)
+            .border(1.dp, if (isSelected) colors.borderStrong else colors.border, ObShapes.Card)
             .padding(15.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AzCheckbox(checked = isSelected, onCheckedChange = { onToggle() })
+        ObCheckbox(checked = isSelected, onCheckedChange = { onToggle() })
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Row {
@@ -460,10 +460,10 @@ private fun AlarmSelectionItem(
  */
 @Composable
 private fun GroupRingtoneCard(uiState: GroupEditUiState, onPick: () -> Unit, onUseSettings: () -> Unit) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val custom = uiState.ringtoneUri != null
-    AzCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
-        AzListRow(
+    ObCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
+        ObListRow(
             title = if (custom) uiState.ringtoneName ?: "Default" else uiState.settingsRingtoneName,
             subtitle = if (custom) "Only for this group" else "Same as Settings",
             icon = R.drawable.ic_bell,

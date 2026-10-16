@@ -1,4 +1,4 @@
-package dev.redfox.alarmzy.ui.components
+package dev.redfox.obsidian.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -26,7 +26,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.obsidian.theme.ObsidianTheme
+import dev.redfox.obsidian.effects.ObGlows
+import dev.redfox.obsidian.effects.glow
+import dev.redfox.obsidian.motion.ObMotion
 
 enum class SwitchSize(val width: Dp, val height: Dp, val thumb: Dp, val padding: Dp) {
     /** Alarm cards and group headers (52×30). */
@@ -42,7 +45,7 @@ enum class SwitchSize(val width: Dp, val height: Dp, val thumb: Dp, val padding:
  * when off. [showDot] adds the small accent dot in the thumb used on the alarm list cards.
  */
 @Composable
-fun AlarmzySwitch(
+fun ObSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -50,13 +53,13 @@ fun AlarmzySwitch(
     showDot: Boolean = false,
     enabled: Boolean = true,
 ) {
-    val colors = AlarmzyTheme.colors
+    val colors = ObsidianTheme.colors
     val haptics = LocalHapticFeedback.current
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val track by animateColorAsState(if (checked) colors.accent else colors.switchTrackOff, AzMotion.snappy(), label = "track")
-    val thumb by animateColorAsState(if (checked) Color.White else colors.switchThumbOff, AzMotion.snappy(), label = "thumb")
-    val glowAlpha by animateFloatAsState(if (checked) 0.35f else 0f, AzMotion.gentle(), label = "glow")
+    val track by animateColorAsState(if (checked) colors.accent else colors.switchTrackOff, ObMotion.snappy(), label = "track")
+    val thumb by animateColorAsState(if (checked) Color.White else colors.switchThumbOff, ObMotion.snappy(), label = "thumb")
+    val glowAlpha by animateFloatAsState(if (checked) 1f else 0f, ObMotion.gentle(), label = "glow")
     val travel = size.width - size.thumb - size.padding * 2
     // iOS-style squish: the thumb stretches while held, then snaps across with a little bounce.
     val stretch by animateDpAsState(
@@ -71,13 +74,13 @@ fun AlarmzySwitch(
     )
     val dotScale by animateFloatAsState(
         targetValue = if (showDot && checked) 1f else 0f,
-        animationSpec = AzMotion.bouncy(),
+        animationSpec = ObMotion.bouncy(),
         label = "dot"
     )
 
     Box(
         modifier = modifier
-            .glow(colors.accent.copy(alpha = glowAlpha), CircleShape, radius = 6.dp)
+            .glow(colors.accent.copy(alpha = glowAlpha), CircleShape, ObGlows.Switch)
             .size(size.width, size.height)
             .clip(CircleShape)
             .background(track)

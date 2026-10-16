@@ -53,24 +53,24 @@ import dev.redfox.alarmzy.presentation.common.clockTime
 import dev.redfox.alarmzy.presentation.common.detailText
 import dev.redfox.alarmzy.presentation.common.relativeDay
 import dev.redfox.alarmzy.presentation.livealerts.LiveAlertsHomePrompt
-import dev.redfox.alarmzy.presentation.navigation.floatingNavClearance
-import dev.redfox.alarmzy.ui.components.AlarmzySwitch
-import dev.redfox.alarmzy.ui.components.AzAlertDialog
-import dev.redfox.alarmzy.ui.components.AzCheckbox
-import dev.redfox.alarmzy.ui.components.AzDropdownMenu
-import dev.redfox.alarmzy.ui.components.AzFab
-import dev.redfox.alarmzy.ui.components.AzMenuItem
-import dev.redfox.alarmzy.ui.components.AzShapes
-import dev.redfox.alarmzy.ui.components.EmptyState
-import dev.redfox.alarmzy.ui.components.HeaderIconButton
-import dev.redfox.alarmzy.ui.components.LargeHeader
-import dev.redfox.alarmzy.ui.components.LargeHeaderHeight
-import dev.redfox.alarmzy.ui.components.ScreenGutter
-import dev.redfox.alarmzy.ui.components.SwitchSize
-import dev.redfox.alarmzy.ui.components.glassSource
-import dev.redfox.alarmzy.ui.components.glow
-import dev.redfox.alarmzy.ui.components.pressable
-import dev.redfox.alarmzy.ui.theme.AlarmzyTheme
+import dev.redfox.obsidian.navigation.floatingNavClearance
+import dev.redfox.obsidian.components.ObSwitch
+import dev.redfox.obsidian.components.ObAlertDialog
+import dev.redfox.obsidian.components.ObCheckbox
+import dev.redfox.obsidian.components.ObDropdownMenu
+import dev.redfox.obsidian.components.ObFab
+import dev.redfox.obsidian.components.ObMenuItem
+import dev.redfox.obsidian.theme.ObShapes
+import dev.redfox.obsidian.components.EmptyState
+import dev.redfox.obsidian.components.HeaderIconButton
+import dev.redfox.obsidian.components.LargeHeader
+import dev.redfox.obsidian.components.LargeHeaderHeight
+import dev.redfox.obsidian.theme.ScreenGutter
+import dev.redfox.obsidian.components.SwitchSize
+import dev.redfox.obsidian.effects.glassSource
+import dev.redfox.obsidian.effects.glow
+import dev.redfox.obsidian.effects.pressable
+import dev.redfox.obsidian.theme.ObsidianTheme
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
@@ -84,14 +84,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
-import dev.redfox.alarmzy.ui.components.AzMotion
-import dev.redfox.alarmzy.ui.components.HorizontalReveal
-import dev.redfox.alarmzy.ui.components.revealOnEnter
-import dev.redfox.alarmzy.ui.components.HeaderActionsSwap
-import dev.redfox.alarmzy.ui.components.RollSwap
+import dev.redfox.obsidian.motion.ObMotion
+import dev.redfox.obsidian.motion.HorizontalReveal
+import dev.redfox.obsidian.motion.revealOnEnter
+import dev.redfox.obsidian.motion.HeaderActionsSwap
+import dev.redfox.obsidian.motion.RollSwap
 import androidx.activity.compose.BackHandler
 import dev.redfox.alarmzy.alarm.RingingAlarm
-import dev.redfox.alarmzy.ui.components.ClockActionButton
+import dev.redfox.obsidian.components.ActionPillButton
 import androidx.compose.material.icons.rounded.AlarmOff
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.graphics.Brush
@@ -114,7 +114,7 @@ fun AlarmsScreen(
     val navClearance = floatingNavClearance()
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + LargeHeaderHeight
 
-    Box(modifier.fillMaxSize().background(AlarmzyTheme.colors.background)) {
+    Box(modifier.fillMaxSize().background(ObsidianTheme.colors.background)) {
         when {
             uiState.isLoading -> Unit
             uiState.alarms.isEmpty() -> EmptyState(
@@ -194,15 +194,15 @@ fun AlarmsScreen(
                             "Delete selected",
                             onClick = { showDeleteDialog = true },
                             enabled = uiState.selectedCount > 0,
-                            tint = AlarmzyTheme.colors.accentLight
+                            tint = ObsidianTheme.colors.accentLight
                         )
                         HeaderIconButton(Icons.Rounded.Close, "Exit selection", onClick = { onIntent(AlarmsIntent.ClearSelection) })
                     } else {
                         var menuOpen by remember { mutableStateOf(false) }
                         Box {
                             HeaderIconButton(R.drawable.ic_more_vert, "More options", onClick = { menuOpen = true })
-                            AzDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                                AzMenuItem(
+                            ObDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                ObMenuItem(
                                     text = "Select alarms",
                                     onClick = {
                                         menuOpen = false
@@ -218,13 +218,13 @@ fun AlarmsScreen(
 
         AnimatedVisibility(
             visible = !uiState.selectionMode,
-            enter = scaleIn(AzMotion.bouncy()) + fadeIn(),
-            exit = scaleOut(AzMotion.snappy()) + fadeOut(),
+            enter = scaleIn(ObMotion.bouncy()) + fadeIn(),
+            exit = scaleOut(ObMotion.snappy()) + fadeOut(),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = ScreenGutter, bottom = navClearance + 16.dp)
         ) {
-            AzFab(icon = R.drawable.ic_add, contentDescription = "Add alarm", onClick = onAddAlarm)
+            ObFab(icon = R.drawable.ic_add, contentDescription = "Add alarm", onClick = onAddAlarm)
         }
     }
 
@@ -238,7 +238,7 @@ fun AlarmsScreen(
 
     if (showDeleteDialog) {
         val count = uiState.selectedCount
-        AzAlertDialog(
+        ObAlertDialog(
             title = if (count == 1) "Delete alarm?" else "Delete $count alarms?",
             text = if (count == 1) "This alarm will be permanently deleted."
             else "These $count alarms will be permanently deleted.",
@@ -255,8 +255,8 @@ fun AlarmsScreen(
 
 @Composable
 private fun NextAlarmBanner(alarm: Alarm, modifier: Modifier = Modifier) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     val time = alarm.clockTime
     val day = if (alarm.nextTriggerTimeMillis > 0) relativeDay(alarm.nextTriggerTimeMillis) else null
 
@@ -297,9 +297,9 @@ private fun NextAlarmBanner(alarm: Alarm, modifier: Modifier = Modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(AzShapes.Card)
+                .clip(ObShapes.Card)
                 .background(colors.tile.copy(alpha = 0.8f))
-                .border(1.dp, colors.borderStrong, AzShapes.Card)
+                .border(1.dp, colors.borderStrong, ObShapes.Card)
                 .padding(17.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -360,39 +360,39 @@ private fun AlarmCard(
     onToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     val enabled = alarm.isEnabled
     val time = alarm.clockTime
     val border by animateColorAsState(
         if (isSelected) colors.accentBorder else colors.border.copy(alpha = 0f),
-        AzMotion.snappy(),
+        ObMotion.snappy(),
         label = "cardBorder"
     )
     // Switching an alarm off lets the card sink back instead of snapping grey.
-    val dim by animateFloatAsState(if (enabled || isSelected) 1f else 0.7f, AzMotion.gentle(), label = "cardDim")
+    val dim by animateFloatAsState(if (enabled || isSelected) 1f else 0.7f, ObMotion.gentle(), label = "cardDim")
     val cardBg by animateColorAsState(
         if (enabled) colors.cardGlass else colors.cardInner.copy(alpha = 0.5f),
-        AzMotion.gentle(),
+        ObMotion.gentle(),
         label = "cardBg"
     )
-    val timeColor by animateColorAsState(if (enabled) colors.textPrimary else colors.textSecondary, AzMotion.gentle(), label = "timeColor")
-    val captionColor by animateColorAsState(if (enabled) colors.accentLight else colors.textSecondary, AzMotion.gentle(), label = "captionColor")
+    val timeColor by animateColorAsState(if (enabled) colors.textPrimary else colors.textSecondary, ObMotion.gentle(), label = "timeColor")
+    val captionColor by animateColorAsState(if (enabled) colors.accentLight else colors.textSecondary, ObMotion.gentle(), label = "captionColor")
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .pressable(pressedScale = 0.98f, onLongClick = onLongClick, onClick = onClick)
             .graphicsLayer { alpha = dim; compositingStrategy = CompositingStrategy.ModulateAlpha }
-            .clip(AzShapes.Card)
+            .clip(ObShapes.Card)
             .background(cardBg)
-            .border(1.dp, border, AzShapes.Card)
+            .border(1.dp, border, ObShapes.Card)
             .padding(24.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         HorizontalReveal(visible = selectionMode) {
             Row {
-                AzCheckbox(checked = isSelected, onCheckedChange = { onClick() })
+                ObCheckbox(checked = isSelected, onCheckedChange = { onClick() })
                 Spacer(Modifier.width(16.dp))
             }
         }
@@ -432,7 +432,7 @@ private fun AlarmCard(
         HorizontalReveal(visible = !selectionMode) {
             Row {
                 Spacer(Modifier.width(12.dp))
-                AlarmzySwitch(
+                ObSwitch(
                     checked = enabled,
                     onCheckedChange = onToggle,
                     size = SwitchSize.Large,
@@ -454,11 +454,11 @@ private fun RingingNowCard(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = AlarmzyTheme.colors
-    val type = AlarmzyTheme.typography
+    val colors = ObsidianTheme.colors
+    val type = ObsidianTheme.typography
     val digits = alarm.time.substringBeforeLast(' ', alarm.time)
     val meridiem = alarm.time.substringAfterLast(' ', "").takeIf { it != alarm.time }.orEmpty()
-    val shape = AzShapes.CardLarge
+    val shape = ObShapes.CardLarge
 
     val ambient = rememberInfiniteTransition(label = "ringingCard")
     val throb by ambient.animateFloat(
@@ -554,13 +554,13 @@ private fun RingingNowCard(
         }
         Spacer(Modifier.height(18.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ClockActionButton(
+            ActionPillButton(
                 text = "Snooze",
                 icon = painterResource(R.drawable.ic_snooze),
                 onClick = onSnooze,
                 modifier = Modifier.weight(1f)
             )
-            ClockActionButton(
+            ActionPillButton(
                 text = "Dismiss",
                 icon = rememberVectorPainter(Icons.Rounded.AlarmOff),
                 primary = true,
