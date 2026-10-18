@@ -5,10 +5,8 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dev.redfox.alarmzy.data.repository.AlarmRepositoryImpl
-import dev.redfox.alarmzy.data.repository.BillingRepositoryImpl
 import dev.redfox.alarmzy.data.repository.GroupRepositoryImpl
 import dev.redfox.alarmzy.domain.repository.AlarmRepository
-import dev.redfox.alarmzy.domain.repository.BillingRepository
 import dev.redfox.alarmzy.domain.repository.GroupRepository
 import javax.inject.Singleton
 
@@ -23,8 +21,4 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindGroupRepository(impl: GroupRepositoryImpl): GroupRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindBillingRepository(impl: BillingRepositoryImpl): BillingRepository
 }

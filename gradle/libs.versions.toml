@@ -14,11 +14,11 @@ hiltNavigationCompose = "1.2.0"
 navigationCompose = "2.9.0"
 datastore = "1.1.7"
 ksp = "2.2.10-2.0.2"
-billing = "9.1.0"
 appUpdate = "2.1.0"
 coil = "3.3.0"
 # 1.7.2 is the newest Haze built against Compose 1.10 / Kotlin 2.2 (2.x needs Compose 1.12 + Kotlin 2.4).
 haze = "1.7.2"
+obsidian = "2.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -54,7 +54,6 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 # Billing
-billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billing" }
 play-app-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "appUpdate" }
 
 # Coil
@@ -62,6 +61,9 @@ coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref 
 
 # Haze (backdrop blur)
 haze = { group = "dev.chrisbanes.haze", name = "haze", version.ref = "haze" }
+
+# Obsidian design system (github.com/Redfox-OSS/obsidian)
+obsidian = { group = "dev.redfox", name = "obsidian", version.ref = "obsidian" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

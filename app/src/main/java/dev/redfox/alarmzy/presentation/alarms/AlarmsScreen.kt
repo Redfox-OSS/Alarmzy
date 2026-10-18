@@ -410,14 +410,14 @@ private fun AlarmCard(
             Row {
                 Text(
                     time.digits,
-                    style = type.timeLarge,
+                    style = type.numericLarge,
                     color = timeColor,
                     modifier = Modifier.alignByBaseline()
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
                     time.meridiem,
-                    style = type.meridiem,
+                    style = type.unit,
                     color = colors.textSecondary.copy(alpha = if (enabled) 1f else 0.7f),
                     modifier = Modifier.alignByBaseline()
                 )
@@ -532,13 +532,13 @@ private fun RingingNowCard(
                 Row {
                     Text(
                         digits,
-                        style = type.timeLarge,
+                        style = type.numericLarge,
                         color = colors.textPrimary,
                         modifier = Modifier.alignByBaseline()
                     )
                     if (meridiem.isNotEmpty()) {
                         Spacer(Modifier.width(4.dp))
-                        Text(meridiem, style = type.meridiem, color = colors.textSecondary, modifier = Modifier.alignByBaseline())
+                        Text(meridiem, style = type.unit, color = colors.textSecondary, modifier = Modifier.alignByBaseline())
                     }
                 }
                 if (alarm.label.isNotBlank()) {

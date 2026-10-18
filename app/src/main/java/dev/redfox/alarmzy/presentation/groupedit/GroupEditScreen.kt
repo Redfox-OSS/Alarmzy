@@ -410,7 +410,7 @@ private fun AlarmSelectionItem(
             Row {
                 Text(
                     time.digits,
-                    style = type.timeSmall.copy(fontWeight = FontWeight.Bold),
+                    style = type.numericSmall.copy(fontWeight = FontWeight.Bold),
                     color = if (isSelected) colors.textPrimary else colors.textPrimary.copy(alpha = 0.85f),
                     modifier = Modifier.alignByBaseline()
                 )

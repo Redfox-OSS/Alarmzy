@@ -12,18 +12,16 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.redfox.alarmzy.domain.model.AccentColor
 import dev.redfox.alarmzy.domain.model.DarkVariant
 import dev.redfox.alarmzy.clock.ClockLiveAlerts
-import dev.redfox.alarmzy.domain.repository.BillingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val dataStore: DataStore<Preferences>,
-    private val billingRepository: BillingRepository,
     private val clockLiveAlerts: ClockLiveAlerts,
 ) : ViewModel() {
 
@@ -32,10 +30,7 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            combine(
-                dataStore.data,
-                billingRepository.isProUnlocked()
-            ) { prefs, isPro ->
+            dataStore.data.map { prefs ->
                 SettingsUiState(
                     darkVariant = DarkVariant.fromName(prefs[KEY_DARK_VARIANT]),
                     accentColor = AccentColor.fromName(prefs[KEY_ACCENT_COLOR]),
@@ -44,7 +39,6 @@ class SettingsViewModel @Inject constructor(
                     defaultSnoozeDuration = prefs[KEY_DEFAULT_SNOOZE] ?: 5,
                     defaultVibration = prefs[KEY_DEFAULT_VIBRATION] ?: true,
                     defaultGradualVolume = prefs[KEY_DEFAULT_GRADUAL_VOLUME] ?: false,
-                    isPro = isPro
                 )
             }.collect { state ->
                 _uiState.value = state

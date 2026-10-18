@@ -19,7 +19,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavController
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -45,7 +44,6 @@ import dev.redfox.alarmzy.presentation.groupedit.GroupEditSideEffect
 import dev.redfox.alarmzy.presentation.groupedit.GroupEditViewModel
 import dev.redfox.alarmzy.presentation.groups.GroupsScreen
 import dev.redfox.alarmzy.presentation.groups.GroupsViewModel
-import dev.redfox.alarmzy.presentation.paywall.PaywallBottomSheet
 import dev.redfox.alarmzy.presentation.ringtone.RingtonePickerScreen
 import dev.redfox.alarmzy.presentation.ringtone.RingtonePickerSideEffect
 import dev.redfox.alarmzy.presentation.ringtone.RingtonePickerViewModel
@@ -143,21 +141,13 @@ fun AlarmzyNavHost(
         screen(BottomNavScreen.Groups.route) {
             val viewModel: GroupsViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-            var showPaywall by remember { mutableStateOf(false) }
 
             GroupsScreen(
                 uiState = uiState,
                 onIntent = viewModel::onIntent,
-                onAddGroup = {
-                    if (uiState.canCreateGroup) navController.navigate(Routes.GROUP_EDIT)
-                    else showPaywall = true
-                },
+                onAddGroup = { navController.navigate(Routes.GROUP_EDIT) },
                 onEditGroup = { groupId -> navController.navigate(Routes.groupEdit(groupId)) }
             )
-
-            if (showPaywall) {
-                PaywallBottomSheet(onDismiss = { showPaywall = false })
-            }
         }
 
         screen(BottomNavScreen.Settings.route) {
@@ -301,14 +291,12 @@ private object RevealPolicy {
 private fun AlarmEditDestination(navController: NavHostController) {
     val viewModel: AlarmEditViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showPaywall by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.sideEffect.collect { effect ->
             when (effect) {
                 is AlarmEditSideEffect.Saved,
                 is AlarmEditSideEffect.Deleted -> navController.popBackStack()
-                is AlarmEditSideEffect.ShowPaywall -> showPaywall = true
             }
         }
     }
@@ -318,17 +306,12 @@ private fun AlarmEditDestination(navController: NavHostController) {
         onIntent = viewModel::onIntent,
         onNavigateBack = { navController.popBackStack() }
     )
-
-    if (showPaywall) {
-        PaywallBottomSheet(onDismiss = { showPaywall = false })
-    }
 }
 
 @Composable
 private fun GroupEditDestination(navController: NavHostController, entry: NavBackStackEntry) {
     val viewModel: GroupEditViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showPaywall by remember { mutableStateOf(false) }
 
     // Result from the ringtone picker (it writes onto this entry's savedStateHandle).
     val pickedUri by entry.savedStateHandle.getStateFlow<String?>("ringtone_uri", null).collectAsStateWithLifecycle()
@@ -348,7 +331,6 @@ private fun GroupEditDestination(navController: NavHostController, entry: NavBac
             when (effect) {
                 is GroupEditSideEffect.Saved,
                 is GroupEditSideEffect.Deleted -> navController.popBackStack()
-                is GroupEditSideEffect.ShowPaywall -> showPaywall = true
             }
         }
     }
@@ -364,8 +346,4 @@ private fun GroupEditDestination(navController: NavHostController, entry: NavBac
             navController.navigate(Routes.ringtonePicker(uri, name))
         }
     )
-
-    if (showPaywall) {
-        PaywallBottomSheet(onDismiss = { showPaywall = false })
-    }
 }

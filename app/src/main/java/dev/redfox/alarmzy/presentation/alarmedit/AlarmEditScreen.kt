@@ -2,10 +2,8 @@ package dev.redfox.alarmzy.presentation.alarmedit
 
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -38,8 +36,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -135,7 +131,7 @@ fun AlarmEditScreen(
                 SegmentedPill(
                     options = listOf(
                         SegmentOption("Single"),
-                        SegmentOption("Series", trailingIcon = if (uiState.isPro) null else Icons.Rounded.Lock)
+                        SegmentOption("Series")
                     ),
                     selectedIndex = if (uiState.isSeries) 1 else 0,
                     onSelect = { onIntent(AlarmEditIntent.ToggleSeriesMode(it == 1)) },

@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Alarmzy is a standalone Android alarm app whose differentiating feature is **alarm grouping**: users create named groups (Work, Gym, etc.) and a master toggle on each group enables/disables all member alarms at once — cascading the schedule/cancel down to every alarm in the group. Google Clock lacks this; Samsung's clock has it but is device-locked.
 
-Two modules: `:app` (package `dev.redfox.alarmzy`, min SDK 31 / target/compile SDK 36) and the reusable `:obsidian` design-system library.
+One module, `:app` (package `dev.redfox.alarmzy`, min SDK 31 / target/compile SDK 36). The design system comes from the Obsidian library (`dev.redfox:obsidian`, github.com/Redfox-OSS/obsidian).
+
+Alarmzy is free and open source (GPL-3.0): every feature is available to everyone. There is no billing, Pro tier or paywall — don't add feature gates.
 
 ## Commands
 
@@ -21,7 +23,7 @@ Two modules: `:app` (package `dev.redfox.alarmzy`, min SDK 31 / target/compile S
 
 Requires JDK 17+. Dependencies are managed via the version catalog in `gradle/libs.versions.toml` — add libraries there, not with hardcoded versions in `app/build.gradle.kts`. KSP (not kapt) powers Room and Hilt code generation.
 
-Release signing: when the gitignored `keystore.properties` (project root) exists, `release` is signed with the Play **upload key** (`~/Documents/Alarmzy Signing/alarmzy-upload.jks`); without it, it falls back to the debug key so sideload APKs still build. Release builds run **R8** (`isMinifyEnabled` + `isShrinkResources`; APK ~51 MB → ~4 MB) — add keep rules to `app/proguard-rules.pro` if a release-only crash appears (reflection/`valueOf` on renamed classes). `./gradlew assembleRelease -PdebugSigned` builds the shrunk release signed with the debug key so it installs over a debug build for testing. Play uploads use `./gradlew bundleRelease` → `app/build/outputs/bundle/release/app-release.aab`. `BillingRepositoryImpl.FORCE_PRO_ENABLED` must be `false` in any Play build. Pro (`pro_unlock`, one-time) is cached in DataStore `is_pro_unlocked`; the full owned-purchases query (`syncPurchases`: on billing connect, on every `MainActivity.onStart`, and Restore) is authoritative and **revokes** Pro when Play no longer lists a PURCHASED `pro_unlock` (refund/chargeback), but only on an OK billing response — errors never revoke. `onPurchasesUpdated` only grants.
+Release signing: when the gitignored `keystore.properties` (project root) exists, `release` is signed with the Play **upload key** (`~/Documents/Alarmzy Signing/alarmzy-upload.jks`); without it, it falls back to the debug key so sideload APKs still build. Release builds run **R8** (`isMinifyEnabled` + `isShrinkResources`; APK ~51 MB → ~4 MB) — add keep rules to `app/proguard-rules.pro` if a release-only crash appears (reflection/`valueOf` on renamed classes). `./gradlew assembleRelease -PdebugSigned` builds the shrunk release signed with the debug key so it installs over a debug build for testing. Play uploads use `./gradlew bundleRelease` → `app/build/outputs/bundle/release/app-release.aab`.
 
 ## Architecture
 
@@ -44,18 +46,18 @@ Every screen has four files: `XUiState` (immutable data class), `XIntent` (seale
 
 Navigation lives entirely in `presentation/navigation/AlarmzyNavHost.kt` + `Screen.kt` (routes). `MainActivity` hosts the `NavHost` in a `Box` with a floating frosted-glass pill nav (`BottomNavBar`) overlaid at the bottom, shown only on the five `BottomNavScreen` tabs (Alarms, Timer, Stopwatch, Groups, Settings). Tab screens pad their scrolling content by `floatingNavClearance()`. Theme (accent + dark variant) is driven reactively from `SettingsViewModel` at the `MainActivity` level.
 
-### Design system (Obsidian — the `:obsidian` library module, from the Stitch/Figma redesign)
+### Design system (Obsidian)
 
-The design system is a standalone, app-agnostic Compose library in `obsidian/` (package `dev.redfox.obsidian`, full spec in `obsidian/README.md`) so other apps can reuse it. **Keep it free of Alarmzy imports** — app-specific visuals (group icons/swatches in `ui/components/GroupVisuals.kt`) stay in `:app`. Library resources use the `ob_` prefix.
+The look comes from **Obsidian**, a separate open-source Compose library: `dev.redfox:obsidian` from the Maven repository at `https://redfox-oss.github.io/obsidian/maven` (version in `gradle/libs.versions.toml`, source at github.com/Redfox-OSS/obsidian). Its `docs/GUIDE.md` is the full spec, and its catalog app shows every token, component and transition. To change Obsidian itself, work in that repository (or `includeBuild("../obsidian")` locally) — not here. App-specific visuals (group icons/swatches in `ui/components/GroupVisuals.kt`) stay in `:app`.
 
 - **Always dark.** There is no light/system theme. `ui/theme/Theme.kt`'s `AlarmzyTheme(accentColor, darkVariant)` is a thin adapter mapping the persisted domain `AccentColor` / `DarkVariant` onto `ObsidianTheme(ObsidianAccent, ObsidianNeutrals)` — a new accent/ramp needs an entry in both.
-- Read tokens via `ObsidianTheme.colors` / `ObsidianTheme.typography` (`theme/`), **not** `MaterialTheme`. A matching M3 scheme is still installed only so the few stock M3 pieces (dialogs, `DropdownMenu`, `ModalBottomSheet`) blend in. Font is Inter (bundled in the library, `ob_inter_variable.ttf`, OFL license in its `assets/licenses`). Shapes/spacing: `ObShapes`, `ObSpacing`, `ScreenGutter`.
-- Reusable components live in `components/` (`ObCard`, `ObSwitch`, `ChoicePill`, `SegmentedPill`, `ObCheckbox`, `PrimaryButton`, `ActionPillButton`, `ObFab`, `LargeHeader`/`DetailHeader`, `ObDropdownMenu`, `ObAlertDialog`…). Prefer these over stock M3 components. `ObsidianShowcase()` renders every token/component.
-- Icons are vector drawables `res/drawable/ic_*.xml` converted from the Figma (Material Symbols Rounded) and tinted at use. A few glyphs not in the Figma set (delete, select-all, close, lock, play/stop, alarm-off, warning, music library) temporarily use `Icons.Rounded.*`.
-- **Blur/glow** (`effects/`): Haze 1.7.x (not 2.x — that needs Compose 1.12/Kotlin 2.4). One `HazeState` is provided via `LocalHazeState`; screens mark scrolling content with `Modifier.glassSource()` and headers/nav use `Modifier.glassEffect(tint)` as *siblings* (never inside the source). Glows use `Modifier.glow(...)` over Compose's `dropShadow`; prefer the named `ObGlows` presets (`Switch`, `Checkbox`, `Action`, `Fab`, `Cta`, `Halo`, `Ambient`, `Elevation`) and `breathingGlow`/`ambientFloat` for idle heroes.
-- Tactile clicks use `Modifier.pressable { }` (scale-on-press with a bouncy release, no ripple; optional `haptic`).
-- **Motion** lives in `motion/Motion.kt`: `ObMotion` springs (`bouncy`/`snappy`/`gentle`), `revealOnEnter(index)` / `RevealColumn` staggered entrances, `popOnSelect`, `popIn` (dialogs), `RollingText` (odometer digits), `HorizontalReveal`, `ExpandEnter`/`CollapseExit`, `HeaderActionsSwap`. Every nav destination is wrapped in a `RevealScope` by the `screen(...)` helper in `AlarmzyNavHost`; entrances replay on arrival but not when popping back from a detail screen (`RevealPolicy`). Nested sections that should re-animate on expand (group members, custom days, paywall) get their own `RevealScope`. Prefer springs for anything interruptible, and keep per-frame work in `graphicsLayer`/`placeWithLayer` lambdas.
-- `BottomNavBar` wraps the library's `FloatingNavBar` (`navigation/`): one shared "liquid" indicator (spring position, stretch from velocity) and a per-tab `NavIconMotion` (`Shake`/`Flip`/`Press`/`Jelly`/`Turn`). `floatingNavClearance()` comes from the library too.
+- Read tokens via `ObsidianTheme.colors` / `ObsidianTheme.typography`, **not** `MaterialTheme`. Numbers use `numericLarge`/`numericTile`/`numericMedium`/`numericSmall` with `unit` for AM/PM. Shapes/spacing: `ObShapes`, `ObSpacing`, `ScreenGutter`.
+- Prefer Obsidian components (`ObCard`, `ObSwitch`, `ChoicePill`, `SegmentedPill`, `ObCheckbox`, `PrimaryButton`, `ActionPillButton`, `ObFab`, `LargeHeader`/`DetailHeader`, `ObDropdownMenu`, `ObAlertDialog`, `ObSheet`…) over stock M3.
+- Icons are vector drawables `res/drawable/ic_*.xml` (Material Symbols Rounded), tinted at use. A few glyphs (delete, select-all, close, play/stop, alarm-off, warning, music library) temporarily use `Icons.Rounded.*`.
+- **Glass and glow:** one `HazeState` via `LocalHazeState`; scrolling content gets `Modifier.glassSource()`, headers/nav use `Modifier.glassEffect(tint)` as *siblings*. Glows use the `ObGlows` presets, before `clip`.
+- Tactile clicks use `Modifier.pressable { }` (no ripple).
+- **Motion:** `ObMotion` springs, `revealOnEnter(index)` / `RevealColumn`, `popOnSelect`, `popIn`, `RollingText`, `HorizontalReveal`, `ExpandEnter`/`CollapseExit`, `HeaderActionsSwap`. Every nav destination is wrapped in a `RevealScope` by the `screen(...)` helper in `AlarmzyNavHost`; entrances replay on arrival but not when popping back (`RevealPolicy`). Nested sections that re-animate on expand (group members, custom days) get their own `RevealScope`. Keep per-frame work in `graphicsLayer`/`placeWithLayer` lambdas.
+- `BottomNavBar` wraps Obsidian's `FloatingNavBar`: a shared pill halo and a per-tab `NavIconMotion`. Pad tab content by `floatingNavClearance()`.
 
 ### Alarm scheduling & playback engine (`alarm/`)
 

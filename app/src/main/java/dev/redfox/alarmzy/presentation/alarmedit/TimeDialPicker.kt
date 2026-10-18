@@ -92,7 +92,7 @@ fun TimeDialPicker(
             )
             Text(
                 ":",
-                style = ObsidianTheme.typography.timeTile.copy(fontSize = 32.sp),
+                style = ObsidianTheme.typography.numericTile.copy(fontSize = 32.sp),
                 color = ObsidianTheme.colors.textSecondary,
                 modifier = Modifier.padding(horizontal = 10.dp)
             )
@@ -139,7 +139,7 @@ private fun TimeTile(text: String, active: Boolean, description: String, onClick
             .border(1.dp, if (active) colors.accentLight.copy(alpha = 0.4f) else colors.border, shape),
         contentAlignment = Alignment.Center
     ) {
-        RollingText(text, style = ObsidianTheme.typography.timeTile, color = fg)
+        RollingText(text, style = ObsidianTheme.typography.numericTile, color = fg)
     }
 }
 

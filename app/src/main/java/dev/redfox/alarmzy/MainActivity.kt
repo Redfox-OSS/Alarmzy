@@ -54,9 +54,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.ui.unit.dp
-import javax.inject.Inject
-import dev.redfox.alarmzy.domain.repository.BillingRepository
-import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -66,9 +63,6 @@ class MainActivity : ComponentActivity() {
         private set
 
     private lateinit var inAppUpdater: InAppUpdater
-
-    @Inject
-    lateinit var billingRepository: BillingRepository
 
     /** Tab requested by a notification (e.g. the running timer); consumed once navigated. */
     private var pendingTab by mutableStateOf<String?>(null)
@@ -168,12 +162,6 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         intent.getStringExtra(TimerNotifications.EXTRA_OPEN_TAB)?.let { pendingTab = it }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        // Re-check Play purchases each time the app comes forward, so a refunded Pro is revoked.
-        lifecycleScope.launch { runCatching { billingRepository.restorePurchases() } }
     }
 
     override fun onResume() {

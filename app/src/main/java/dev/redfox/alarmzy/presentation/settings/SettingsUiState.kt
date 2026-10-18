@@ -10,6 +10,5 @@ data class SettingsUiState(
     val defaultRingtoneName: String = "Default",
     val defaultSnoozeDuration: Int = 5,
     val defaultVibration: Boolean = true,
-    val defaultGradualVolume: Boolean = false,
-    val isPro: Boolean = false
+    val defaultGradualVolume: Boolean = false
 )

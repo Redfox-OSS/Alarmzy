@@ -19,9 +19,12 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Obsidian design system, published from github.com/Redfox-OSS/obsidian.
+        maven("https://redfox-oss.github.io/obsidian/maven") {
+            content { includeGroup("dev.redfox") }
+        }
     }
 }
 
 rootProject.name = "Alarmzy"
 include(":app")
-include(":obsidian")

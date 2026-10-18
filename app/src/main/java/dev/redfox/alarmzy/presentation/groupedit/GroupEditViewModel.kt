@@ -5,9 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.redfox.alarmzy.domain.model.AlarmGroup
-import dev.redfox.alarmzy.domain.model.FreemiumLimits
 import dev.redfox.alarmzy.domain.repository.AlarmRepository
-import dev.redfox.alarmzy.domain.repository.BillingRepository
 import dev.redfox.alarmzy.domain.repository.GroupRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +24,6 @@ class GroupEditViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val groupRepository: GroupRepository,
     private val alarmRepository: AlarmRepository,
-    private val billingRepository: BillingRepository,
     private val dataStore: DataStore<Preferences>
 ) : ViewModel() {
 
@@ -109,20 +106,6 @@ class GroupEditViewModel @Inject constructor(
         if (state.name.isBlank()) return
 
         viewModelScope.launch {
-            val isPro = billingRepository.isProUnlocked().first()
-
-            if (state.isNew && !isPro) {
-                val existingGroupCount = groupRepository.getAllGroups().first().size
-                if (existingGroupCount >= FreemiumLimits.FREE_GROUP_LIMIT) {
-                    _sideEffect.send(GroupEditSideEffect.ShowPaywall)
-                    return@launch
-                }
-            }
-            if (!isPro && state.selectedAlarmIds.size > FreemiumLimits.FREE_ALARMS_PER_GROUP_LIMIT) {
-                _sideEffect.send(GroupEditSideEffect.ShowPaywall)
-                return@launch
-            }
-
             _uiState.value = state.copy(isSaving = true)
             val group = AlarmGroup(
                 id = if (state.isNew) 0 else groupId ?: 0,

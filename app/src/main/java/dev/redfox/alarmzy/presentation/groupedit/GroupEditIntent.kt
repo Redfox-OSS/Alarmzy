@@ -17,5 +17,4 @@ sealed interface GroupEditIntent {
 sealed interface GroupEditSideEffect {
     data object Saved : GroupEditSideEffect
     data object Deleted : GroupEditSideEffect
-    data object ShowPaywall : GroupEditSideEffect
 }

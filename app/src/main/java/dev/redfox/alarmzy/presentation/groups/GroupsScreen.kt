@@ -399,7 +399,7 @@ private fun GroupAlarmRow(alarm: Alarm, onToggle: (Boolean) -> Unit, modifier: M
         Row(Modifier.weight(1f)) {
             Text(
                 time.digits,
-                style = type.timeMedium,
+                style = type.numericMedium,
                 color = if (alarm.isEnabled) colors.textPrimary else colors.textSecondary,
                 modifier = Modifier.alignByBaseline()
             )

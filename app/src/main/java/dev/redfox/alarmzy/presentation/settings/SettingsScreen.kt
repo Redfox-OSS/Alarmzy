@@ -1,12 +1,7 @@
 package dev.redfox.alarmzy.presentation.settings
 
-import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -58,13 +53,11 @@ import dev.redfox.alarmzy.domain.model.DarkVariant
 import dev.redfox.alarmzy.presentation.livealerts.LiveAlertsSettingsFooter
 import dev.redfox.alarmzy.presentation.livealerts.LiveAlertsSettingsRows
 import dev.redfox.obsidian.navigation.floatingNavClearance
-import dev.redfox.alarmzy.presentation.paywall.PaywallBottomSheet
 import dev.redfox.obsidian.components.ObSwitch
 import dev.redfox.obsidian.components.ObDivider
 import dev.redfox.obsidian.components.ObListRow
 import dev.redfox.obsidian.theme.ObShapes
 import dev.redfox.obsidian.components.ChoicePill
-import dev.redfox.obsidian.components.IconTile
 import dev.redfox.obsidian.components.LargeHeader
 import dev.redfox.obsidian.components.LargeHeaderHeight
 import dev.redfox.obsidian.theme.ScreenGutter
@@ -92,7 +85,6 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val colors = ObsidianTheme.colors
-    var showPaywall by remember { mutableStateOf(false) }
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + LargeHeaderHeight
 
     Box(modifier.fillMaxSize().background(colors.background)) {
@@ -105,10 +97,6 @@ fun SettingsScreen(
                 .padding(top = topInset + 8.dp, bottom = floatingNavClearance() + 24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            SettingsSection("Alarmzy Pro") {
-                ProCard(isPro = uiState.isPro, onUpgrade = { showPaywall = true })
-            }
-
             // Only shown while the overlay permission is missing — nothing actionable once granted.
             if (!overlayPermissionGranted) {
                 SettingsSection("Permissions") {
@@ -222,10 +210,6 @@ fun SettingsScreen(
 
         LargeHeader(title = "Settings", modifier = Modifier.align(Alignment.TopCenter))
     }
-
-    if (showPaywall) {
-        PaywallBottomSheet(onDismiss = { showPaywall = false })
-    }
 }
 
 @Composable
@@ -284,48 +268,6 @@ private fun ExpandChevron(expanded: Boolean) {
         tint = ObsidianTheme.colors.textSecondary,
         modifier = Modifier.rotate(rotation)
     )
-}
-
-@Composable
-private fun ProCard(isPro: Boolean, onUpgrade: () -> Unit) {
-    val colors = ObsidianTheme.colors
-    val type = ObsidianTheme.typography
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (!isPro) Modifier.pressable(onClick = onUpgrade) else Modifier)
-            .clip(ObShapes.CardLarge)
-            .background(colors.card)
-            .border(1.dp, if (isPro) colors.border else colors.accentBorder, ObShapes.CardLarge)
-            .padding(17.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconTile(
-            icon = R.drawable.ic_pro_verified,
-            size = 44.dp,
-            background = colors.accentLight.copy(alpha = 0.2f),
-            tint = colors.accentLight
-        )
-        Spacer(Modifier.width(16.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                if (isPro) "Pro unlocked" else "Unlock Alarmzy Pro",
-                style = type.body.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.28.sp),
-                color = colors.textPrimary
-            )
-            Text(
-                if (isPro) "Thanks for supporting Alarmzy" else "Unlimited groups, unlimited alarms per group, alarm series",
-                style = type.body,
-                color = colors.textSecondary
-            )
-        }
-        Spacer(Modifier.width(12.dp))
-        if (isPro) {
-            Icon(painterResource(R.drawable.ic_pro_badge), contentDescription = null, tint = colors.accentLight)
-        } else {
-            ChevronRight()
-        }
-    }
 }
 
 @Composable

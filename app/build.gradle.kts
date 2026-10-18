@@ -49,7 +49,7 @@ android {
     buildTypes {
         release {
             // R8: shrink, optimise and obfuscate code, then drop unused resources. Library
-            // consumer rules (Room, Hilt, Billing, Play Core, Compose…) cover their own keeps.
+            // consumer rules (Room, Hilt, Play Core, Compose…) cover their own keeps.
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -104,15 +104,13 @@ dependencies {
     // DataStore
     implementation(libs.androidx.datastore.preferences)
 
-    // Billing
-    implementation(libs.billing.ktx)
     implementation(libs.play.app.update.ktx)
 
     // Coil
     implementation(libs.coil.compose)
 
     // Obsidian design system (theme, components, motion, glows)
-    implementation(project(":obsidian"))
+    implementation(libs.obsidian)
 
     // Haze (glass blur behind the header + floating nav bar)
     implementation(libs.haze)

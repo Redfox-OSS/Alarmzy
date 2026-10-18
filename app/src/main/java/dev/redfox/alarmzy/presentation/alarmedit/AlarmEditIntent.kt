@@ -23,5 +23,4 @@ sealed interface AlarmEditIntent {
 sealed interface AlarmEditSideEffect {
     data object Saved : AlarmEditSideEffect
     data object Deleted : AlarmEditSideEffect
-    data object ShowPaywall : AlarmEditSideEffect
 }
