@@ -57,6 +57,11 @@ object ClockWidgetRenderer {
     private const val DIVIDER_WIDTH_EM = 2f / 19f
     private const val DIVIDER_HEIGHT_EM = 18f / 19f
     private const val DIVIDER_ANGLE_DEG = 22f
+    /**
+     * Bold: Be Vietnam Pro Medium's stems are 1.52x Light's (0.114 vs 0.075 em), so the divider
+     * thickens by the same factor and the glyphs switch to their stroke-3 (vs 2) variants.
+     */
+    private const val BOLD_STROKE_SCALE = 1.52f
     /** KWGT's small degree is Be Vietnam Pro's ring "˚", nudged down to sit level with the caps. */
     private const val DEGREE = "\u02DA"
     private const val DEGREE_DROP_EM = 0.065f
@@ -83,16 +88,15 @@ object ClockWidgetRenderer {
         val metrics = context.resources.displayMetrics
         val textSp = BASE_TEXT_SP * config.scale.coerceIn(ClockWidgetConfig.MIN_SCALE, ClockWidgetConfig.MAX_SCALE)
         val textPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, textSp, metrics)
-        val regular = paint(context, R.font.be_vietnam_pro_light, textPx)
-        val timePaint = if (config.boldTime) paint(context, R.font.be_vietnam_pro_medium, textPx) else regular
+        val text = paint(context, if (config.bold) R.font.be_vietnam_pro_medium else R.font.be_vietnam_pro_light, textPx)
         val locale = Locale.getDefault()
 
         val date = DateTimeFormatter.ofPattern("MMMdd", locale).format(now).uppercase(locale)
         val time = DateTimeFormatter.ofPattern(if (config.use24Hour) "HH:mm" else "h:mm", locale).format(now)
-        val line = LineBox(regular, metrics.densityDpi)
-        views.setImageViewBitmap(R.id.widget_date, line.text(date, regular))
-        views.setImageViewBitmap(R.id.widget_sep_date, line.separator(regular))
-        views.setImageViewBitmap(R.id.widget_time, line.text(time, timePaint))
+        val line = LineBox(text, metrics.densityDpi, strokeScale = if (config.bold) BOLD_STROKE_SCALE else 1f)
+        views.setImageViewBitmap(R.id.widget_date, line.text(date, text))
+        views.setImageViewBitmap(R.id.widget_sep_date, line.separator(text))
+        views.setImageViewBitmap(R.id.widget_time, line.text(time, text))
         views.setContentDescription(R.id.widget_date, DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale).format(now))
         views.setContentDescription(R.id.widget_time, DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).format(now))
 
@@ -103,10 +107,10 @@ object ClockWidgetRenderer {
         views.setViewVisibility(R.id.widget_weather, if (showWeather) View.VISIBLE else View.GONE)
         if (showWeather) {
             val temperature = weather?.temperature(config.useFahrenheit)?.toString() ?: "--"
-            views.setImageViewBitmap(R.id.widget_sep_weather, line.separator(regular))
+            views.setImageViewBitmap(R.id.widget_sep_weather, line.separator(text))
             views.setImageViewBitmap(
                 R.id.widget_temp,
-                line.temperature(temperature, regular, weather?.let { context.getDrawable(iconFor(it)) })
+                line.temperature(temperature, text, weather?.let { context.getDrawable(iconFor(it, config.bold)) })
             )
             views.setContentDescription(
                 R.id.widget_temp,
@@ -159,17 +163,23 @@ object ClockWidgetRenderer {
      * cloud-bolt, cloud-snow, cloud-fog, wind) with snowflake for snow grains.
      */
     @DrawableRes
-    fun iconFor(weather: WidgetWeather): Int = when (weather.condition) {
-        WeatherCondition.CLEAR, WeatherCondition.MAINLY_CLEAR ->
-            if (weather.isDay) R.drawable.ic_weather_sun else R.drawable.ic_weather_moon
-        WeatherCondition.PARTLY_CLOUDY, WeatherCondition.OVERCAST -> R.drawable.ic_weather_cloud
-        WeatherCondition.FOG -> R.drawable.ic_weather_cloud_fog
+    fun iconFor(weather: WidgetWeather, bold: Boolean = false): Int = when (weather.condition) {
+        WeatherCondition.CLEAR, WeatherCondition.MAINLY_CLEAR -> when {
+            weather.isDay -> if (bold) R.drawable.ic_weather_sun_bold else R.drawable.ic_weather_sun
+            else -> if (bold) R.drawable.ic_weather_moon_bold else R.drawable.ic_weather_moon
+        }
+        WeatherCondition.PARTLY_CLOUDY, WeatherCondition.OVERCAST ->
+            if (bold) R.drawable.ic_weather_cloud_bold else R.drawable.ic_weather_cloud
+        WeatherCondition.FOG -> if (bold) R.drawable.ic_weather_cloud_fog_bold else R.drawable.ic_weather_cloud_fog
         WeatherCondition.DRIZZLE, WeatherCondition.FREEZING_DRIZZLE, WeatherCondition.RAIN,
-        WeatherCondition.FREEZING_RAIN, WeatherCondition.SHOWERS -> R.drawable.ic_weather_cloud_rain
-        WeatherCondition.SNOW, WeatherCondition.SNOW_SHOWERS -> R.drawable.ic_weather_cloud_snow
-        WeatherCondition.SNOW_GRAINS -> R.drawable.ic_weather_snowflake
-        WeatherCondition.THUNDERSTORM, WeatherCondition.THUNDERSTORM_HAIL -> R.drawable.ic_weather_cloud_bolt
-        WeatherCondition.WINDY -> R.drawable.ic_weather_wind
+        WeatherCondition.FREEZING_RAIN, WeatherCondition.SHOWERS ->
+            if (bold) R.drawable.ic_weather_cloud_rain_bold else R.drawable.ic_weather_cloud_rain
+        WeatherCondition.SNOW, WeatherCondition.SNOW_SHOWERS ->
+            if (bold) R.drawable.ic_weather_cloud_snow_bold else R.drawable.ic_weather_cloud_snow
+        WeatherCondition.SNOW_GRAINS -> if (bold) R.drawable.ic_weather_snowflake_bold else R.drawable.ic_weather_snowflake
+        WeatherCondition.THUNDERSTORM, WeatherCondition.THUNDERSTORM_HAIL ->
+            if (bold) R.drawable.ic_weather_cloud_bolt_bold else R.drawable.ic_weather_cloud_bolt
+        WeatherCondition.WINDY -> if (bold) R.drawable.ic_weather_wind_bold else R.drawable.ic_weather_wind
     }
 
     /**
@@ -179,7 +189,7 @@ object ClockWidgetRenderer {
      * by one with explicit tracking rather than Paint.letterSpacing, whose half-spacing at the
      * ends would leak into those gaps. Bitmap density makes ImageViews show them at true size.
      */
-    private class LineBox(paint: Paint, private val densityDpi: Int) {
+    private class LineBox(paint: Paint, private val densityDpi: Int, private val strokeScale: Float) {
         private val em = paint.textSize
         private val tracking = TRACKING_EM * em
         private val iconBox = ICON_BOX_EM * em
@@ -201,7 +211,7 @@ object ClockWidgetRenderer {
 
         /** The tilted capsule divider, centred on the caps, with [SEPARATOR_GAP_EM] on each side. */
         fun separator(paint: Paint): Bitmap {
-            val barWidth = DIVIDER_WIDTH_EM * em
+            val barWidth = DIVIDER_WIDTH_EM * em * strokeScale
             val barHeight = DIVIDER_HEIGHT_EM * em
             val angle = Math.toRadians(DIVIDER_ANGLE_DEG.toDouble())
             val inkWidth = (barHeight * sin(angle) + barWidth * cos(angle)).toFloat()

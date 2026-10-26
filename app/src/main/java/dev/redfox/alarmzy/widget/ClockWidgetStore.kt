@@ -115,7 +115,7 @@ class ClockWidgetStore @Inject constructor(
             ?.let { name -> WidgetVerticalAlign.entries.firstOrNull { it.name == name } }
             ?: WidgetVerticalAlign.CENTER,
         use24Hour = this[KEY_24_HOUR] ?: true,
-        boldTime = this[KEY_BOLD_TIME] ?: false,
+        bold = this[KEY_BOLD] ?: false,
         showWeather = this[KEY_SHOW_WEATHER] ?: false,
         weatherCity = toCity(),
         useFahrenheit = this[KEY_FAHRENHEIT] ?: false,
@@ -155,7 +155,7 @@ class ClockWidgetStore @Inject constructor(
         this[KEY_H_ALIGN] = config.horizontalAlign.name
         this[KEY_V_ALIGN] = config.verticalAlign.name
         this[KEY_24_HOUR] = config.use24Hour
-        this[KEY_BOLD_TIME] = config.boldTime
+        this[KEY_BOLD] = config.bold
         this[KEY_SHOW_WEATHER] = config.showWeather
         this[KEY_FAHRENHEIT] = config.useFahrenheit
         this[KEY_PROVIDER] = config.weatherProvider.name
@@ -198,7 +198,7 @@ class ClockWidgetStore @Inject constructor(
         private val KEY_H_ALIGN = stringPreferencesKey("widget_h_align")
         private val KEY_V_ALIGN = stringPreferencesKey("widget_v_align")
         private val KEY_24_HOUR = booleanPreferencesKey("widget_24_hour")
-        private val KEY_BOLD_TIME = booleanPreferencesKey("widget_bold_time")
+        private val KEY_BOLD = booleanPreferencesKey("widget_bold")
         private val KEY_SHOW_WEATHER = booleanPreferencesKey("widget_show_weather")
         private val KEY_FAHRENHEIT = booleanPreferencesKey("widget_fahrenheit")
         private val KEY_PROVIDER = stringPreferencesKey("widget_weather_provider")

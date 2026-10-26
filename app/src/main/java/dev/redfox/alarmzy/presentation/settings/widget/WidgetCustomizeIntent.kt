@@ -15,7 +15,7 @@ sealed interface WidgetCustomizeIntent {
     data class SetHorizontalAlign(val align: WidgetHorizontalAlign) : WidgetCustomizeIntent
     data class SetVerticalAlign(val align: WidgetVerticalAlign) : WidgetCustomizeIntent
     data class SetUse24Hour(val use24Hour: Boolean) : WidgetCustomizeIntent
-    data class SetBoldTime(val bold: Boolean) : WidgetCustomizeIntent
+    data class SetBold(val bold: Boolean) : WidgetCustomizeIntent
     data class OpenPicker(val part: WidgetPart) : WidgetCustomizeIntent
     data object ClosePicker : WidgetCustomizeIntent
     data class SetQuery(val query: String) : WidgetCustomizeIntent

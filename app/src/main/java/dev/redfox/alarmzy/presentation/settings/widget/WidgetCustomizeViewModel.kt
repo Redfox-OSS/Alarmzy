@@ -142,7 +142,7 @@ class WidgetCustomizeViewModel @Inject constructor(
             is WidgetCustomizeIntent.SetHorizontalAlign -> save { it.copy(horizontalAlign = intent.align) }
             is WidgetCustomizeIntent.SetVerticalAlign -> save { it.copy(verticalAlign = intent.align) }
             is WidgetCustomizeIntent.SetUse24Hour -> save { it.copy(use24Hour = intent.use24Hour) }
-            is WidgetCustomizeIntent.SetBoldTime -> save { it.copy(boldTime = intent.bold) }
+            is WidgetCustomizeIntent.SetBold -> save { it.copy(bold = intent.bold) }
             is WidgetCustomizeIntent.OpenPicker -> picker.value = PickerState(part = intent.part)
             WidgetCustomizeIntent.ClosePicker -> picker.value = PickerState()
             is WidgetCustomizeIntent.SetQuery -> picker.update { it.copy(query = intent.query) }

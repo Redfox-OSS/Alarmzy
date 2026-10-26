@@ -229,7 +229,7 @@ fun WidgetCustomizeScreen(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionLabel("Time")
+                SectionLabel("Style")
                 ObCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
                     ObListRow(
                         title = "24-hour clock",
@@ -246,14 +246,14 @@ fun WidgetCustomizeScreen(
                     )
                     ObDivider(Modifier.padding(vertical = 12.dp))
                     ObListRow(
-                        title = "Bold time",
-                        subtitle = "Be Vietnam Pro Medium for the hours and minutes",
+                        title = "Bold",
+                        subtitle = "Heavier text, dividers and weather icon",
                         icon = R.drawable.ic_format_paint,
-                        onClick = { onIntent(WidgetCustomizeIntent.SetBoldTime(!config.boldTime)) },
+                        onClick = { onIntent(WidgetCustomizeIntent.SetBold(!config.bold)) },
                         trailing = {
                             ObSwitch(
-                                checked = config.boldTime,
-                                onCheckedChange = { onIntent(WidgetCustomizeIntent.SetBoldTime(it)) },
+                                checked = config.bold,
+                                onCheckedChange = { onIntent(WidgetCustomizeIntent.SetBold(it)) },
                                 size = SwitchSize.Medium
                             )
                         }

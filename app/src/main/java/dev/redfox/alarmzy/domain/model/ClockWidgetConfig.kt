@@ -47,7 +47,8 @@ data class ClockWidgetConfig(
     val horizontalAlign: WidgetHorizontalAlign = WidgetHorizontalAlign.CENTER,
     val verticalAlign: WidgetVerticalAlign = WidgetVerticalAlign.CENTER,
     val use24Hour: Boolean = true,
-    val boldTime: Boolean = false,
+    /** Be Vietnam Pro Medium for the whole line; dividers and glyph strokes thicken to match. */
+    val bold: Boolean = false,
     /** Off by default: weather is the widget's only network use. */
     val showWeather: Boolean = false,
     /** Typed by the user and geocoded once; Alarmzy never reads the device location. */
