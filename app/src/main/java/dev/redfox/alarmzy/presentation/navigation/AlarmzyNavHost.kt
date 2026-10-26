@@ -51,6 +51,8 @@ import dev.redfox.alarmzy.presentation.settings.SettingsIntent
 import dev.redfox.alarmzy.presentation.settings.SettingsScreen
 import dev.redfox.alarmzy.presentation.settings.SettingsViewModel
 import dev.redfox.alarmzy.presentation.settings.customize.AlarmScreenCustomizeScreen
+import dev.redfox.alarmzy.presentation.settings.widget.WidgetCustomizeScreen
+import dev.redfox.alarmzy.presentation.settings.widget.WidgetCustomizeViewModel
 import dev.redfox.alarmzy.presentation.settings.customize.AlarmScreenCustomizeViewModel
 import dev.redfox.alarmzy.presentation.groupedit.GroupEditIntent
 
@@ -184,7 +186,8 @@ fun AlarmzyNavHost(
                         Routes.ringtonePicker(uiState.defaultRingtoneUri, uiState.defaultRingtoneName)
                     )
                 },
-                onCustomizeAlarmScreen = { navController.navigate(Routes.CUSTOMIZE_ALARM_SCREEN) }
+                onCustomizeAlarmScreen = { navController.navigate(Routes.CUSTOMIZE_ALARM_SCREEN) },
+                onCustomizeWidget = { navController.navigate(Routes.CUSTOMIZE_WIDGET) }
             )
         }
 
@@ -248,6 +251,17 @@ fun AlarmzyNavHost(
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
             AlarmScreenCustomizeScreen(
+                uiState = uiState,
+                onIntent = viewModel::onIntent,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        screen(Routes.CUSTOMIZE_WIDGET) {
+            val viewModel: WidgetCustomizeViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+            WidgetCustomizeScreen(
                 uiState = uiState,
                 onIntent = viewModel::onIntent,
                 onNavigateBack = { navController.popBackStack() }

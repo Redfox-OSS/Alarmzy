@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Alarmzy</string>
+    <string name="widget_clock_label">Date &amp; time</string>
+    <string name="widget_clock_description">Date and time in one thin, wide line. Customize it in Alarmzy → Settings → Home-screen widget.</string>
+    <string name="widget_preview_text" translatable="false">OCT27 / 00:02</string>
 </resources>

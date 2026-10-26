@@ -82,6 +82,7 @@ fun SettingsScreen(
     onRequestOverlayPermission: () -> Unit = {},
     onPickRingtone: () -> Unit,
     onCustomizeAlarmScreen: () -> Unit = {},
+    onCustomizeWidget: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val colors = ObsidianTheme.colors
@@ -190,6 +191,18 @@ fun SettingsScreen(
                                 size = SwitchSize.Medium
                             )
                         }
+                    )
+                }
+            }
+
+            SettingsSection("Widget") {
+                SettingsCard {
+                    ObListRow(
+                        title = "Home-screen widget",
+                        subtitle = "Date and time line: size, position, tap actions",
+                        icon = R.drawable.ic_widgets,
+                        onClick = onCustomizeWidget,
+                        trailing = { ChevronRight() }
                     )
                 }
             }

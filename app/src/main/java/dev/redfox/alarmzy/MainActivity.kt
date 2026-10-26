@@ -55,6 +55,9 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
+import dev.redfox.alarmzy.widget.ClockWidgetStore
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -63,6 +66,8 @@ class MainActivity : ComponentActivity() {
         private set
 
     private lateinit var inAppUpdater: InAppUpdater
+
+    @Inject lateinit var clockWidgetStore: ClockWidgetStore
 
     /** Tab requested by a notification (e.g. the running timer); consumed once navigated. */
     private var pendingTab by mutableStateOf<String?>(null)
@@ -82,6 +87,11 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermissionIfNeeded()
         overlayPermissionGranted = Settings.canDrawOverlays(this)
         pendingTab = intent?.getStringExtra(TimerNotifications.EXTRA_OPEN_TAB)
+        // A force-stop cancels the clock widget's minute tick and tap intents; re-arm them.
+        lifecycleScope.launch {
+            clockWidgetStore.refreshWidgets()
+            clockWidgetStore.refreshWeather()
+        }
         setContent {
             val settingsViewModel: SettingsViewModel = hiltViewModel()
             val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()

@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import dev.redfox.alarmzy.clock.StopwatchEngine
 import dev.redfox.alarmzy.clock.TimerEngine
+import dev.redfox.alarmzy.widget.ClockWidgetStore
 
 @AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
@@ -30,6 +31,9 @@ class BootReceiver : BroadcastReceiver() {
     @Inject
     lateinit var stopwatchEngine: StopwatchEngine
 
+    @Inject
+    lateinit var clockWidgetStore: ClockWidgetStore
+
     override fun onReceive(context: Context, intent: Intent) {
         // Also runs after an app update, so alarms are re-armed even if the user never opens the app.
         if (intent.action != Intent.ACTION_BOOT_COMPLETED && intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
@@ -41,6 +45,9 @@ class BootReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                // The clock widget's minute tick is an AlarmManager alarm too.
+                clockWidgetStore.refreshWidgets()
+
                 val enabledAlarms = alarmDao.getAllEnabledAlarms()
                 for (entity in enabledAlarms) {
                     val days = AlarmRepositoryImpl.parseDays(entity.repeatDays)

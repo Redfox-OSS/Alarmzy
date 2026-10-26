@@ -27,6 +27,7 @@ object Routes {
     const val GROUP_EDIT_WITH_ID = "group_edit/{groupId}"
     const val RINGTONE_PICKER = "ringtone_picker?uri={uri}&name={name}"
     const val CUSTOMIZE_ALARM_SCREEN = "customize_alarm_screen"
+    const val CUSTOMIZE_WIDGET = "customize_widget"
 
     fun alarmEdit(alarmId: Long? = null): String =
         if (alarmId != null) "alarm_edit/$alarmId" else ALARM_EDIT
