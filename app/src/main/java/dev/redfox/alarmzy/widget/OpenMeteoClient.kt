@@ -2,6 +2,7 @@ package dev.redfox.alarmzy.widget
 
 import androidx.core.net.toUri
 import dev.redfox.alarmzy.domain.model.WeatherCity
+import dev.redfox.alarmzy.domain.model.WeatherProvider
 import dev.redfox.alarmzy.domain.model.WidgetWeather
 import org.json.JSONObject
 import java.util.Locale
@@ -55,7 +56,8 @@ class OpenMeteoClient @Inject constructor() : WeatherSource {
             val current = JSONObject(body).getJSONObject("current")
             WidgetWeather(
                 temperatureC = current.getDouble("temperature_2m"),
-                weatherCode = current.getInt("weather_code"),
+                source = WeatherProvider.OPEN_METEO,
+                code = current.getInt("weather_code"),
                 windKmh = current.optDouble("wind_speed_10m", 0.0),
                 isDay = current.optInt("is_day", 1) == 1,
                 fetchedAtMillis = System.currentTimeMillis(),

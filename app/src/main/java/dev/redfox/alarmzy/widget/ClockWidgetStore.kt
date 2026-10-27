@@ -141,7 +141,11 @@ class ClockWidgetStore @Inject constructor(
         val temperature = this[KEY_WEATHER_TEMP_C] ?: return null
         return WidgetWeather(
             temperatureC = temperature,
-            weatherCode = this[KEY_WEATHER_CODE] ?: return null,
+            // Readings cached before providers were recorded all came from Open-Meteo / WMO.
+            source = this[KEY_WEATHER_SOURCE]
+                ?.let { name -> WeatherProvider.entries.firstOrNull { it.name == name } }
+                ?: WeatherProvider.OPEN_METEO,
+            code = this[KEY_WEATHER_CODE] ?: return null,
             windKmh = this[KEY_WEATHER_WIND_KMH] ?: 0.0,
             isDay = this[KEY_WEATHER_IS_DAY] ?: true,
             fetchedAtMillis = this[KEY_WEATHER_FETCHED_AT] ?: 0L,
@@ -176,7 +180,8 @@ class ClockWidgetStore @Inject constructor(
 
     private fun MutablePreferences.writeWeather(weather: WidgetWeather) {
         this[KEY_WEATHER_TEMP_C] = weather.temperatureC
-        this[KEY_WEATHER_CODE] = weather.weatherCode
+        this[KEY_WEATHER_SOURCE] = weather.source.name
+        this[KEY_WEATHER_CODE] = weather.code
         this[KEY_WEATHER_WIND_KMH] = weather.windKmh
         this[KEY_WEATHER_IS_DAY] = weather.isDay
         this[KEY_WEATHER_FETCHED_AT] = weather.fetchedAtMillis
@@ -211,6 +216,7 @@ class ClockWidgetStore @Inject constructor(
         private val KEY_APP_WEATHER = stringPreferencesKey("widget_app_weather")
 
         private val KEY_WEATHER_TEMP_C = doublePreferencesKey("widget_weather_temp_c")
+        private val KEY_WEATHER_SOURCE = stringPreferencesKey("widget_weather_source")
         private val KEY_WEATHER_CODE = intPreferencesKey("widget_weather_code")
         private val KEY_WEATHER_WIND_KMH = doublePreferencesKey("widget_weather_wind_kmh")
         private val KEY_WEATHER_IS_DAY = booleanPreferencesKey("widget_weather_is_day")

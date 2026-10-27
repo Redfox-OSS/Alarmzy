@@ -160,26 +160,33 @@ object ClockWidgetRenderer {
 
     /**
      * The Tabler glyph for [weather], following the KWGT formula (sun/moon, cloud, cloud-rain,
-     * cloud-bolt, cloud-snow, cloud-fog, wind) with snowflake for snow grains.
+     * cloud-bolt, cloud-snow, cloud-fog, wind) plus the finer conditions only OpenWeather reports
+     * (mist, haze-like particulates, tornado). [bold] picks the stroke-3 variants.
      */
     @DrawableRes
-    fun iconFor(weather: WidgetWeather, bold: Boolean = false): Int = when (weather.condition) {
-        WeatherCondition.CLEAR, WeatherCondition.MAINLY_CLEAR -> when {
-            weather.isDay -> if (bold) R.drawable.ic_weather_sun_bold else R.drawable.ic_weather_sun
-            else -> if (bold) R.drawable.ic_weather_moon_bold else R.drawable.ic_weather_moon
+    fun iconFor(weather: WidgetWeather, bold: Boolean = false): Int {
+        val (regular, heavy) = when (weather.condition) {
+            WeatherCondition.CLEAR, WeatherCondition.MAINLY_CLEAR ->
+                if (weather.isDay) R.drawable.ic_weather_sun to R.drawable.ic_weather_sun_bold
+                else R.drawable.ic_weather_moon to R.drawable.ic_weather_moon_bold
+            WeatherCondition.PARTLY_CLOUDY, WeatherCondition.OVERCAST ->
+                R.drawable.ic_weather_cloud to R.drawable.ic_weather_cloud_bold
+            WeatherCondition.FOG -> R.drawable.ic_weather_cloud_fog to R.drawable.ic_weather_cloud_fog_bold
+            WeatherCondition.MIST -> R.drawable.ic_weather_mist to R.drawable.ic_weather_mist_bold
+            WeatherCondition.HAZE, WeatherCondition.SMOKE, WeatherCondition.DUST, WeatherCondition.SAND,
+            WeatherCondition.ASH -> R.drawable.ic_weather_haze to R.drawable.ic_weather_haze_bold
+            WeatherCondition.DRIZZLE, WeatherCondition.FREEZING_DRIZZLE, WeatherCondition.RAIN,
+            WeatherCondition.FREEZING_RAIN, WeatherCondition.SHOWERS ->
+                R.drawable.ic_weather_cloud_rain to R.drawable.ic_weather_cloud_rain_bold
+            WeatherCondition.SLEET, WeatherCondition.RAIN_AND_SNOW, WeatherCondition.SNOW,
+            WeatherCondition.SNOW_SHOWERS -> R.drawable.ic_weather_cloud_snow to R.drawable.ic_weather_cloud_snow_bold
+            WeatherCondition.SNOW_GRAINS -> R.drawable.ic_weather_snowflake to R.drawable.ic_weather_snowflake_bold
+            WeatherCondition.THUNDERSTORM, WeatherCondition.THUNDERSTORM_HAIL ->
+                R.drawable.ic_weather_cloud_bolt to R.drawable.ic_weather_cloud_bolt_bold
+            WeatherCondition.WINDY, WeatherCondition.SQUALLS -> R.drawable.ic_weather_wind to R.drawable.ic_weather_wind_bold
+            WeatherCondition.TORNADO -> R.drawable.ic_weather_tornado to R.drawable.ic_weather_tornado_bold
         }
-        WeatherCondition.PARTLY_CLOUDY, WeatherCondition.OVERCAST ->
-            if (bold) R.drawable.ic_weather_cloud_bold else R.drawable.ic_weather_cloud
-        WeatherCondition.FOG -> if (bold) R.drawable.ic_weather_cloud_fog_bold else R.drawable.ic_weather_cloud_fog
-        WeatherCondition.DRIZZLE, WeatherCondition.FREEZING_DRIZZLE, WeatherCondition.RAIN,
-        WeatherCondition.FREEZING_RAIN, WeatherCondition.SHOWERS ->
-            if (bold) R.drawable.ic_weather_cloud_rain_bold else R.drawable.ic_weather_cloud_rain
-        WeatherCondition.SNOW, WeatherCondition.SNOW_SHOWERS ->
-            if (bold) R.drawable.ic_weather_cloud_snow_bold else R.drawable.ic_weather_cloud_snow
-        WeatherCondition.SNOW_GRAINS -> if (bold) R.drawable.ic_weather_snowflake_bold else R.drawable.ic_weather_snowflake
-        WeatherCondition.THUNDERSTORM, WeatherCondition.THUNDERSTORM_HAIL ->
-            if (bold) R.drawable.ic_weather_cloud_bolt_bold else R.drawable.ic_weather_cloud_bolt
-        WeatherCondition.WINDY -> if (bold) R.drawable.ic_weather_wind_bold else R.drawable.ic_weather_wind
+        return if (bold) heavy else regular
     }
 
     /**

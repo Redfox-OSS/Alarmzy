@@ -2,6 +2,7 @@ package dev.redfox.alarmzy.widget
 
 import androidx.core.net.toUri
 import dev.redfox.alarmzy.domain.model.WeatherCity
+import dev.redfox.alarmzy.domain.model.WeatherProvider
 import dev.redfox.alarmzy.domain.model.WidgetWeather
 import org.json.JSONArray
 import org.json.JSONObject
@@ -11,8 +12,8 @@ import javax.inject.Singleton
 
 /**
  * OpenWeather (openweathermap.org) with the user's own API key ([WeatherKeyStore]). Uses the
- * free-tier endpoints: Geocoding 1.0 and Current Weather 2.5. Its condition ids are translated to
- * WMO codes, so the widget's mapping and glyphs are shared with Open-Meteo.
+ * free-tier endpoints: Geocoding 1.0 and Current Weather 2.5. Condition ids are stored as-is and
+ * mapped by [dev.redfox.alarmzy.domain.model.WeatherCondition.fromOpenWeather].
  */
 @Singleton
 class OpenWeatherClient @Inject constructor(
@@ -35,7 +36,9 @@ class OpenWeatherClient @Inject constructor(
             val condition = json.getJSONArray("weather").getJSONObject(0)
             WidgetWeather(
                 temperatureC = json.getJSONObject("main").getDouble("temp"),
-                weatherCode = toWmo(condition.getInt("id")),
+                // Kept as OpenWeather's own id: it has its own, finer mapping (WeatherCondition).
+                source = WeatherProvider.OPENWEATHER,
+                code = condition.getInt("id"),
                 // OpenWeather reports m/s in metric units.
                 windKmh = (json.optJSONObject("wind")?.optDouble("speed", 0.0) ?: 0.0) * 3.6,
                 // Icon codes end in "d" or "n" ("04d").
@@ -84,28 +87,4 @@ class OpenWeatherClient @Inject constructor(
 
     private fun countryName(code: String): String =
         if (code.isBlank()) "" else Locale("", code).displayCountry.ifBlank { code }
-
-    companion object {
-        /**
-         * OpenWeather condition id → the closest WMO code
-         * (https://openweathermap.org/weather-conditions).
-         */
-        fun toWmo(id: Int): Int = when (id) {
-            in 200..299 -> 95 // thunderstorm
-            in 300..399 -> 53 // drizzle
-            511 -> 66 // freezing rain
-            in 500..504 -> 63 // rain
-            in 520..531 -> 81 // shower rain
-            in 611..613 -> 66 // sleet
-            in 615..616 -> 73 // rain and snow
-            in 620..622 -> 85 // snow showers
-            in 600..699 -> 73 // snow
-            in 700..799 -> 45 // mist, haze, fog, dust…
-            800 -> 0 // clear
-            801 -> 1 // few clouds
-            802 -> 2 // scattered clouds
-            in 803..804 -> 3 // broken / overcast
-            else -> 3
-        }
-    }
 }
