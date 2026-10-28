@@ -64,8 +64,11 @@ object ClockWidgetRenderer {
      * thickens by the same factor and the glyphs switch to their stroke-3 (vs 2) variants.
      */
     private const val BOLD_STROKE_SCALE = 1.52f
-    /** Vertical layout: extra space between stacked lines, on top of each line's own box. */
-    private const val STACK_GAP_EM = 0.4f
+    /**
+     * Vertical layout: the divider capsule laid flat as a short dash between lines, with this much
+     * space above and below it (on top of each line's own box).
+     */
+    private const val DASH_GAP_EM = 0.45f
     /** KWGT's small degree is Be Vietnam Pro's ring "˚", nudged down to sit level with the caps. */
     private const val DEGREE = "\u02DA"
     private const val DEGREE_DROP_EM = 0.065f
@@ -108,10 +111,12 @@ object ClockWidgetRenderer {
 
         views.setInt(R.id.widget_root, "setGravity", gravityOf(config))
         if (stacked) {
-            val gap = STACK_GAP_EM * textPx
-            listOf(R.id.widget_time, R.id.widget_weather).forEach {
-                views.setViewLayoutMargin(it, RemoteViews.MARGIN_TOP, gap, TypedValue.COMPLEX_UNIT_PX)
-            }
+            // Dashes follow the alignment: the weather container aligns its own dash too, and
+            // every bitmap is trimmed to its ink, so dash and text share one visible edge.
+            views.setInt(R.id.widget_weather, "setGravity", gravityOf(config) and Gravity.HORIZONTAL_GRAVITY_MASK)
+            val dash = line.dash(text)
+            views.setImageViewBitmap(R.id.widget_dash_time, dash)
+            views.setImageViewBitmap(R.id.widget_dash_weather, dash)
         }
 
         // Weather needs a city; until the first reading arrives it shows "--°".
@@ -251,6 +256,17 @@ object ClockWidgetRenderer {
                         barWidth / 2, barWidth / 2, paint
                     )
                 }
+            }
+        }
+
+        /** The stacked layout's divider: the capsule laid flat, with [DASH_GAP_EM] above and below. */
+        fun dash(paint: Paint): Bitmap {
+            val length = DIVIDER_HEIGHT_EM * em
+            val thickness = DIVIDER_WIDTH_EM * em * strokeScale
+            val pad = DASH_GAP_EM * em
+            return createBitmap(ceil(length).toInt().coerceAtLeast(1), ceil(pad * 2 + thickness).toInt().coerceAtLeast(1)).apply {
+                density = densityDpi
+                Canvas(this).drawRoundRect(0f, pad, length, pad + thickness, thickness / 2, thickness / 2, paint)
             }
         }
 

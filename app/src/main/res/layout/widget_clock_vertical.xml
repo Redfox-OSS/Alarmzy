@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Stacked variant of widget_clock.xml: date, time and weather one per line, no dividers. Same
-     view ids, so ClockWidgetRenderer fills either; the root's gravity aligns every line. -->
+<!-- Stacked variant of widget_clock.xml: date, time and weather one per line, separated by short
+     dashes. Same view ids, so ClockWidgetRenderer fills either; the root's gravity (and the
+     weather container's) aligns every line and dash to the same edge. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widget_root"
@@ -17,16 +18,30 @@
         android:layout_height="wrap_content" />
 
     <ImageView
+        android:id="@+id/widget_dash_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:importantForAccessibility="no" />
+
+    <ImageView
         android:id="@+id/widget_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
-    <!-- Kept as a container so weather visibility works the same in both layouts. -->
+    <!-- The weather's dash lives inside its container, so it hides along with the weather. -->
     <LinearLayout
         android:id="@+id/widget_weather"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
         android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/widget_dash_weather"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:importantForAccessibility="no" />
 
         <ImageView
             android:id="@+id/widget_temp"
