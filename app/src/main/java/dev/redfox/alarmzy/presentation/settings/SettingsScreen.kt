@@ -199,7 +199,7 @@ fun SettingsScreen(
                 SettingsCard {
                     ObListRow(
                         title = "Home-screen widget",
-                        subtitle = "Date and time line: size, position, tap actions",
+                        subtitle = "Date, time and weather: layout, size, tap actions",
                         icon = R.drawable.ic_widgets,
                         onClick = onCustomizeWidget,
                         trailing = { ChevronRight() }

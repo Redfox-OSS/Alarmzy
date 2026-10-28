@@ -1,8 +1,10 @@
 package dev.redfox.alarmzy.presentation.settings.widget
 
 import dev.redfox.alarmzy.domain.model.WeatherCity
+import dev.redfox.alarmzy.domain.model.WeatherInterval
 import dev.redfox.alarmzy.domain.model.WeatherProvider
 import dev.redfox.alarmzy.domain.model.WidgetHorizontalAlign
+import dev.redfox.alarmzy.domain.model.WidgetLayout
 import dev.redfox.alarmzy.domain.model.WidgetPart
 import dev.redfox.alarmzy.domain.model.WidgetVerticalAlign
 
@@ -12,6 +14,7 @@ sealed interface WidgetCustomizeIntent {
     /** Slider released: persists the scale and updates placed widgets. */
     data object CommitScale : WidgetCustomizeIntent
     data object ResetScale : WidgetCustomizeIntent
+    data class SetLayout(val layout: WidgetLayout) : WidgetCustomizeIntent
     data class SetHorizontalAlign(val align: WidgetHorizontalAlign) : WidgetCustomizeIntent
     data class SetVerticalAlign(val align: WidgetVerticalAlign) : WidgetCustomizeIntent
     data class SetUse24Hour(val use24Hour: Boolean) : WidgetCustomizeIntent
@@ -29,7 +32,9 @@ sealed interface WidgetCustomizeIntent {
     data object CloseCitySearch : WidgetCustomizeIntent
     data class SetCityQuery(val query: String) : WidgetCustomizeIntent
     data class PickCity(val city: WeatherCity) : WidgetCustomizeIntent
+    /** "Update now": fetches immediately, ignoring the interval and the retry back-off. */
     data object RefreshWeather : WidgetCustomizeIntent
+    data class SetWeatherInterval(val interval: WeatherInterval) : WidgetCustomizeIntent
     /** Choosing a key-based provider without a saved key opens the key sheet. */
     data class SetProvider(val provider: WeatherProvider) : WidgetCustomizeIntent
     data object OpenApiKeySheet : WidgetCustomizeIntent

@@ -139,6 +139,7 @@ class WidgetCustomizeViewModel @Inject constructor(
                 }
             }
             WidgetCustomizeIntent.ResetScale -> save { it.copy(scale = ClockWidgetConfig.DEFAULT_SCALE) }
+            is WidgetCustomizeIntent.SetLayout -> save { it.copy(layout = intent.layout) }
             is WidgetCustomizeIntent.SetHorizontalAlign -> save { it.copy(horizontalAlign = intent.align) }
             is WidgetCustomizeIntent.SetVerticalAlign -> save { it.copy(verticalAlign = intent.align) }
             is WidgetCustomizeIntent.SetUse24Hour -> save { it.copy(use24Hour = intent.use24Hour) }
@@ -183,6 +184,11 @@ class WidgetCustomizeViewModel @Inject constructor(
                 }
             }
             WidgetCustomizeIntent.RefreshWeather -> fetchWeather(force = true)
+            // A shorter interval may already make the reading stale: check right away.
+            is WidgetCustomizeIntent.SetWeatherInterval -> viewModelScope.launch {
+                store.update { it.copy(weatherInterval = intent.interval) }
+                fetchWeather(force = false)
+            }
             is WidgetCustomizeIntent.SetProvider -> viewModelScope.launch {
                 store.update { it.copy(weatherProvider = intent.provider) }
                 if (intent.provider.needsApiKey && keyStore.current() == null) {

@@ -7,6 +7,12 @@ enum class WidgetPart(val displayName: String) {
     WEATHER("Weather")
 }
 
+/** How the parts are arranged: one line with dividers, or stacked one per line. */
+enum class WidgetLayout(val displayName: String) {
+    HORIZONTAL("Horizontal"),
+    VERTICAL("Vertical")
+}
+
 enum class WidgetHorizontalAlign(val displayName: String) {
     START("Left"),
     CENTER("Center"),
@@ -27,6 +33,16 @@ enum class WeatherProvider(val displayName: String, val needsApiKey: Boolean) {
     OPENWEATHER("OpenWeather", needsApiKey = true)
 }
 
+/** How often the widget fetches new weather (only while the screen is on). */
+enum class WeatherInterval(val minutes: Int, val displayName: String) {
+    MIN_30(30, "30 min"),
+    HOUR_1(60, "1 hr"),
+    HOURS_2(120, "2 hr"),
+    HOURS_4(240, "4 hr");
+
+    val millis: Long get() = minutes * 60_000L
+}
+
 /** A place picked from the weather provider's city search. */
 data class WeatherCity(
     val name: String,
@@ -44,6 +60,7 @@ data class WeatherCity(
  */
 data class ClockWidgetConfig(
     val scale: Float = DEFAULT_SCALE,
+    val layout: WidgetLayout = WidgetLayout.HORIZONTAL,
     val horizontalAlign: WidgetHorizontalAlign = WidgetHorizontalAlign.CENTER,
     val verticalAlign: WidgetVerticalAlign = WidgetVerticalAlign.CENTER,
     val use24Hour: Boolean = true,
@@ -55,6 +72,7 @@ data class ClockWidgetConfig(
     val weatherCity: WeatherCity? = null,
     val useFahrenheit: Boolean = false,
     val weatherProvider: WeatherProvider = WeatherProvider.OPEN_METEO,
+    val weatherInterval: WeatherInterval = WeatherInterval.MIN_30,
     val dateApp: String? = null,
     val clockApp: String? = null,
     val weatherApp: String? = null

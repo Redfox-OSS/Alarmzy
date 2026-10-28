@@ -58,12 +58,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import dev.redfox.alarmzy.domain.model.WeatherInterval
 import dev.redfox.alarmzy.domain.model.WeatherProvider
 import dev.redfox.alarmzy.widget.WeatherError
 import dev.redfox.obsidian.components.ObTextField
 import dev.redfox.obsidian.components.PrimaryButton
 import dev.redfox.alarmzy.domain.model.ClockWidgetConfig
 import dev.redfox.alarmzy.domain.model.WidgetHorizontalAlign
+import dev.redfox.alarmzy.domain.model.WidgetLayout
 import dev.redfox.alarmzy.domain.model.WidgetPart
 import dev.redfox.alarmzy.domain.model.WidgetVerticalAlign
 import dev.redfox.alarmzy.domain.model.WidgetWeather
@@ -203,6 +205,27 @@ fun WidgetCustomizeScreen(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionLabel("Layout")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    WidgetLayout.entries.forEach { layout ->
+                        ChoicePill(
+                            text = layout.displayName,
+                            selected = layout == config.layout,
+                            onClick = { onIntent(WidgetCustomizeIntent.SetLayout(layout)) }
+                        )
+                    }
+                }
+                if (config.layout == WidgetLayout.VERTICAL) {
+                    Text(
+                        "Date, time and weather on separate lines. Resize the widget taller on your home screen to fit.",
+                        style = type.body,
+                        color = colors.textSecondary,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionLabel("Horizontal position")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     WidgetHorizontalAlign.entries.forEach { align ->
@@ -304,7 +327,8 @@ private fun WidgetPreview(config: ClockWidgetConfig, weather: WidgetWeather?, on
         Modifier
             .glow(Color.Black.copy(alpha = 0.5f), shape, radius = 24.dp, offsetY = 12.dp)
             .fillMaxWidth()
-            .height(132.dp)
+            // A 4x1 cell for the line; roughly 4x2 for the stack.
+            .height(if (config.layout == WidgetLayout.VERTICAL) 200.dp else 132.dp)
             .clip(shape)
             .background(
                 Brush.linearGradient(listOf(Color(0xFF2B3A55), Color(0xFF1B1F2B), Color(0xFF3A2B45)))
@@ -323,8 +347,16 @@ private fun WidgetPreview(config: ClockWidgetConfig, weather: WidgetWeather?, on
             update = { frame ->
                 val ctx = frame.context
                 val views = ClockWidgetRenderer.build(ctx, config, weather, now, withClicks = false)
+                val layout = ClockWidgetRenderer.layoutFor(config)
                 val child = frame.getChildAt(0)
-                if (child == null) frame.addView(views.apply(ctx, frame)) else views.reapply(ctx, child)
+                // reapply() needs the same layout; a layout switch inflates afresh.
+                if (child == null || frame.tag != layout) {
+                    frame.removeAllViews()
+                    frame.addView(views.apply(ctx, frame))
+                    frame.tag = layout
+                } else {
+                    views.reapply(ctx, child)
+                }
                 WidgetPart.entries.forEach { part ->
                     ClockWidgetRenderer.partViews(part).forEach { id ->
                         frame.findViewById<View>(id)?.setOnClickListener { latestClick(part) }
@@ -403,6 +435,27 @@ private fun WeatherSection(uiState: WidgetCustomizeUiState, onIntent: (WidgetCus
             }
             if (config.showWeather) {
                 ObDivider(Modifier.padding(vertical = 12.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Update every", style = type.labelStrong, color = colors.textPrimary, modifier = Modifier.weight(1f))
+                        PillButton(
+                            text = if (uiState.weatherRefreshing) "Updating…" else "Update now",
+                            containerColor = colors.accentContainerStrong,
+                            contentColor = colors.accentLight,
+                            onClick = { onIntent(WidgetCustomizeIntent.RefreshWeather) }
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        WeatherInterval.entries.forEach { interval ->
+                            ChoicePill(
+                                text = interval.displayName,
+                                selected = interval == config.weatherInterval,
+                                onClick = { onIntent(WidgetCustomizeIntent.SetWeatherInterval(interval)) }
+                            )
+                        }
+                    }
+                }
+                ObDivider(Modifier.padding(vertical = 12.dp))
                 Row(
                     Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -423,8 +476,8 @@ private fun WeatherSection(uiState: WidgetCustomizeUiState, onIntent: (WidgetCus
                     "Weather comes from OpenWeather (openweathermap.org) with your own API key, which " +
                         "stays on this phone and is never backed up. "
             } + "Only the city you search for and its coordinates leave your phone — Alarmzy never " +
-                "reads your location. Updates about every 30 minutes while the screen is on; if an " +
-                "update fails, the last reading stays.",
+                "reads your location. Weather updates on your chosen interval while the screen is on " +
+                "(never waking the phone); if an update fails, the last reading stays.",
             style = type.body,
             color = colors.textSecondary,
             modifier = Modifier.padding(horizontal = 4.dp)

@@ -14,8 +14,10 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.redfox.alarmzy.domain.model.ClockWidgetConfig
 import dev.redfox.alarmzy.domain.model.WeatherCity
+import dev.redfox.alarmzy.domain.model.WeatherInterval
 import dev.redfox.alarmzy.domain.model.WeatherProvider
 import dev.redfox.alarmzy.domain.model.WidgetHorizontalAlign
+import dev.redfox.alarmzy.domain.model.WidgetLayout
 import dev.redfox.alarmzy.domain.model.WidgetVerticalAlign
 import dev.redfox.alarmzy.domain.model.WidgetWeather
 import kotlinx.coroutines.Dispatchers
@@ -84,7 +86,7 @@ class ClockWidgetStore @Inject constructor(
         val cached = prefs.toWeather()?.takeIf { it.isFor(city) }
         val now = System.currentTimeMillis()
         if (!force) {
-            if (cached != null && now - cached.fetchedAtMillis < STALE_AFTER_MILLIS) return true
+            if (cached != null && now - cached.fetchedAtMillis < config.weatherInterval.millis) return true
             if (now - (prefs[KEY_WEATHER_ATTEMPT_AT] ?: 0L) < RETRY_AFTER_MILLIS) return true
         }
         dataStore.edit { it[KEY_WEATHER_ATTEMPT_AT] = now }
@@ -108,6 +110,9 @@ class ClockWidgetStore @Inject constructor(
 
     private fun Preferences.toConfig() = ClockWidgetConfig(
         scale = this[KEY_SCALE] ?: ClockWidgetConfig.DEFAULT_SCALE,
+        layout = this[KEY_LAYOUT]
+            ?.let { name -> WidgetLayout.entries.firstOrNull { it.name == name } }
+            ?: WidgetLayout.HORIZONTAL,
         horizontalAlign = this[KEY_H_ALIGN]
             ?.let { name -> WidgetHorizontalAlign.entries.firstOrNull { it.name == name } }
             ?: WidgetHorizontalAlign.CENTER,
@@ -119,6 +124,9 @@ class ClockWidgetStore @Inject constructor(
         showWeather = this[KEY_SHOW_WEATHER] ?: false,
         weatherCity = toCity(),
         useFahrenheit = this[KEY_FAHRENHEIT] ?: false,
+        weatherInterval = this[KEY_INTERVAL]
+            ?.let { name -> WeatherInterval.entries.firstOrNull { it.name == name } }
+            ?: WeatherInterval.MIN_30,
         weatherProvider = this[KEY_PROVIDER]
             ?.let { name -> WeatherProvider.entries.firstOrNull { it.name == name } }
             ?: WeatherProvider.OPEN_METEO,
@@ -156,6 +164,7 @@ class ClockWidgetStore @Inject constructor(
 
     private fun MutablePreferences.write(config: ClockWidgetConfig) {
         this[KEY_SCALE] = config.scale
+        this[KEY_LAYOUT] = config.layout.name
         this[KEY_H_ALIGN] = config.horizontalAlign.name
         this[KEY_V_ALIGN] = config.verticalAlign.name
         this[KEY_24_HOUR] = config.use24Hour
@@ -163,6 +172,7 @@ class ClockWidgetStore @Inject constructor(
         this[KEY_SHOW_WEATHER] = config.showWeather
         this[KEY_FAHRENHEIT] = config.useFahrenheit
         this[KEY_PROVIDER] = config.weatherProvider.name
+        this[KEY_INTERVAL] = config.weatherInterval.name
         val city = config.weatherCity
         if (city == null) {
             listOf(KEY_CITY_NAME, KEY_CITY_DETAIL).forEach { remove(it) }
@@ -194,12 +204,11 @@ class ClockWidgetStore @Inject constructor(
     }
 
     companion object {
-        /** Open-Meteo's current values update every 15 minutes; 30 is plenty for a glance. */
-        const val STALE_AFTER_MILLIS = 30 * 60_000L
         const val RETRY_AFTER_MILLIS = 5 * 60_000L
         private const val FETCH_TIMEOUT_MILLIS = 8_000L
 
         private val KEY_SCALE = floatPreferencesKey("widget_scale")
+        private val KEY_LAYOUT = stringPreferencesKey("widget_layout")
         private val KEY_H_ALIGN = stringPreferencesKey("widget_h_align")
         private val KEY_V_ALIGN = stringPreferencesKey("widget_v_align")
         private val KEY_24_HOUR = booleanPreferencesKey("widget_24_hour")
@@ -207,6 +216,7 @@ class ClockWidgetStore @Inject constructor(
         private val KEY_SHOW_WEATHER = booleanPreferencesKey("widget_show_weather")
         private val KEY_FAHRENHEIT = booleanPreferencesKey("widget_fahrenheit")
         private val KEY_PROVIDER = stringPreferencesKey("widget_weather_provider")
+        private val KEY_INTERVAL = stringPreferencesKey("widget_weather_interval")
         private val KEY_CITY_NAME = stringPreferencesKey("widget_city_name")
         private val KEY_CITY_DETAIL = stringPreferencesKey("widget_city_detail")
         private val KEY_CITY_LAT = doublePreferencesKey("widget_city_lat")

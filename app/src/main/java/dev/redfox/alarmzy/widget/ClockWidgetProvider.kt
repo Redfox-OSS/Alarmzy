@@ -49,7 +49,7 @@ class ClockWidgetProvider : AppWidgetProvider() {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             try {
                 store.refreshWidgets()
-                // Throttled inside: a fetch at most every 30 min (5 min after a failure). Ticks only
+                // Throttled inside: a fetch at most once per the chosen interval (5 min after a failure). Ticks only
                 // arrive while the screen is on, so weather never wakes the phone.
                 store.refreshWeather()
             } finally {

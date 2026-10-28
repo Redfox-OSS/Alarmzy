@@ -16,11 +16,13 @@ import android.view.Gravity
 import android.view.View
 import android.widget.RemoteViews
 import androidx.annotation.DrawableRes
+import androidx.annotation.LayoutRes
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.createBitmap
 import dev.redfox.alarmzy.R
 import dev.redfox.alarmzy.domain.model.ClockWidgetConfig
 import dev.redfox.alarmzy.domain.model.WidgetHorizontalAlign
+import dev.redfox.alarmzy.domain.model.WidgetLayout
 import dev.redfox.alarmzy.domain.model.WidgetPart
 import dev.redfox.alarmzy.domain.model.WidgetVerticalAlign
 import dev.redfox.alarmzy.domain.model.WeatherCondition
@@ -62,6 +64,8 @@ object ClockWidgetRenderer {
      * thickens by the same factor and the glyphs switch to their stroke-3 (vs 2) variants.
      */
     private const val BOLD_STROKE_SCALE = 1.52f
+    /** Vertical layout: extra space between stacked lines, on top of each line's own box. */
+    private const val STACK_GAP_EM = 0.4f
     /** KWGT's small degree is Be Vietnam Pro's ring "˚", nudged down to sit level with the caps. */
     private const val DEGREE = "\u02DA"
     private const val DEGREE_DROP_EM = 0.065f
@@ -84,7 +88,8 @@ object ClockWidgetRenderer {
         now: ZonedDateTime = ZonedDateTime.now(),
         withClicks: Boolean = true
     ): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.widget_clock)
+        val stacked = config.layout == WidgetLayout.VERTICAL
+        val views = RemoteViews(context.packageName, layoutFor(config))
         val metrics = context.resources.displayMetrics
         val textSp = BASE_TEXT_SP * config.scale.coerceIn(ClockWidgetConfig.MIN_SCALE, ClockWidgetConfig.MAX_SCALE)
         val textPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, textSp, metrics)
@@ -95,19 +100,26 @@ object ClockWidgetRenderer {
         val time = DateTimeFormatter.ofPattern(if (config.use24Hour) "HH:mm" else "h:mm", locale).format(now)
         val line = LineBox(text, metrics.densityDpi, strokeScale = if (config.bold) BOLD_STROKE_SCALE else 1f)
         views.setImageViewBitmap(R.id.widget_date, line.text(date, text))
-        views.setImageViewBitmap(R.id.widget_sep_date, line.separator(text))
+        // Dividers only exist in the single-line layout.
+        if (!stacked) views.setImageViewBitmap(R.id.widget_sep_date, line.separator(text))
         views.setImageViewBitmap(R.id.widget_time, line.text(time, text))
         views.setContentDescription(R.id.widget_date, DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale).format(now))
         views.setContentDescription(R.id.widget_time, DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).format(now))
 
         views.setInt(R.id.widget_root, "setGravity", gravityOf(config))
+        if (stacked) {
+            val gap = STACK_GAP_EM * textPx
+            listOf(R.id.widget_time, R.id.widget_weather).forEach {
+                views.setViewLayoutMargin(it, RemoteViews.MARGIN_TOP, gap, TypedValue.COMPLEX_UNIT_PX)
+            }
+        }
 
         // Weather needs a city; until the first reading arrives it shows "--°".
         val showWeather = config.showWeather && config.weatherCity != null
         views.setViewVisibility(R.id.widget_weather, if (showWeather) View.VISIBLE else View.GONE)
         if (showWeather) {
             val temperature = weather?.temperature(config.useFahrenheit)?.toString() ?: "--"
-            views.setImageViewBitmap(R.id.widget_sep_weather, line.separator(text))
+            if (!stacked) views.setImageViewBitmap(R.id.widget_sep_weather, line.separator(text))
             views.setImageViewBitmap(
                 R.id.widget_temp,
                 line.temperature(temperature, text, weather?.let { context.getDrawable(iconFor(it, config.bold)) })
@@ -131,6 +143,13 @@ object ClockWidgetRenderer {
             }
         }
         return views
+    }
+
+    /** The layout [build] inflates; the in-app preview re-inflates when it changes. */
+    @LayoutRes
+    fun layoutFor(config: ClockWidgetConfig): Int = when (config.layout) {
+        WidgetLayout.HORIZONTAL -> R.layout.widget_clock
+        WidgetLayout.VERTICAL -> R.layout.widget_clock_vertical
     }
 
     fun widgetIds(context: Context): IntArray =
